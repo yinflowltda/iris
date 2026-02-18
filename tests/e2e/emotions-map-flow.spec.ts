@@ -43,15 +43,18 @@ test.describe('Emotions Map flow', () => {
 		const overlay = page.locator('.template-chooser-overlay')
 		await expect(overlay).toHaveAttribute('data-visible', 'false')
 
-		// Refresh
+		// Wait for the progress indicator to confirm the mandala was created,
+		// then allow time for TLDraw to flush to IndexedDB.
+		const progress = page.locator('[data-testid="progress-indicator"]')
+		await expect(progress).toBeVisible({ timeout: 10000 })
+		await page.waitForTimeout(2000)
+
+		// Refresh and wait for TLDraw to restore persisted shapes
 		await page.reload()
 		await page.waitForLoadState('networkidle')
 
-		// Template chooser should remain hidden because mandala is persisted
+		// The progress indicator reappearing means the session was resumed
+		await expect(progress).toBeVisible({ timeout: 15000 })
 		await expect(overlay).toHaveAttribute('data-visible', 'false')
-
-		// Progress indicator should be visible
-		const progress = page.locator('[data-testid="progress-indicator"]')
-		await expect(progress).toBeVisible()
 	})
 })
