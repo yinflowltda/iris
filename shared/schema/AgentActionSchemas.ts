@@ -372,6 +372,60 @@ export const UpdateAction = z
 	})
 
 export type UpdateAction = z.infer<typeof UpdateAction>
+
+// Fill Cell Action (mandala-specific)
+export const FillCellAction = z
+	.object({
+		_type: z.literal('fill_cell'),
+		intent: z.string(),
+		mandalaId: SimpleShapeIdSchema,
+		cellId: z.string(),
+		content: z.string(),
+	})
+	.meta({
+		title: 'Fill Cell',
+		description:
+			'The AI fills a mandala cell with content. The cellId uses the format "sliceId-ringId", e.g. "present-emotions". The content is the text to place inside the cell.',
+		_systemPromptCategory: 'edit',
+	})
+
+export type FillCellAction = z.infer<typeof FillCellAction>
+
+// Highlight Cell Action (mandala-specific)
+export const HighlightCellAction = z
+	.object({
+		_type: z.literal('highlight_cell'),
+		intent: z.string(),
+		mandalaId: SimpleShapeIdSchema,
+		cellId: z.string(),
+		color: FocusedColor,
+	})
+	.meta({
+		title: 'Highlight Cell',
+		description:
+			'The AI highlights a mandala cell with a specific color to draw attention to it. The cellId uses the format "sliceId-ringId", e.g. "past-beliefs".',
+		_systemPromptCategory: 'edit',
+	})
+
+export type HighlightCellAction = z.infer<typeof HighlightCellAction>
+
+// Detect Conflict Action (mandala-specific)
+export const DetectConflictAction = z
+	.object({
+		_type: z.literal('detect_conflict'),
+		intent: z.string(),
+		mandalaId: SimpleShapeIdSchema,
+		cellIds: z.array(z.string()),
+		description: z.string(),
+	})
+	.meta({
+		title: 'Detect Conflict',
+		description:
+			'The AI detects a conflict or contradiction between two or more mandala cells. The cellIds list the cells involved, and the description explains the nature of the conflict.',
+	})
+
+export type DetectConflictAction = z.infer<typeof DetectConflictAction>
+
 // Unknown Action (catch-all for unrecognized actions)
 export const UnknownAction = z
 	.object({

@@ -10,7 +10,11 @@ import { CountryInfoActionUtil } from '../actions/CountryInfoActionUtil'
 import { CountShapesActionUtil } from '../actions/CountShapesActionUtil'
 import { CreateActionUtil } from '../actions/CreateActionUtil'
 import { DeleteActionUtil } from '../actions/DeleteActionUtil'
+// Mandala-specific action utils
+import { DetectConflictActionUtil } from '../actions/DetectConflictActionUtil'
 import { DistributeActionUtil } from '../actions/DistributeActionUtil'
+import { FillCellActionUtil } from '../actions/FillCellActionUtil'
+import { HighlightCellActionUtil } from '../actions/HighlightCellActionUtil'
 import { LabelActionUtil } from '../actions/LabelActionUtil'
 import { MessageActionUtil } from '../actions/MessageActionUtil'
 import { MoveActionUtil } from '../actions/MoveActionUtil'
@@ -142,6 +146,80 @@ export const AGENT_MODE_DEFINITIONS = [
 			AddDetailActionUtil.type,
 			UpsertTodoListItemActionUtil.type,
 			SetMyViewActionUtil.type,
+
+			// Individual shapes
+			CreateActionUtil.type,
+			DeleteActionUtil.type,
+			UpdateActionUtil.type,
+			LabelActionUtil.type,
+			MoveActionUtil.type,
+
+			// Groups of shapes
+			PlaceActionUtil.type,
+			BringToFrontActionUtil.type,
+			SendToBackActionUtil.type,
+			RotateActionUtil.type,
+			ResizeActionUtil.type,
+			AlignActionUtil.type,
+			DistributeActionUtil.type,
+			StackActionUtil.type,
+			ClearActionUtil.type,
+
+			// Drawing
+			PenActionUtil.type,
+
+			// External APIs
+			CountryInfoActionUtil.type,
+			CountShapesActionUtil.type,
+
+			// Mandala-specific actions
+			FillCellActionUtil.type,
+			HighlightCellActionUtil.type,
+			DetectConflictActionUtil.type,
+
+			// Internal (required)
+			UnknownActionUtil.type,
+		],
+	},
+	{
+		type: 'emotions-map',
+		active: true,
+
+		parts: [
+			ModePartUtil.type,
+			DebugPartUtil.type,
+			ModelNamePartUtil.type,
+			MessagesPartUtil.type,
+			DataPartUtil.type,
+			ContextItemsPartUtil.type,
+			ScreenshotPartUtil.type,
+			UserViewportBoundsPartUtil.type,
+			AgentViewportBoundsPartUtil.type,
+			BlurryShapesPartUtil.type,
+			PeripheralShapesPartUtil.type,
+			SelectedShapesPartUtil.type,
+			ChatHistoryPartUtil.type,
+			UserActionHistoryPartUtil.type,
+			TodoListPartUtil.type,
+			CanvasLintsPartUtil.type,
+			TimePartUtil.type,
+		],
+
+		actions: [
+			// Communication
+			MessageActionUtil.type,
+
+			// Planning
+			ThinkActionUtil.type,
+			ReviewActionUtil.type,
+			AddDetailActionUtil.type,
+			UpsertTodoListItemActionUtil.type,
+			SetMyViewActionUtil.type,
+
+			// Mandala-specific actions
+			FillCellActionUtil.type,
+			HighlightCellActionUtil.type,
+			DetectConflictActionUtil.type,
 
 			// Individual shapes
 			CreateActionUtil.type,
