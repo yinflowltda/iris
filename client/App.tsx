@@ -1,13 +1,16 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
 	DefaultSizeStyle,
 	ErrorBoundary,
+	react,
 	type TLComponents,
 	type TLUiOverrides,
 	Tldraw,
 	TldrawOverlays,
 	TldrawUiToastsProvider,
 } from 'tldraw'
+import type { CellId, MandalaState } from '../shared/types/MandalaTypes'
+import { RING_IDS, SLICE_IDS } from '../shared/types/MandalaTypes'
 import type { TldrawAgentApp } from './agent/TldrawAgentApp'
 import {
 	TldrawAgentAppContextProvider,
@@ -18,12 +21,13 @@ import { ChatPanelFallback } from './components/ChatPanelFallback'
 import { CustomHelperButtons } from './components/CustomHelperButtons'
 import { AgentViewportBoundsHighlights } from './components/highlights/AgentViewportBoundsHighlights'
 import { AllContextHighlights } from './components/highlights/ContextHighlights'
+import { ProgressIndicator } from './components/ProgressIndicator'
+import { TemplateChooser } from './components/TemplateChooser'
 import { MandalaShapeTool } from './shapes/MandalaShapeTool'
-import { MandalaShapeUtil } from './shapes/MandalaShapeUtil'
+import { type MandalaShape, MandalaShapeUtil } from './shapes/MandalaShapeUtil'
 import { TargetAreaTool } from './tools/TargetAreaTool'
 import { TargetShapeTool } from './tools/TargetShapeTool'
 
-// Customize tldraw's styles to play to the agent's strengths
 DefaultSizeStyle.setDefaultValue('s')
 
 const shapeUtils = [MandalaShapeUtil]
@@ -54,15 +58,133 @@ const overrides: TLUiOverrides = {
 	},
 }
 
+const TOTAL_CELLS = SLICE_IDS.length * RING_IDS.length
+
+function makeEmptyMandalaState(): MandalaState {
+	const state = {} as MandalaState
+	for (const slice of SLICE_IDS) {
+		for (const ring of RING_IDS) {
+			state[`${slice}-${ring}`] = { status: 'empty', contentShapeIds: [] }
+		}
+	}
+	return state
+}
+
+function countFilledCells(state: MandalaState): number {
+	let count = 0
+	for (const key of Object.keys(state)) {
+		if (state[key as CellId]?.status === 'filled') count++
+	}
+	return count
+}
+
 function App() {
 	const [app, setApp] = useState<TldrawAgentApp | null>(null)
+	const [showTemplate, setShowTemplate] = useState(true)
+	const [filledCells, setFilledCells] = useState(0)
 
 	const handleUnmount = useCallback(() => {
 		setApp(null)
 	}, [])
 
-	// Custom components to visualize what the agent is doing
-	// These use TldrawAgentAppContextProvider to access the app/agent
+	// Session resume + reactive progress tracking
+	useEffect(() => {
+		if (!app) return
+
+		// Session resume: if mandala already exists, switch to emotions-map mode
+		const existing = app.editor.getCurrentPageShapes().find((s) => s.type === 'mandala') as
+			| MandalaShape
+			| undefined
+		if (existing) {
+			setShowTemplate(false)
+			try {
+				const agent = app.agents.getAgent()
+				if (agent && agent.mode.getCurrentModeType() !== 'emotions-map') {
+					agent.mode.setMode('emotions-map')
+				}
+			} catch {
+				// mode switch may fail if already in that mode
+			}
+		}
+
+		// Reactive tracking: re-runs when shapes change on the page
+		const cleanup = react('mandala-progress', () => {
+			const shapes = app.editor.getCurrentPageShapes()
+			const mandalaRef = shapes.find((s) => s.type === 'mandala')
+
+			if (mandalaRef) {
+				const m = app.editor.getShape(mandalaRef.id) as MandalaShape | undefined
+				if (m) {
+					setShowTemplate(false)
+					setFilledCells(countFilledCells(m.props.state))
+					return
+				}
+			}
+
+			setFilledCells(0)
+		})
+
+		return cleanup
+	}, [app])
+
+	const handleSelectTemplate = useCallback(
+		(frameworkId: string) => {
+			if (!app || frameworkId !== 'emotions-map') return
+
+			const editor = app.editor
+			const viewport = editor.getViewportPageBounds()
+			const size = 600
+
+			editor.createShape({
+				type: 'mandala',
+				x: viewport.x + viewport.w / 2 - size / 2,
+				y: viewport.y + viewport.h / 2 - size / 2,
+				props: { w: size, h: size, state: makeEmptyMandalaState() },
+			})
+
+			try {
+				const agent = app.agents.getAgent()
+				if (agent && agent.mode.getCurrentModeType() !== 'emotions-map') {
+					agent.mode.setMode('emotions-map')
+				}
+			} catch {
+				// ignore
+			}
+
+			setShowTemplate(false)
+		},
+		[app],
+	)
+
+	const handleExport = useCallback(async () => {
+		if (!app) return
+
+		const editor = app.editor
+		const mandala = editor.getCurrentPageShapes().find((s) => s.type === 'mandala') as
+			| MandalaShape
+			| undefined
+		if (!mandala) return
+
+		try {
+			const result = await editor.toImage([mandala], {
+				format: 'png',
+				background: true,
+				padding: 32,
+			})
+
+			const url = URL.createObjectURL(result.blob)
+			const a = document.createElement('a')
+			a.href = url
+			a.download = 'emotions-map.png'
+			document.body.appendChild(a)
+			a.click()
+			document.body.removeChild(a)
+			URL.revokeObjectURL(url)
+		} catch (e) {
+			console.error('Export failed:', e)
+		}
+	}, [app])
+
 	const components: TLComponents = useMemo(() => {
 		return {
 			HelperButtons: () =>
@@ -106,6 +228,14 @@ function App() {
 						</TldrawAgentAppContextProvider>
 					)}
 				</ErrorBoundary>
+				<TemplateChooser visible={showTemplate} onSelectTemplate={handleSelectTemplate} />
+				{!showTemplate && (
+					<ProgressIndicator
+						filledCells={filledCells}
+						totalCells={TOTAL_CELLS}
+						onExport={handleExport}
+					/>
+				)}
 			</div>
 		</TldrawUiToastsProvider>
 	)
