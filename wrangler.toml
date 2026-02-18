@@ -1,14 +1,17 @@
-name = "agent-template"
+name = "iris"
 main = "worker/worker.ts"
 compatibility_date = "2024-12-30"
 assets = { not_found_handling = "single-page-application" }
 preview_urls = true
 
+[ai]
+binding = "AI"
+
 [observability]
 enabled = true
 
 [[routes]]
-pattern = "agent.templates.tldraw.dev"
+pattern = "iris.yinflow.life"
 custom_domain = true
 
 # Set up the durable object used for each tldraw room

@@ -28,9 +28,9 @@ describe('mock AI provider', () => {
 	})
 
 	describe('createMockModel', () => {
-		it('creates a valid MockLanguageModelV2 instance', () => {
+		it('creates a valid MockLanguageModelV3 instance', () => {
 			const model = createMockModel()
-			expect(model.specificationVersion).toBe('v2')
+			expect(model.specificationVersion).toBe('v3')
 			expect(model.provider).toBe('mock')
 			expect(model.modelId).toBe('mock-model')
 		})
@@ -43,7 +43,7 @@ describe('mock AI provider', () => {
 			)
 			expect(textContent).toBeDefined()
 			expect(textContent!.text).toContain('message')
-			expect(result.finishReason).toBe('stop')
+			expect(result.finishReason).toEqual({ unified: 'stop', raw: 'stop' })
 		})
 
 		it('creates model with emotions map content when input matches', () => {
