@@ -1,4 +1,4 @@
-import { MockLanguageModelV2 } from 'ai/test'
+import { MockLanguageModelV3 } from 'ai/test'
 
 interface MockResponse {
 	actions: Array<Record<string, unknown>>
@@ -66,17 +66,20 @@ export function getResponseForInput(input: string): MockResponse {
 	return DEFAULT_RESPONSE
 }
 
-export function createMockModel(input?: string): MockLanguageModelV2 {
+export function createMockModel(input?: string): MockLanguageModelV3 {
 	const response = getResponseForInput(input ?? '')
 	const jsonText = JSON.stringify(response.actions)
 
-	return new MockLanguageModelV2({
+	return new MockLanguageModelV3({
 		provider: 'mock',
 		modelId: 'mock-model',
 		doGenerate: {
 			content: [{ type: 'text', text: jsonText }],
-			finishReason: 'stop',
-			usage: { inputTokens: 100, outputTokens: 50, totalTokens: 150 },
+			finishReason: { unified: 'stop', raw: 'stop' },
+			usage: {
+				inputTokens: { total: 100, noCache: 100, cacheRead: undefined, cacheWrite: undefined },
+				outputTokens: { total: 50, text: 50, reasoning: undefined },
+			},
 			warnings: [],
 		},
 	})
