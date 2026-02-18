@@ -18,14 +18,16 @@ import { ChatPanelFallback } from './components/ChatPanelFallback'
 import { CustomHelperButtons } from './components/CustomHelperButtons'
 import { AgentViewportBoundsHighlights } from './components/highlights/AgentViewportBoundsHighlights'
 import { AllContextHighlights } from './components/highlights/ContextHighlights'
+import { MandalaShapeTool } from './shapes/MandalaShapeTool'
+import { MandalaShapeUtil } from './shapes/MandalaShapeUtil'
 import { TargetAreaTool } from './tools/TargetAreaTool'
 import { TargetShapeTool } from './tools/TargetShapeTool'
 
 // Customize tldraw's styles to play to the agent's strengths
 DefaultSizeStyle.setDefaultValue('s')
 
-// Custom tools for picking context items
-const tools = [TargetShapeTool, TargetAreaTool]
+const shapeUtils = [MandalaShapeUtil]
+const tools = [MandalaShapeTool, TargetShapeTool, TargetAreaTool]
 const overrides: TLUiOverrides = {
 	tools: (editor, tools) => {
 		return {
@@ -89,6 +91,7 @@ function App() {
 				<div className="tldraw-canvas">
 					<Tldraw
 						persistenceKey="tldraw-agent-demo"
+						shapeUtils={shapeUtils}
 						tools={tools}
 						overrides={overrides}
 						components={components}
