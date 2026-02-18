@@ -1,0 +1,202 @@
+.template-chooser-overlay {
+	position: fixed;
+	inset: 0;
+	z-index: 999999;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background-color: rgba(0, 0, 0, 0.6);
+	backdrop-filter: blur(8px);
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 0.25s ease;
+}
+
+.template-chooser-overlay[data-visible="true"] {
+	opacity: 1;
+	pointer-events: auto;
+}
+
+.template-chooser {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 32px;
+	max-width: 720px;
+	width: 100%;
+	padding: 48px 24px;
+	transform: translateY(12px) scale(0.97);
+	transition: transform 0.3s ease;
+}
+
+.template-chooser-overlay[data-visible="true"] .template-chooser {
+	transform: translateY(0) scale(1);
+}
+
+.template-chooser-header {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 8px;
+	text-align: center;
+}
+
+.template-chooser-title {
+	margin: 0;
+	font-family: "Inter", sans-serif;
+	font-size: 28px;
+	font-weight: 700;
+	color: #fff;
+	letter-spacing: -0.02em;
+}
+
+.template-chooser-subtitle {
+	margin: 0;
+	font-family: "Inter", sans-serif;
+	font-size: 14px;
+	font-weight: 400;
+	color: rgba(255, 255, 255, 0.55);
+	line-height: 1.5;
+}
+
+.template-chooser-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+	gap: 16px;
+	width: 100%;
+}
+
+@media (max-width: 520px) {
+	.template-chooser-grid {
+		grid-template-columns: 1fr;
+	}
+}
+
+/* ---- Card base ---- */
+
+.template-card {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+	padding: 24px;
+	border-radius: 16px;
+	border: 1px solid rgba(255, 255, 255, 0.08);
+	background: rgba(255, 255, 255, 0.04);
+	cursor: default;
+	transition:
+		border-color 0.2s ease,
+		background 0.2s ease,
+		box-shadow 0.2s ease;
+}
+
+.template-card-icon {
+	width: 48px;
+	height: 48px;
+	border-radius: 12px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 24px;
+	flex-shrink: 0;
+}
+
+.template-card-body {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.template-card-name {
+	margin: 0;
+	font-family: "Inter", sans-serif;
+	font-size: 15px;
+	font-weight: 600;
+	color: #fff;
+}
+
+.template-card-description {
+	margin: 0;
+	font-family: "Inter", sans-serif;
+	font-size: 12px;
+	font-weight: 400;
+	color: rgba(255, 255, 255, 0.5);
+	line-height: 1.5;
+}
+
+/* ---- Active card ---- */
+
+.template-card--active {
+	border-color: hsl(214, 84%, 56%);
+	background: rgba(56, 132, 244, 0.08);
+	cursor: pointer;
+}
+
+.template-card--active:hover {
+	border-color: hsl(214, 84%, 64%);
+	background: rgba(56, 132, 244, 0.14);
+	box-shadow: 0 0 24px rgba(56, 132, 244, 0.12);
+}
+
+.template-card--active .template-card-icon {
+	background: hsl(214, 84%, 56%);
+	color: #fff;
+}
+
+/* ---- Disabled card ---- */
+
+.template-card--disabled {
+	opacity: 0.45;
+}
+
+.template-card--disabled .template-card-icon {
+	background: rgba(255, 255, 255, 0.06);
+	color: rgba(255, 255, 255, 0.3);
+}
+
+/* ---- Card badge ---- */
+
+.template-card-badge {
+	position: absolute;
+	top: 12px;
+	right: 12px;
+	font-family: "Inter", sans-serif;
+	font-size: 10px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	padding: 2px 8px;
+	border-radius: 6px;
+}
+
+.template-card-badge--soon {
+	background: rgba(255, 255, 255, 0.08);
+	color: rgba(255, 255, 255, 0.4);
+}
+
+/* ---- Start button ---- */
+
+.template-card-start {
+	appearance: none;
+	border: 0;
+	font-family: "Inter", sans-serif;
+	font-size: 13px;
+	font-weight: 600;
+	padding: 10px 0;
+	border-radius: 10px;
+	background: hsl(214, 84%, 56%);
+	color: #fff;
+	cursor: pointer;
+	transition:
+		background 0.15s ease,
+		transform 0.1s ease;
+	width: 100%;
+}
+
+.template-card-start:hover {
+	background: hsl(214, 84%, 50%);
+}
+
+.template-card-start:active {
+	transform: scale(0.98);
+}
