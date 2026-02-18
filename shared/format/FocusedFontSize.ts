@@ -36,7 +36,7 @@ export function convertFocusedFontSizeToTldrawFontSizeAndScale(targetFontSize: n
  */
 export function convertTldrawFontSizeAndScaleToFocusedFontSize(
 	textSize: keyof typeof FONT_SIZES,
-	scale: number
+	scale: number,
 ) {
 	return Math.round(FONT_SIZES[textSize] * scale)
 }

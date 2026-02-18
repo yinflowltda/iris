@@ -1,6 +1,6 @@
-import { Atom, atom, Box, structuredClone, Vec } from 'tldraw'
-import { FocusedShape } from '../../../shared/format/FocusedShape'
-import {
+import { type Atom, atom, Box, structuredClone, Vec } from 'tldraw'
+import type { FocusedShape } from '../../../shared/format/FocusedShape'
+import type {
 	AreaContextItem,
 	ContextItem,
 	PointContextItem,
@@ -163,7 +163,7 @@ function areContextItemsEqual(a: ContextItem, b: ContextItem): boolean {
  */
 function dedupeShapesContextItem(
 	item: ShapesContextItem,
-	existingItems: ContextItem[]
+	existingItems: ContextItem[],
 ): ContextItem[] {
 	// Get all shape IDs that are already in the context
 	const existingShapeIds = new Set<string>()

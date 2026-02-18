@@ -1,0 +1,52 @@
+---
+description: Git branching, commit conventions, and parallel agent workflow rules
+alwaysApply: true
+---
+
+# Git Workflow
+
+## Branch Naming
+
+```
+main                               # Production-ready code
+feat/TASK-ID-short-description     # Feature branches (one per Kanban card)
+fix/TASK-ID-short-description      # Bug fix branches
+```
+
+Examples: `feat/P1-cf-workers-ai`, `feat/P2A-mandala-geometry`, `fix/P3-fill-cell-position-bug`
+
+## Commit Messages
+
+Use **Conventional Commits**:
+
+```
+type(scope): short description
+
+Optional body explaining why, not what.
+```
+
+- **Types**: `feat`, `fix`, `test`, `chore`, `refactor`, `docs`
+- **Scopes**: `mandala`, `agent`, `worker`, `ui`, `test`, `config`
+
+Examples:
+- `feat(mandala): add getCellAtPoint geometry function`
+- `test(mandala): unit tests for all 18 cell positions`
+- `chore(config): add Biome linting and verify script`
+
+## Before Every Commit
+
+Run `bun run verify` — it must pass (lint + typecheck + tests).
+
+## Branch Lifecycle
+
+1. Create branch from `main`
+2. Develop — run `bun run verify` before every commit
+3. Open PR to `main` when complete
+4. Squash merge to keep linear history
+5. Delete feature branch after merge
+
+## Parallel Agent Rules
+
+Each task card has a **file ownership zone**. Only touch files in your zone. Shared files (`App.tsx`, `AgentModeDefinitions.ts`, `AgentActionSchemas.ts`) are integration points updated during merge.
+
+**Merge order for shared files**: first to merge wins; subsequent branches rebase and resolve conflicts. Conflicts in registration files are additive (add entries, never remove).

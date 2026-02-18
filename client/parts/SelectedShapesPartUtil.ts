@@ -1,7 +1,7 @@
 import { structuredClone } from 'tldraw'
 import { convertTldrawIdToSimpleId } from '../../shared/format/convertTldrawShapeToFocusedShape'
-import { SelectedShapesPart } from '../../shared/schema/PromptPartDefinitions'
-import { AgentRequest } from '../../shared/types/AgentRequest'
+import type { SelectedShapesPart } from '../../shared/schema/PromptPartDefinitions'
+import type { AgentRequest } from '../../shared/types/AgentRequest'
 import { PromptPartUtil, registerPromptPartUtil } from './PromptPartUtil'
 
 export const SelectedShapesPartUtil = registerPromptPartUtil(
@@ -18,5 +18,5 @@ export const SelectedShapesPartUtil = registerPromptPartUtil(
 				shapeIds: userSelectedShapes.map((shape) => convertTldrawIdToSimpleId(shape.id)),
 			}
 		}
-	}
+	},
 )

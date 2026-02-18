@@ -1,9 +1,12 @@
-import { RecordsDiff, structuredClone, TLRecord } from 'tldraw'
-import { AgentAction } from '../../../shared/types/AgentAction'
-import { ChatHistoryItem } from '../../../shared/types/ChatHistoryItem'
-import { Streaming } from '../../../shared/types/Streaming'
-import { AgentActionUtil, getAgentActionUtilsRecordForMode } from '../../actions/AgentActionUtil'
+import { type RecordsDiff, structuredClone, type TLRecord } from 'tldraw'
+import type { AgentAction } from '../../../shared/types/AgentAction'
+import type { ChatHistoryItem } from '../../../shared/types/ChatHistoryItem'
+import type { Streaming } from '../../../shared/types/Streaming'
 import { AgentHelpers } from '../../AgentHelpers'
+import {
+	type AgentActionUtil,
+	getAgentActionUtilsRecordForMode,
+} from '../../actions/AgentActionUtil'
 import type { TldrawAgent } from '../TldrawAgent'
 import { BaseAgentManager } from './BaseAgentManager'
 
@@ -31,7 +34,7 @@ export class AgentActionManager extends BaseAgentManager {
 		super(agent)
 		this.agentActionUtils = getAgentActionUtilsRecordForMode(
 			this.agent,
-			agent.mode.getCurrentModeType()
+			agent.mode.getCurrentModeType(),
 		)
 		this.unknownActionUtil = this.agentActionUtils.unknown
 	}
@@ -89,7 +92,7 @@ export class AgentActionManager extends BaseAgentManager {
 	 */
 	act(
 		action: Streaming<AgentAction>,
-		helpers: AgentHelpers = new AgentHelpers(this.agent)
+		helpers: AgentHelpers = new AgentHelpers(this.agent),
 	): {
 		diff: RecordsDiff<TLRecord>
 		promise: Promise<void> | null
@@ -128,12 +131,12 @@ export class AgentActionManager extends BaseAgentManager {
 
 				// Find the last EXTERNAL prompt index (ignore prompts from 'self' which are internal state transitions)
 				const lastPromptIndex = historyItems.findLastIndex(
-					(item) => item.type === 'prompt' && item.promptSource !== 'self'
+					(item) => item.type === 'prompt' && item.promptSource !== 'self',
 				)
 
 				// If the last action is still in progress AND it's after the last external prompt, replace it
 				const lastActionHistoryItemIndex = historyItems.findLastIndex(
-					(item) => item.type === 'action'
+					(item) => item.type === 'action',
 				)
 				const lastActionHistoryItem =
 					lastActionHistoryItemIndex !== -1 ? historyItems[lastActionHistoryItemIndex] : null

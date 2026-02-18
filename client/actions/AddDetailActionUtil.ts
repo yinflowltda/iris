@@ -1,5 +1,5 @@
-import { AddDetailAction } from '../../shared/schema/AgentActionSchemas'
-import { Streaming } from '../../shared/types/Streaming'
+import type { AddDetailAction } from '../../shared/schema/AgentActionSchemas'
+import type { Streaming } from '../../shared/types/Streaming'
 import { AgentActionUtil, registerActionUtil } from './AgentActionUtil'
 
 export const AddDetailActionUtil = registerActionUtil(
@@ -21,5 +21,5 @@ export const AddDetailActionUtil = registerActionUtil(
 			if (!action.complete) return
 			this.agent.schedule('Add detail to the canvas.')
 		}
-	}
+	},
 )

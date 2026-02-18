@@ -1,0 +1,74 @@
+---
+description: Testing conventions, Vitest patterns, mock AI provider, and test commands
+globs:
+  - tests/**
+---
+
+# Testing Conventions
+
+## Test Structure
+
+```
+tests/
+├── unit/           # Pure function tests (Vitest)
+├── integration/    # Action + component tests (Vitest)
+├── e2e/            # Full user flow tests (Playwright)
+├── fixtures/       # JSON seed data (mandala states)
+└── mocks/          # Mock AI provider
+```
+
+## Running Tests
+
+```bash
+bun run test       # Vitest unit + integration
+bun run test:e2e   # Playwright E2E
+bun run verify     # Lint + typecheck + all tests (run before EVERY commit)
+```
+
+## Vitest Conventions
+
+- File naming: `*.test.ts` in `tests/unit/` or `tests/integration/`
+- Use `describe` blocks grouped by function/feature
+- Use `it` or `test` with descriptive names in English
+- Test edge cases explicitly (null, boundary values, empty states)
+
+```typescript
+import { describe, expect, it } from 'vitest'
+
+describe('myFunction', () => {
+  it('returns correct value for standard input', () => {
+    expect(myFunction('input')).toBe('expected')
+  })
+
+  it('returns null for out-of-bounds input', () => {
+    expect(myFunction('invalid')).toBeNull()
+  })
+})
+```
+
+## Mock AI Provider
+
+Use `tests/mocks/mock-ai-provider.ts` for integration tests that involve AI responses. It provides deterministic, repeatable outputs without burning Cloudflare credits.
+
+## Fixtures
+
+JSON files in `tests/fixtures/` represent pre-built mandala states:
+- `empty-mandala.json` — fresh mandala, no cells filled
+- `half-filled-mandala.json` — 9/18 cells (for stuck detection)
+- `complete-mandala.json` — 18/18 cells (for completion flow)
+- `contradicting-mandala.json` — cells with contradicting content
+
+Load fixtures with:
+```typescript
+import emptyMandala from '../fixtures/empty-mandala.json'
+```
+
+## Playwright E2E
+
+- File naming: `*.spec.ts` in `tests/e2e/`
+- Tests run against `http://localhost:5173`
+- The dev server starts automatically via `playwright.config.ts`
+
+## Verification
+
+Run `bun run verify` before delivering any changes.

@@ -1,30 +1,30 @@
 import {
-	Box,
+	type Box,
 	createShapeId,
-	Editor,
-	FONT_SIZES,
-	IndexKey,
+	type Editor,
+	type FONT_SIZES,
+	type IndexKey,
 	reverseRecordsDiff,
-	TLArrowShape,
-	TLBindingCreate,
-	TLDefaultShape,
-	TLDrawShape,
-	TLGeoShape,
-	TLGeoShapeGeoStyle,
-	TLLineShape,
-	TLNoteShape,
-	TLShape,
-	TLShapeId,
-	TLTextShape,
+	type TLArrowShape,
+	type TLBindingCreate,
+	type TLDefaultShape,
+	type TLDrawShape,
+	type TLGeoShape,
+	type TLGeoShapeGeoStyle,
+	type TLLineShape,
+	type TLNoteShape,
+	type TLShape,
+	type TLShapeId,
+	type TLTextShape,
 	toRichText,
 	Vec,
-	VecLike,
+	type VecLike,
 } from 'tldraw'
 import { asColor } from './FocusedColor'
 import { convertFocusedFillToTldrawFill } from './FocusedFill'
 import { convertFocusedFontSizeToTldrawFontSizeAndScale } from './FocusedFontSize'
-import { FocusedGeoShapeType } from './FocusedGeoShapeType'
-import {
+import type { FocusedGeoShapeType } from './FocusedGeoShapeType'
+import type {
 	FocusedArrowShape,
 	FocusedDrawShape,
 	FocusedGeoShape,
@@ -48,7 +48,7 @@ import {
 export function convertFocusedShapeToTldrawShape(
 	editor: Editor,
 	focusedShape: FocusedShape,
-	{ defaultShape }: { defaultShape: Partial<TLShape> }
+	{ defaultShape }: { defaultShape: Partial<TLShape> },
 ): { shape: TLShape; bindings?: TLBindingCreate[] } {
 	switch (focusedShape._type) {
 		case 'text': {
@@ -95,22 +95,22 @@ export function convertFocusedShapeToTldrawShape(
 }
 
 export function convertSimpleIdToTldrawId(id: string): TLShapeId {
-	return ('shape:' + id) as TLShapeId
+	return `shape:${id}` as TLShapeId
 }
 
 export function convertFocusedTypeToTldrawType(
-	type: FocusedShape['_type']
+	type: FocusedShape['_type'],
 ): TLGeoShapeGeoStyle | TLDefaultShape['type'] | 'unknown' {
 	if (type in FOCUSED_TO_GEO_TYPES) {
 		return convertFocusedGeoTypeToTldrawGeoGeoType(
-			type as FocusedGeoShapeType
+			type as FocusedGeoShapeType,
 		) as TLGeoShapeGeoStyle
 	}
 	return type as TLDefaultShape['type'] | 'unknown'
 }
 
 export function convertFocusedGeoTypeToTldrawGeoGeoType(
-	type: FocusedGeoShapeType
+	type: FocusedGeoShapeType,
 ): TLGeoShapeGeoStyle {
 	return FOCUSED_TO_GEO_TYPES[type]
 }
@@ -141,7 +141,7 @@ export const FOCUSED_TO_GEO_TYPES: Record<FocusedGeoShapeType, TLGeoShapeGeoStyl
 function convertTextShapeToTldrawShape(
 	editor: Editor,
 	focusedShape: FocusedTextShape,
-	{ defaultShape }: { defaultShape: Partial<TLShape> }
+	{ defaultShape }: { defaultShape: Partial<TLShape> },
 ): { shape: TLTextShape } {
 	const shapeId = convertSimpleIdToTldrawId(focusedShape.shapeId)
 	const defaultTextShape = defaultShape as TLTextShape
@@ -292,7 +292,7 @@ function convertTextShapeToTldrawShape(
 function convertLineShapeToTldrawShape(
 	editor: Editor,
 	focusedShape: FocusedLineShape,
-	{ defaultShape }: { defaultShape: Partial<TLShape> }
+	{ defaultShape }: { defaultShape: Partial<TLShape> },
 ): { shape: TLShape } {
 	const shapeId = convertSimpleIdToTldrawId(focusedShape.shapeId)
 	const defaultLineShape = defaultShape as TLLineShape
@@ -347,7 +347,7 @@ function convertLineShapeToTldrawShape(
 function convertArrowShapeToTldrawShape(
 	editor: Editor,
 	focusedShape: FocusedArrowShape,
-	{ defaultShape }: { defaultShape: Partial<TLShape> }
+	{ defaultShape }: { defaultShape: Partial<TLShape> },
 ): { shape: TLShape; bindings?: TLBindingCreate[] } {
 	const shapeId = convertSimpleIdToTldrawId(focusedShape.shapeId)
 	const defaultArrowShape = defaultShape as TLArrowShape
@@ -459,7 +459,7 @@ function convertArrowShapeToTldrawShape(
 function convertGeoShapeToTldrawShape(
 	editor: Editor,
 	focusedShape: FocusedGeoShape,
-	{ defaultShape }: { defaultShape: Partial<TLShape> }
+	{ defaultShape }: { defaultShape: Partial<TLShape> },
 ): { shape: TLShape } {
 	const shapeId = convertSimpleIdToTldrawId(focusedShape.shapeId)
 	const shapeType = convertFocusedGeoTypeToTldrawGeoGeoType(focusedShape._type)
@@ -524,7 +524,7 @@ function convertGeoShapeToTldrawShape(
 function convertNoteShapeToTldrawShape(
 	editor: Editor,
 	focusedShape: FocusedNoteShape,
-	{ defaultShape }: { defaultShape: Partial<TLShape> }
+	{ defaultShape }: { defaultShape: Partial<TLShape> },
 ): { shape: TLShape } {
 	const shapeId = convertSimpleIdToTldrawId(focusedShape.shapeId)
 
@@ -575,7 +575,7 @@ function convertNoteShapeToTldrawShape(
 function convertDrawShapeToTldrawShape(
 	editor: Editor,
 	focusedShape: FocusedDrawShape,
-	{ defaultShape }: { defaultShape: Partial<TLShape> }
+	{ defaultShape }: { defaultShape: Partial<TLShape> },
 ): { shape: TLShape } {
 	const shapeId = convertSimpleIdToTldrawId(focusedShape.shapeId)
 	const defaultDrawShape = defaultShape as TLDrawShape
@@ -617,7 +617,7 @@ function convertDrawShapeToTldrawShape(
 function convertUnknownShapeToTldrawShape(
 	editor: Editor,
 	focusedShape: FocusedUnknownShape,
-	{ defaultShape }: { defaultShape: Partial<TLShape> }
+	{ defaultShape }: { defaultShape: Partial<TLShape> },
 ): { shape: TLShape } {
 	const shapeId = convertSimpleIdToTldrawId(focusedShape.shapeId)
 
@@ -651,7 +651,7 @@ function convertUnknownShapeToTldrawShape(
 function calculateArrowBindingAnchor(
 	editor: Editor,
 	targetShape: TLShape,
-	targetPoint: VecLike
+	targetPoint: VecLike,
 ): VecLike {
 	const targetShapePageBounds = editor.getShapePageBounds(targetShape)
 	const targetShapeGeometry = editor.getShapeGeometry(targetShape)
@@ -691,7 +691,7 @@ function calculateArrowBindingAnchor(
 	const finalNormalizedAnchor = targetShapeGeometryInPageSpace.hitTestPoint(
 		clampedAnchorInPageSpace,
 		0,
-		true
+		true,
 	)
 		? clampedNormalizedAnchor
 		: { x: 0.5, y: 0.5 } // Fall back to center
@@ -721,7 +721,7 @@ function getDummyBounds(editor: Editor, shape: TLShape): Box {
 				})
 				dummyBounds = editor.getShapePageBounds(dummyId)
 			},
-			{ ignoreShapeLock: false, history: 'ignore' }
+			{ ignoreShapeLock: false, history: 'ignore' },
 		)
 	})
 	const reverseDiff = reverseRecordsDiff(diff)
@@ -746,7 +746,7 @@ function getDummyBounds(editor: Editor, shape: TLShape): Box {
 export function convertPartialFocusedShapeToTldrawShape(
 	editor: Editor,
 	focusedShape: FocusedShapePartial,
-	{ defaultShape, complete }: { defaultShape: Partial<TLShape>; complete: boolean }
+	{ defaultShape, complete }: { defaultShape: Partial<TLShape>; complete: boolean },
 ): { shape: TLShape | null; bindings: TLBindingCreate[] | null; position: VecLike | null } {
 	// For text shapes, require: x, y, text
 	if (focusedShape._type === 'text') {

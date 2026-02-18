@@ -3,11 +3,11 @@ import Markdown from 'react-markdown'
 import { AgentIcon } from '../../../shared/icons/AgentIcon'
 import { ChevronDownIcon } from '../../../shared/icons/ChevronDownIcon'
 import { ChevronRightIcon } from '../../../shared/icons/ChevronRightIcon'
-import { AgentAction } from '../../../shared/types/AgentAction'
-import { ChatHistoryActionItem } from '../../../shared/types/ChatHistoryItem'
-import { Streaming } from '../../../shared/types/Streaming'
+import type { AgentAction } from '../../../shared/types/AgentAction'
+import type { ChatHistoryActionItem } from '../../../shared/types/ChatHistoryItem'
+import type { Streaming } from '../../../shared/types/Streaming'
 import { useAgent } from '../../agent/TldrawAgentAppProvider'
-import { ChatHistoryGroup } from './ChatHistoryGroup'
+import type { ChatHistoryGroup } from './ChatHistoryGroup'
 import { getActionInfo } from './getActionInfo'
 
 export function ChatHistoryGroupWithoutDiff({ group }: { group: ChatHistoryGroup }) {
@@ -42,7 +42,7 @@ export function ChatHistoryGroupWithoutDiff({ group }: { group: ChatHistoryGroup
 		return (
 			<div className="chat-history-group">
 				{nonEmptyItems.map((item, i) => {
-					return <ChatHistoryItem item={item} key={'action-' + i} />
+					return <ChatHistoryItem item={item} key={`action-${i}`} />
 				})}
 			</div>
 		)
@@ -61,7 +61,7 @@ export function ChatHistoryGroupWithoutDiff({ group }: { group: ChatHistoryGroup
 			{showContent && (
 				<div className="agent-actions-container">
 					{nonEmptyItems.map((item, i) => {
-						return <ChatHistoryItemExpanded action={item.action} key={'action-' + i} />
+						return <ChatHistoryItemExpanded action={item.action} key={`action-${i}`} />
 					})}
 				</div>
 			)}

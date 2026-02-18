@@ -1,6 +1,6 @@
 import { Box, FileHelpers } from 'tldraw'
-import { ScreenshotPart } from '../../shared/schema/PromptPartDefinitions'
-import { AgentRequest } from '../../shared/types/AgentRequest'
+import type { ScreenshotPart } from '../../shared/schema/PromptPartDefinitions'
+import type { AgentRequest } from '../../shared/types/AgentRequest'
 import { PromptPartUtil, registerPromptPartUtil } from './PromptPartUtil'
 
 export const ScreenshotPartUtil = registerPromptPartUtil(
@@ -41,5 +41,5 @@ export const ScreenshotPartUtil = registerPromptPartUtil(
 				screenshot: await FileHelpers.blobToDataUrl(result.blob),
 			}
 		}
-	}
+	},
 )

@@ -1,4 +1,4 @@
-import { Box, BoxModel, SVGContainer, useValue } from 'tldraw'
+import { Box, type BoxModel, SVGContainer, useValue } from 'tldraw'
 
 export interface AreaHighlightProps {
 	pageBounds: BoxModel
@@ -31,7 +31,7 @@ export function AreaHighlight({ pageBounds, color, generating, label }: AreaHigh
 				{bounds.sides.map((side, j) => {
 					return (
 						<line
-							key={'context-highlight-side-' + j}
+							key={`context-highlight-side-${j}`}
 							x1={side[0].x - bounds.minX}
 							y1={side[0].y - bounds.minY}
 							x2={side[1].x - bounds.minX}

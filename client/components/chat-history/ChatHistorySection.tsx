@@ -1,5 +1,5 @@
 import { SmallSpinner } from '../../../shared/icons/SmallSpinner'
-import {
+import type {
 	ChatHistoryActionItem,
 	ChatHistoryContinuationItem,
 	ChatHistoryItem,
@@ -28,7 +28,7 @@ export function ChatHistorySection({
 		<div className="chat-history-section">
 			<ChatHistoryPrompt item={section.prompt} editor={agent.editor} />
 			{groups.map((group, i) => {
-				return <ChatHistoryGroup key={'chat-history-group-' + i} group={group} />
+				return <ChatHistoryGroup key={`chat-history-group-${i}`} group={group} />
 			})}
 			{loading && <SmallSpinner />}
 		</div>

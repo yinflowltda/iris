@@ -30,6 +30,6 @@
 		"noImplicitOverride": true
 	},
 	"exclude": ["node_modules"],
-	"include": ["client", "shared", "worker"],
-	"files": ["./vite.config.ts"]
+	"include": ["client", "shared", "worker", "tests"],
+	"files": ["./vite.config.ts", "./vitest.config.ts", "./playwright.config.ts"]
 }

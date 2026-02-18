@@ -1,9 +1,9 @@
-import { b64Vecs, TLDrawShapeSegment, TLShapeId, Vec, VecModel } from 'tldraw'
+import { b64Vecs, type TLDrawShapeSegment, type TLShapeId, Vec, type VecModel } from 'tldraw'
 import { asColor } from '../../shared/format/FocusedColor'
 import { convertFocusedFillToTldrawFill } from '../../shared/format/FocusedFill'
-import { PenAction } from '../../shared/schema/AgentActionSchemas'
-import { Streaming } from '../../shared/types/Streaming'
-import { AgentHelpers } from '../AgentHelpers'
+import type { PenAction } from '../../shared/schema/AgentActionSchemas'
+import type { Streaming } from '../../shared/types/Streaming'
+import type { AgentHelpers } from '../AgentHelpers'
 import { AgentActionUtil, registerActionUtil } from './AgentActionUtil'
 
 export const PenActionUtil = registerActionUtil(
@@ -111,5 +111,5 @@ export const PenActionUtil = registerActionUtil(
 				},
 			})
 		}
-	}
+	},
 )

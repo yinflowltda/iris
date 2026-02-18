@@ -1,5 +1,5 @@
-import { Atom, atom } from 'tldraw'
-import { ChatHistoryItem } from '../../../shared/types/ChatHistoryItem'
+import { type Atom, atom } from 'tldraw'
+import type { ChatHistoryItem } from '../../../shared/types/ChatHistoryItem'
 import type { TldrawAgent } from '../TldrawAgent'
 import { BaseAgentManager } from './BaseAgentManager'
 

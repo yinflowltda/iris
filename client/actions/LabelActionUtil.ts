@@ -1,7 +1,7 @@
-import { TLRichText, TLShape, TLShapeId, toRichText } from 'tldraw'
-import { LabelAction } from '../../shared/schema/AgentActionSchemas'
-import { Streaming } from '../../shared/types/Streaming'
-import { AgentHelpers } from '../AgentHelpers'
+import { type TLRichText, type TLShape, type TLShapeId, toRichText } from 'tldraw'
+import type { LabelAction } from '../../shared/schema/AgentActionSchemas'
+import type { Streaming } from '../../shared/types/Streaming'
+import type { AgentHelpers } from '../AgentHelpers'
 import { AgentActionUtil, registerActionUtil } from './AgentActionUtil'
 
 type ShapeWithRichText = Extract<TLShape, { props: { richText: TLRichText } }>
@@ -11,7 +11,7 @@ function isShapeWithRichText(shape: TLShape | null | undefined): shape is ShapeW
 }
 
 function assertShapeWithRichText(
-	shape: TLShape | null | undefined
+	shape: TLShape | null | undefined,
 ): asserts shape is ShapeWithRichText {
 	if (!isShapeWithRichText(shape)) {
 		throw new Error('Shape is not a valid ShapeWithRichText')
@@ -62,5 +62,5 @@ export const LabelActionUtil = registerActionUtil(
 				props: { richText: toRichText(action.text ?? '') },
 			})
 		}
-	}
+	},
 )

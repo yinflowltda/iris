@@ -1,7 +1,7 @@
-import { TLShapeId } from 'tldraw'
-import { RotateAction } from '../../shared/schema/AgentActionSchemas'
-import { Streaming } from '../../shared/types/Streaming'
-import { AgentHelpers } from '../AgentHelpers'
+import type { TLShapeId } from 'tldraw'
+import type { RotateAction } from '../../shared/schema/AgentActionSchemas'
+import type { Streaming } from '../../shared/types/Streaming'
+import type { AgentHelpers } from '../AgentHelpers'
 import { AgentActionUtil, registerActionUtil } from './AgentActionUtil'
 
 export const RotateActionUtil = registerActionUtil(
@@ -31,5 +31,5 @@ export const RotateActionUtil = registerActionUtil(
 
 			this.editor.rotateShapesBy(shapeIds, radians, { center: origin })
 		}
-	}
+	},
 )

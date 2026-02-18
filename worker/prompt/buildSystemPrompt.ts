@@ -1,6 +1,6 @@
 import { buildResponseSchema } from '../../shared/schema/buildResponseSchema'
 import type { ModePart } from '../../shared/schema/PromptPartDefinitions'
-import { AgentPrompt } from '../../shared/types/AgentPrompt'
+import type { AgentPrompt } from '../../shared/types/AgentPrompt'
 import { getSystemPromptFlags } from './getSystemPromptFlags'
 import { buildIntroPromptSection } from './sections/intro-section'
 import { buildRulesPromptSection } from './sections/rules-section'
@@ -19,7 +19,7 @@ import { buildRulesPromptSection } from './sections/rules-section'
  */
 export function buildSystemPrompt(
 	prompt: AgentPrompt,
-	opts: { withSchema: boolean } = { withSchema: true }
+	opts: { withSchema: boolean } = { withSchema: true },
 ): string {
 	const { withSchema = true } = opts
 

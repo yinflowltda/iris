@@ -1,4 +1,4 @@
-import { Box, BoxModel, StateNode, TLShape, VecModel } from 'tldraw'
+import { Box, type BoxModel, StateNode, type TLShape, type VecModel } from 'tldraw'
 import { convertTldrawShapeToFocusedShape } from '../../shared/format/convertTldrawShapeToFocusedShape'
 import { AgentAppAgentsManager } from '../agent/managers/AgentAppAgentsManager'
 

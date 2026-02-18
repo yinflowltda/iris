@@ -1,8 +1,8 @@
 import { Box } from 'tldraw'
 import { convertTldrawShapeToBlurryShape } from '../../shared/format/convertTldrawShapeToBlurryShape'
-import { BlurryShapesPart } from '../../shared/schema/PromptPartDefinitions'
-import { AgentRequest } from '../../shared/types/AgentRequest'
-import { AgentHelpers } from '../AgentHelpers'
+import type { BlurryShapesPart } from '../../shared/schema/PromptPartDefinitions'
+import type { AgentRequest } from '../../shared/types/AgentRequest'
+import type { AgentHelpers } from '../AgentHelpers'
 import { PromptPartUtil, registerPromptPartUtil } from './PromptPartUtil'
 
 export const BlurryShapesPartUtil = registerPromptPartUtil(
@@ -35,7 +35,7 @@ export const BlurryShapesPartUtil = registerPromptPartUtil(
 						y: shape.y,
 						w: shape.w,
 						h: shape.h,
-					})
+					}),
 				)
 				return { ...shape, x: bounds.x, y: bounds.y, w: bounds.w, h: bounds.h }
 			})
@@ -45,5 +45,5 @@ export const BlurryShapesPartUtil = registerPromptPartUtil(
 				shapes: normalizedBlurryShapes,
 			}
 		}
-	}
+	},
 )

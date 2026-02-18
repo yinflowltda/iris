@@ -1,4 +1,4 @@
-import z from 'zod'
+import type z from 'zod'
 
 /**
  * Options for registering an action schema.
@@ -28,7 +28,7 @@ const modeSchemaRegistry = new Map<string, Map<string, z.ZodType>>()
 export function registerActionSchema<T extends z.ZodType>(
 	type: string,
 	schema: T,
-	options?: RegisterActionSchemaOptions
+	options?: RegisterActionSchemaOptions,
 ): T {
 	const { forModes } = options ?? {}
 

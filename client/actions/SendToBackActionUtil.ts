@@ -1,7 +1,7 @@
-import { TLShapeId } from 'tldraw'
-import { SendToBackAction } from '../../shared/schema/AgentActionSchemas'
-import { Streaming } from '../../shared/types/Streaming'
-import { AgentHelpers } from '../AgentHelpers'
+import type { TLShapeId } from 'tldraw'
+import type { SendToBackAction } from '../../shared/schema/AgentActionSchemas'
+import type { Streaming } from '../../shared/types/Streaming'
+import type { AgentHelpers } from '../AgentHelpers'
 import { AgentActionUtil, registerActionUtil } from './AgentActionUtil'
 
 export const SendToBackActionUtil = registerActionUtil(
@@ -24,5 +24,5 @@ export const SendToBackActionUtil = registerActionUtil(
 			if (!action.shapeIds) return
 			this.editor.sendToBack(action.shapeIds.map((shapeId) => `shape:${shapeId}` as TLShapeId))
 		}
-	}
+	},
 )

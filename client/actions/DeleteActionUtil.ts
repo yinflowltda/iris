@@ -1,8 +1,8 @@
-import { TLShapeId } from 'tldraw'
-import { DeleteAction } from '../../shared/schema/AgentActionSchemas'
-import { BaseAgentAction } from '../../shared/types/BaseAgentAction'
-import { Streaming } from '../../shared/types/Streaming'
-import { AgentHelpers } from '../AgentHelpers'
+import type { TLShapeId } from 'tldraw'
+import type { DeleteAction } from '../../shared/schema/AgentActionSchemas'
+import type { BaseAgentAction } from '../../shared/types/BaseAgentAction'
+import type { Streaming } from '../../shared/types/Streaming'
+import type { AgentHelpers } from '../AgentHelpers'
 import { AgentActionUtil, registerActionUtil } from './AgentActionUtil'
 
 export const DeleteActionUtil = registerActionUtil(
@@ -32,5 +32,5 @@ export const DeleteActionUtil = registerActionUtil(
 
 			this.editor.deleteShape(`shape:${action.shapeId}` as TLShapeId)
 		}
-	}
+	},
 )

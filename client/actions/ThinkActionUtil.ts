@@ -1,5 +1,5 @@
-import { ThinkAction } from '../../shared/schema/AgentActionSchemas'
-import { Streaming } from '../../shared/types/Streaming'
+import type { ThinkAction } from '../../shared/schema/AgentActionSchemas'
+import type { Streaming } from '../../shared/types/Streaming'
 import { AgentActionUtil, registerActionUtil } from './AgentActionUtil'
 
 export const ThinkActionUtil = registerActionUtil(
@@ -18,5 +18,5 @@ export const ThinkActionUtil = registerActionUtil(
 				summary,
 			}
 		}
-	}
+	},
 )

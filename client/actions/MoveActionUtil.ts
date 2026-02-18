@@ -1,7 +1,7 @@
-import { TLShapeId, Vec } from 'tldraw'
-import { MoveAction } from '../../shared/schema/AgentActionSchemas'
-import { Streaming } from '../../shared/types/Streaming'
-import { AgentHelpers } from '../AgentHelpers'
+import { type TLShapeId, Vec } from 'tldraw'
+import type { MoveAction } from '../../shared/schema/AgentActionSchemas'
+import type { Streaming } from '../../shared/types/Streaming'
+import type { AgentHelpers } from '../AgentHelpers'
 import { AgentActionUtil, registerActionUtil } from './AgentActionUtil'
 
 export const MoveActionUtil = registerActionUtil(
@@ -124,5 +124,5 @@ export const MoveActionUtil = registerActionUtil(
 				y: newTarget.y,
 			})
 		}
-	}
+	},
 )

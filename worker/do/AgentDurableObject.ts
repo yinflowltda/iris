@@ -1,9 +1,9 @@
 import { DurableObject } from 'cloudflare:workers'
 import { AutoRouter, error } from 'itty-router'
-import { AgentAction } from '../../shared/types/AgentAction'
-import { AgentPrompt } from '../../shared/types/AgentPrompt'
-import { Streaming } from '../../shared/types/Streaming'
-import { Environment } from '../environment'
+import type { AgentAction } from '../../shared/types/AgentAction'
+import type { AgentPrompt } from '../../shared/types/AgentPrompt'
+import type { Streaming } from '../../shared/types/Streaming'
+import type { Environment } from '../environment'
 import { AgentService } from './AgentService'
 
 export class AgentDurableObject extends DurableObject<Environment> {

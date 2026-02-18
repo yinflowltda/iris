@@ -1,7 +1,7 @@
-import { FormEventHandler, useCallback, useRef } from 'react'
+import { type FormEventHandler, useCallback, useRef } from 'react'
 import { useAgent } from '../agent/TldrawAgentAppProvider'
-import { ChatHistory } from './chat-history/ChatHistory'
 import { ChatInput } from './ChatInput'
+import { ChatHistory } from './chat-history/ChatHistory'
 import { TodoList } from './TodoList'
 
 export function ChatPanel() {
@@ -34,7 +34,7 @@ export function ChatPanel() {
 				},
 			})
 		},
-		[agent]
+		[agent],
 	)
 
 	const handleNewChat = useCallback(() => {

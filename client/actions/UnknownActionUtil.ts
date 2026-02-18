@@ -1,4 +1,4 @@
-import { UnknownAction } from '../../shared/schema/AgentActionSchemas'
+import type { UnknownAction } from '../../shared/schema/AgentActionSchemas'
 import { AgentActionUtil, registerActionUtil } from './AgentActionUtil'
 
 /**
@@ -14,5 +14,5 @@ export const UnknownActionUtil = registerActionUtil(
 			// Don't show anything in the UI for unknown actions
 			return null
 		}
-	}
+	},
 )

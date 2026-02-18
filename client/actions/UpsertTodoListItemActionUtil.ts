@@ -1,5 +1,5 @@
-import { UpsertPersonalTodoItemAction } from '../../shared/schema/AgentActionSchemas'
-import { Streaming } from '../../shared/types/Streaming'
+import type { UpsertPersonalTodoItemAction } from '../../shared/schema/AgentActionSchemas'
+import type { Streaming } from '../../shared/types/Streaming'
 import { AgentActionUtil, registerActionUtil } from './AgentActionUtil'
 
 export const UpsertTodoListItemActionUtil = registerActionUtil(
@@ -29,5 +29,5 @@ export const UpsertTodoListItemActionUtil = registerActionUtil(
 				this.agent.todos.update({ id, status, text })
 			}
 		}
-	}
+	},
 )

@@ -1,9 +1,9 @@
-import { FormEventHandler, useState } from 'react'
-import { Editor, useValue } from 'tldraw'
+import { type FormEventHandler, useState } from 'react'
+import { type Editor, useValue } from 'tldraw'
 import { AtIcon } from '../../shared/icons/AtIcon'
 import { BrainIcon } from '../../shared/icons/BrainIcon'
 import { ChevronDownIcon } from '../../shared/icons/ChevronDownIcon'
-import { AGENT_MODEL_DEFINITIONS, AgentModelName } from '../../shared/models'
+import { AGENT_MODEL_DEFINITIONS, type AgentModelName } from '../../shared/models'
 import { useAgent } from '../agent/TldrawAgentAppProvider'
 import { ContextItemTag } from './ContextItemTag'
 import { SelectionTag } from './SelectionTag'
@@ -20,14 +20,10 @@ export function ChatInput({
 	const [inputValue, setInputValue] = useState('')
 	const isGenerating = useValue('isGenerating', () => agent.requests.isGenerating(), [agent])
 
-	const isContextToolActive = useValue(
-		'isContextToolActive',
-		() => {
-			const tool = editor.getCurrentTool()
-			return tool.id === 'target-shape' || tool.id === 'target-area'
-		},
-		[editor]
-	)
+	const isContextToolActive = useValue('isContextToolActive', () => {
+		const tool = editor.getCurrentTool()
+		return tool.id === 'target-shape' || tool.id === 'target-area'
+	}, [editor])
 
 	const selectedShapes = useValue('selectedShapes', () => editor.getSelectedShapes(), [editor])
 	const contextItems = useValue('contextItems', () => agent.context.getItems(), [agent])
@@ -43,7 +39,7 @@ export function ChatInput({
 				}}
 			>
 				<div className="prompt-tags">
-					<div className={'chat-context-select ' + (isContextToolActive ? 'active' : '')}>
+					<div className={`chat-context-select ${isContextToolActive ? 'active' : ''}`}>
 						<div className="chat-context-select-label">
 							<AtIcon /> Add Context
 						</div>
@@ -69,7 +65,7 @@ export function ChatInput({
 						<ContextItemTag
 							editor={editor}
 							onClick={() => agent.context.remove(item)}
-							key={'context-item-' + i}
+							key={`context-item-${i}`}
 							item={item}
 						/>
 					))}

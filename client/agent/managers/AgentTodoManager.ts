@@ -1,6 +1,6 @@
-import { Atom, atom } from 'tldraw'
-import { TodoId } from '../../../shared/types/ids-schema'
-import { TodoItem } from '../../../shared/types/TodoItem'
+import { type Atom, atom } from 'tldraw'
+import type { TodoId } from '../../../shared/types/ids-schema'
+import type { TodoItem } from '../../../shared/types/TodoItem'
 import type { TldrawAgent } from '../TldrawAgent'
 import { BaseAgentManager } from './BaseAgentManager'
 

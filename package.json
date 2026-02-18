@@ -4,9 +4,23 @@
 	"private": true,
 	"homepage": "https://tldraw.dev",
 	"license": "MIT",
-	"author": { "name": "tldraw GB Ltd.", "email": "hello@tldraw.com" },
+	"author": {
+		"name": "tldraw GB Ltd.",
+		"email": "hello@tldraw.com"
+	},
 	"type": "module",
-	"scripts": { "build": "vite build", "dev": "vite", "preview": "vite preview" },
+	"scripts": {
+		"build": "node ./node_modules/vite/bin/vite.js build",
+		"dev": "node ./node_modules/vite/bin/vite.js",
+		"preview": "node ./node_modules/vite/bin/vite.js preview",
+		"lint": "biome check .",
+		"lint:fix": "biome check --write .",
+		"typecheck": "tsc --noEmit",
+		"test": "vitest run",
+		"test:watch": "vitest",
+		"test:e2e": "playwright test",
+		"verify": "biome check . && tsc --noEmit && vitest run"
+	},
 	"dependencies": {
 		"@ai-sdk/anthropic": "^2.0.2",
 		"@ai-sdk/google": "^2.0.14",
@@ -26,11 +40,16 @@
 		"zod": "^4.1.8"
 	},
 	"devDependencies": {
+		"@biomejs/biome": "^2.4.2",
 		"@cloudflare/workers-types": "^4.20250913.0",
+		"@playwright/test": "^1.58.2",
+		"@types/node": "^25.2.3",
 		"@types/react": "^19.2.7",
 		"@types/react-dom": "^19.2.3",
 		"@vitejs/plugin-react-swc": "^3.10.2",
+		"msw": "^2.12.10",
 		"typescript": "^5.8.3",
-		"vite": "^7.0.1"
+		"vite": "^7.0.1",
+		"vitest": "^4.0.18"
 	}
 }

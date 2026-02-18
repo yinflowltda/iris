@@ -1,8 +1,8 @@
 import { Box } from 'tldraw'
 import { convertTldrawShapesToPeripheralShapes } from '../../shared/format/convertTldrawShapesToPeripheralShapes'
-import { PeripheralShapesPart } from '../../shared/schema/PromptPartDefinitions'
-import { AgentRequest } from '../../shared/types/AgentRequest'
-import { AgentHelpers } from '../AgentHelpers'
+import type { PeripheralShapesPart } from '../../shared/schema/PromptPartDefinitions'
+import type { AgentRequest } from '../../shared/types/AgentRequest'
+import type { AgentHelpers } from '../AgentHelpers'
 import { PromptPartUtil, registerPromptPartUtil } from './PromptPartUtil'
 
 export const PeripheralShapesPartUtil = registerPromptPartUtil(
@@ -44,5 +44,5 @@ export const PeripheralShapesPartUtil = registerPromptPartUtil(
 				clusters: normalizedClusters,
 			}
 		}
-	}
+	},
 )

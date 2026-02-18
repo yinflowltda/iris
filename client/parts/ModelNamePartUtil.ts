@@ -1,6 +1,6 @@
 import { DEFAULT_MODEL_NAME } from '../../shared/models'
-import { ModelNamePart } from '../../shared/schema/PromptPartDefinitions'
-import { AgentRequest } from '../../shared/types/AgentRequest'
+import type { ModelNamePart } from '../../shared/schema/PromptPartDefinitions'
+import type { AgentRequest } from '../../shared/types/AgentRequest'
 import { PromptPartUtil, registerPromptPartUtil } from './PromptPartUtil'
 
 export const ModelNamePartUtil = registerPromptPartUtil(
@@ -13,5 +13,5 @@ export const ModelNamePartUtil = registerPromptPartUtil(
 				modelName: this.agent.modelName.getModelName() ?? DEFAULT_MODEL_NAME,
 			}
 		}
-	}
+	},
 )

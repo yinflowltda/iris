@@ -1,9 +1,9 @@
-import { JsonValue, RecordsDiff, TLRecord } from 'tldraw'
-import { FocusedShape } from '../format/FocusedShape'
-import { AgentAction } from './AgentAction'
-import { AgentRequestSource } from './AgentRequest'
-import { ContextItem } from './ContextItem'
-import { Streaming } from './Streaming'
+import type { JsonValue, RecordsDiff, TLRecord } from 'tldraw'
+import type { FocusedShape } from '../format/FocusedShape'
+import type { AgentAction } from './AgentAction'
+import type { AgentRequestSource } from './AgentRequest'
+import type { ContextItem } from './ContextItem'
+import type { Streaming } from './Streaming'
 
 export type ChatHistoryItem =
 	| ChatHistoryActionItem

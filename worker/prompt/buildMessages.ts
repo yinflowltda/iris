@@ -1,7 +1,7 @@
-import { ModelMessage, UserContent } from 'ai'
-import { AgentMessage, AgentMessageContent } from '../../shared/types/AgentMessage'
-import { AgentPrompt } from '../../shared/types/AgentPrompt'
-import { getPromptPartDefinition, PromptPart } from '../../shared/types/PromptPart'
+import type { ModelMessage, UserContent } from 'ai'
+import type { AgentMessage, AgentMessageContent } from '../../shared/types/AgentMessage'
+import type { AgentPrompt } from '../../shared/types/AgentPrompt'
+import { getPromptPartDefinition, type PromptPart } from '../../shared/types/PromptPart'
 
 export function buildMessages(prompt: AgentPrompt): ModelMessage[] {
 	const allMessages: AgentMessage[] = []

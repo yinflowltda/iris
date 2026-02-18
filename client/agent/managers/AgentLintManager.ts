@@ -2,14 +2,14 @@ import {
 	Box,
 	getArrowBindings,
 	intersectPolygonPolygon,
-	RecordsDiff,
-	TLArrowShape,
-	TLRecord,
-	TLShape,
-	TLShapeId,
+	type RecordsDiff,
+	type TLArrowShape,
+	type TLRecord,
+	type TLShape,
+	type TLShapeId,
 } from 'tldraw'
 import { convertTldrawIdToSimpleId } from '../../../shared/format/convertTldrawShapeToFocusedShape'
-import { AgentCanvasLint } from '../../../shared/types/AgentCanvasLint'
+import type { AgentCanvasLint } from '../../../shared/types/AgentCanvasLint'
 import { BaseAgentManager } from './BaseAgentManager'
 
 /**
@@ -104,7 +104,7 @@ export class AgentLintManager extends BaseAgentManager {
 					editor.updateShape({ id: shape.id, type: shape.type, isLocked: false })
 				}
 			},
-			{ ignoreShapeLock: true, history: 'ignore' }
+			{ ignoreShapeLock: true, history: 'ignore' },
 		)
 	}
 

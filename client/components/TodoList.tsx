@@ -1,7 +1,7 @@
 import { useCallback } from 'react'
 import { useValue } from 'tldraw'
-import { TodoItem } from '../../shared/types/TodoItem'
-import { TldrawAgent } from '../agent/TldrawAgent'
+import type { TodoItem } from '../../shared/types/TodoItem'
+import type { TldrawAgent } from '../agent/TldrawAgent'
 
 export function TodoList({ agent }: { agent: TldrawAgent }) {
 	const todoItems = useValue('todoList', () => agent.todos.getTodos(), [agent])

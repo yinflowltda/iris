@@ -1,5 +1,5 @@
-import { ModePart } from '../../shared/schema/PromptPartDefinitions'
-import { AgentRequest } from '../../shared/types/AgentRequest'
+import type { ModePart } from '../../shared/schema/PromptPartDefinitions'
+import type { AgentRequest } from '../../shared/types/AgentRequest'
 import { PromptPartUtil, registerPromptPartUtil } from './PromptPartUtil'
 
 export const ModePartUtil = registerPromptPartUtil(
@@ -20,5 +20,5 @@ export const ModePartUtil = registerPromptPartUtil(
 				actionTypes: modeDefinition.actions,
 			}
 		}
-	}
+	},
 )

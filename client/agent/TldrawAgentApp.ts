@@ -1,4 +1,4 @@
-import { Editor } from 'tldraw'
+import type { Editor } from 'tldraw'
 import { AgentAppAgentsManager } from './managers/AgentAppAgentsManager'
 import { AgentAppPersistenceManager } from './managers/AgentAppPersistenceManager'
 
@@ -52,7 +52,7 @@ export class TldrawAgentApp {
 		editor: Editor,
 		public options: {
 			onError: (e: any) => void
-		}
+		},
 	) {
 		this._editor = editor
 		this.agents = new AgentAppAgentsManager(this)

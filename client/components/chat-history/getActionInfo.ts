@@ -1,7 +1,7 @@
-import { AgentAction } from '../../../shared/types/AgentAction'
-import { ChatHistoryInfo } from '../../../shared/types/ChatHistoryInfo'
-import { Streaming } from '../../../shared/types/Streaming'
-import { TldrawAgent } from '../../agent/TldrawAgent'
+import type { AgentAction } from '../../../shared/types/AgentAction'
+import type { ChatHistoryInfo } from '../../../shared/types/ChatHistoryInfo'
+import type { Streaming } from '../../../shared/types/Streaming'
+import type { TldrawAgent } from '../../agent/TldrawAgent'
 
 /**
  * Get the full info for an action to display in chat history UI.

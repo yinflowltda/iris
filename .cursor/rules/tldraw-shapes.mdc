@@ -1,0 +1,78 @@
+---
+description: How to create TLDraw v4 custom shapes (ShapeUtil pattern)
+globs:
+  - client/shapes/**
+---
+
+# TLDraw Custom Shapes
+
+This project uses TLDraw v4.3.1. Custom shapes are implemented via the `ShapeUtil` class pattern.
+
+## Creating a Custom Shape
+
+### 1. Define the shape type
+
+```typescript
+import type { TLBaseShape } from 'tldraw'
+
+type MyShapeProps = {
+  myProp: string
+  // ... custom props
+}
+
+type MyShape = TLBaseShape<'my-shape', MyShapeProps>
+```
+
+### 2. Create the ShapeUtil
+
+```typescript
+import { HTMLContainer, ShapeUtil } from 'tldraw'
+
+class MyShapeUtil extends ShapeUtil<MyShape> {
+  static override type = 'my-shape' as const
+
+  getDefaultProps(): MyShapeProps {
+    return { myProp: 'default' }
+  }
+
+  component(shape: MyShape) {
+    return (
+      <HTMLContainer>
+        {/* Render SVG or HTML here */}
+      </HTMLContainer>
+    )
+  }
+
+  indicator(shape: MyShape) {
+    return <rect width={shape.props.w} height={shape.props.h} />
+  }
+
+  getBounds(shape: MyShape) {
+    return { x: 0, y: 0, w: 100, h: 100 }
+  }
+}
+```
+
+### 3. Register in App.tsx
+
+Import the ShapeUtil and add it to the `<Tldraw>` component:
+
+```typescript
+<Tldraw shapeUtils={[MyShapeUtil]} ... />
+```
+
+### 4. Optionally create a Tool
+
+For shapes that users can create via toolbar, create a `MyShapeTool` extending `StateNode`.
+
+## Key TLDraw v4 APIs
+
+- `this.editor` — the TLDraw Editor instance (available inside ShapeUtil methods)
+- `editor.createShape()` — programmatically create shapes
+- `editor.updateShape()` — update shape props
+- `editor.getShape(id)` — get a shape by ID
+- `editor.getCurrentPageShapes()` — all shapes on current page
+
+## Verification
+
+Run `bun run verify` before delivering any changes.

@@ -88,9 +88,9 @@ function isPromptPartDefinition(value: unknown): value is PromptPartDefinition<B
 const definitionsByType: Record<string, PromptPartDefinition<BasePromptPart>> = Object.fromEntries(
 	(
 		Object.values(AllDefinitions).filter(
-			isPromptPartDefinition
+			isPromptPartDefinition,
 		) as PromptPartDefinition<BasePromptPart>[]
-	).map((def) => [def.type, def])
+	).map((def) => [def.type, def]),
 )
 
 /**

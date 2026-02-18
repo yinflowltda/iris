@@ -1,4 +1,4 @@
-import { SVGContainer, useEditor, useValue, VecModel } from 'tldraw'
+import { SVGContainer, useEditor, useValue, type VecModel } from 'tldraw'
 
 export interface PointHighlightProps {
 	pagePoint: VecModel

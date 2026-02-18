@@ -1,4 +1,4 @@
-import { SystemPromptFlags } from '../getSystemPromptFlags'
+import type { SystemPromptFlags } from '../getSystemPromptFlags'
 import { flagged } from './flagged'
 
 export function buildIntroPromptSection(flags: SystemPromptFlags) {

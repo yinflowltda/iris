@@ -1,6 +1,6 @@
-import { Atom, atom } from 'tldraw'
+import { type Atom, atom } from 'tldraw'
 import { getModeNode } from '../../modes/AgentModeChart'
-import { AgentModeType, getAgentModeDefinition } from '../../modes/AgentModeDefinitions'
+import { type AgentModeType, getAgentModeDefinition } from '../../modes/AgentModeDefinitions'
 import type { TldrawAgent } from '../TldrawAgent'
 import { BaseAgentManager } from './BaseAgentManager'
 

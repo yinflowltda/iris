@@ -1,0 +1,72 @@
+---
+description: How to add new agent actions following the 3-file pattern
+globs:
+  - client/actions/**
+  - shared/schema/**
+---
+
+# Agent Actions
+
+## Pattern Overview
+
+Every agent action requires 3 files:
+
+1. **Zod Schema** in `shared/schema/AgentActionSchemas.ts` — defines the action's shape
+2. **ActionUtil** in `client/actions/` — executes the action on the TLDraw canvas
+3. **Mode Registration** in `client/modes/AgentModeDefinitions.ts` — adds the action to available modes
+
+## Step 1: Add Zod Schema
+
+In `shared/schema/AgentActionSchemas.ts`, add a new schema following the existing pattern:
+
+```typescript
+const MyNewActionSchema = z
+  .object({
+    _type: z.literal('my_new_action'),
+    myParam: z.string(),
+  })
+  .describe('Description shown to the AI model')
+
+export type MyNewAction = z.infer<typeof MyNewActionSchema>
+```
+
+Then add it to the `AgentAction` union and the `AGENT_ACTION_SCHEMAS` map.
+
+## Step 2: Create ActionUtil
+
+In `client/actions/MyNewActionUtil.ts`:
+
+```typescript
+import type { MyNewAction } from '../../shared/schema/AgentActionSchemas'
+import type { Streaming } from '../../shared/types/Streaming'
+import type { AgentHelpers } from '../AgentHelpers'
+import { AgentActionUtil, registerActionUtil } from './AgentActionUtil'
+
+export const MyNewActionUtil = registerActionUtil(
+  class MyNewActionUtil extends AgentActionUtil<MyNewAction> {
+    static override type = 'my_new_action' as const
+
+    override getInfo(action: Streaming<MyNewAction>) {
+      return { icon: 'pencil' as const, description: '' }
+    }
+
+    override sanitizeAction(action: Streaming<MyNewAction>, helpers: AgentHelpers) {
+      return action
+    }
+
+    override applyAction(action: Streaming<MyNewAction>, helpers: AgentHelpers) {
+      // Execute the action using this.editor (TLDraw Editor instance)
+    }
+  },
+)
+```
+
+The `registerActionUtil()` call self-registers the class. Importing the file is enough.
+
+## Step 3: Register in Mode
+
+In `client/modes/AgentModeDefinitions.ts`, add the action type string to the desired mode's action list.
+
+## Verification
+
+Run `bun run verify` before delivering any changes.

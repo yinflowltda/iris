@@ -1,6 +1,6 @@
-import { JsonValue } from 'tldraw'
-import { CountryInfoAction } from '../../shared/schema/AgentActionSchemas'
-import { Streaming } from '../../shared/types/Streaming'
+import type { JsonValue } from 'tldraw'
+import type { CountryInfoAction } from '../../shared/schema/AgentActionSchemas'
+import type { Streaming } from '../../shared/types/Streaming'
 import { AgentActionUtil, registerActionUtil } from './AgentActionUtil'
 
 export const CountryInfoActionUtil = registerActionUtil(
@@ -23,7 +23,7 @@ export const CountryInfoActionUtil = registerActionUtil(
 			const data = await fetchCountryInfo(action.code)
 			this.agent.schedule({ data: [data] })
 		}
-	}
+	},
 )
 
 export async function fetchCountryInfo(code: string) {

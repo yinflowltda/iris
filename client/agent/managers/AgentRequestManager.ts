@@ -1,6 +1,6 @@
-import { atom, Atom } from 'tldraw'
-import { AgentInput } from '../../../shared/types/AgentInput'
-import { AgentRequest } from '../../../shared/types/AgentRequest'
+import { type Atom, atom } from 'tldraw'
+import type { AgentInput } from '../../../shared/types/AgentInput'
+import type { AgentRequest } from '../../../shared/types/AgentRequest'
 import type { TldrawAgent } from '../TldrawAgent'
 import { BaseAgentManager } from './BaseAgentManager'
 

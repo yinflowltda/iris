@@ -1,4 +1,4 @@
-import { Atom, atom, VecModel } from 'tldraw'
+import { type Atom, atom, type VecModel } from 'tldraw'
 import type { TldrawAgent } from '../TldrawAgent'
 import { BaseAgentManager } from './BaseAgentManager'
 

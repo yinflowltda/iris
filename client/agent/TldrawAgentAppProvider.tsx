@@ -1,6 +1,14 @@
-import { createContext, memo, ReactNode, useCallback, useContext, useEffect, useState } from 'react'
+import {
+	createContext,
+	memo,
+	type ReactNode,
+	useCallback,
+	useContext,
+	useEffect,
+	useState,
+} from 'react'
 import { useEditor, useToasts, useValue } from 'tldraw'
-import { TldrawAgent } from './TldrawAgent'
+import type { TldrawAgent } from './TldrawAgent'
 import { TldrawAgentApp } from './TldrawAgentApp'
 
 const TldrawAgentAppContext = createContext<TldrawAgentApp | null>(null)
@@ -71,7 +79,7 @@ export const TldrawAgentAppProvider = memo(function TldrawAgentAppProvider({
 			})
 			console.error(e)
 		},
-		[toasts]
+		[toasts],
 	)
 
 	// Create the TldrawAgentApp instance

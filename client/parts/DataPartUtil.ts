@@ -1,5 +1,5 @@
-import { DataPart } from '../../shared/schema/PromptPartDefinitions'
-import { AgentRequest } from '../../shared/types/AgentRequest'
+import type { DataPart } from '../../shared/schema/PromptPartDefinitions'
+import type { AgentRequest } from '../../shared/types/AgentRequest'
 import { PromptPartUtil, registerPromptPartUtil } from './PromptPartUtil'
 
 /**
@@ -21,7 +21,7 @@ export const DataPartUtil = registerPromptPartUtil(
 						// Tell the agent that something went wrong
 						return 'An error occurred while retrieving some data.'
 					}
-				})
+				}),
 			)
 
 			return {
@@ -29,5 +29,5 @@ export const DataPartUtil = registerPromptPartUtil(
 				data: values,
 			}
 		}
-	}
+	},
 )

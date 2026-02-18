@@ -1,7 +1,7 @@
-import { TLShapeId } from 'tldraw'
-import { PlaceAction } from '../../shared/schema/AgentActionSchemas'
-import { Streaming } from '../../shared/types/Streaming'
-import { AgentHelpers } from '../AgentHelpers'
+import type { TLShapeId } from 'tldraw'
+import type { PlaceAction } from '../../shared/schema/AgentActionSchemas'
+import type { Streaming } from '../../shared/types/Streaming'
+import type { AgentHelpers } from '../AgentHelpers'
 import { AgentActionUtil, registerActionUtil } from './AgentActionUtil'
 
 export const PlaceActionUtil = registerActionUtil(
@@ -131,5 +131,5 @@ export const PlaceActionUtil = registerActionUtil(
 				})
 			}
 		}
-	}
+	},
 )

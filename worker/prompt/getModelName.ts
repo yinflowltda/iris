@@ -1,5 +1,5 @@
-import { AgentModelName, DEFAULT_MODEL_NAME } from '../../shared/models'
-import { AgentPrompt } from '../../shared/types/AgentPrompt'
+import { type AgentModelName, DEFAULT_MODEL_NAME } from '../../shared/models'
+import type { AgentPrompt } from '../../shared/types/AgentPrompt'
 import { getPromptPartDefinition } from '../../shared/types/PromptPart'
 
 /**

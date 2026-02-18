@@ -1,7 +1,7 @@
-import { TLShapeId } from 'tldraw'
-import { BringToFrontAction } from '../../shared/schema/AgentActionSchemas'
-import { Streaming } from '../../shared/types/Streaming'
-import { AgentHelpers } from '../AgentHelpers'
+import type { TLShapeId } from 'tldraw'
+import type { BringToFrontAction } from '../../shared/schema/AgentActionSchemas'
+import type { Streaming } from '../../shared/types/Streaming'
+import type { AgentHelpers } from '../AgentHelpers'
 import { AgentActionUtil, registerActionUtil } from './AgentActionUtil'
 
 export const BringToFrontActionUtil = registerActionUtil(
@@ -24,5 +24,5 @@ export const BringToFrontActionUtil = registerActionUtil(
 			if (!action.shapeIds) return
 			this.editor.bringToFront(action.shapeIds.map((shapeId) => `shape:${shapeId}` as TLShapeId))
 		}
-	}
+	},
 )

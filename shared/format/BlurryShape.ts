@@ -1,4 +1,4 @@
-import { FocusedShape } from './FocusedShape'
+import type { FocusedShape } from './FocusedShape'
 
 export interface BlurryShape {
 	shapeId: string

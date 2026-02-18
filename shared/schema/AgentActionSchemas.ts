@@ -192,7 +192,7 @@ export const PenAction = z
 			z.object({
 				x: z.number(),
 				y: z.number(),
-			})
+			}),
 		),
 		style: z.enum(['smooth', 'straight']),
 	})

@@ -4,13 +4,13 @@ import {
 	defaultBindingUtils,
 	defaultEditorAssetUrls,
 	defaultShapeUtils,
-	Editor,
+	type Editor,
 	StateNode,
-	tipTapDefaultExtensions,
-	TLComponents,
+	type TLComponents,
+	type TLShape,
 	TldrawEditor,
 	TldrawUiContextProvider,
-	TLShape,
+	tipTapDefaultExtensions,
 } from 'tldraw'
 
 export function TldrawViewer({
@@ -30,7 +30,7 @@ export function TldrawViewer({
 			([entry]) => {
 				setIsVisible(entry.isIntersecting)
 			},
-			{ rootMargin: '200px', threshold: 0 }
+			{ rootMargin: '200px', threshold: 0 },
 		)
 
 		const currentElement = containerRef.current

@@ -1,5 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@500;700&display=swap');
-@import url('tldraw/tldraw.css');
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@500;700&display=swap");
+@import url("tldraw/tldraw.css");
 
 * {
 	box-sizing: border-box;
@@ -7,7 +7,7 @@
 }
 
 body {
-	font-family: 'Inter', sans-serif;
+	font-family: "Inter", sans-serif;
 }
 
 .tldraw-agent-container {
@@ -49,7 +49,7 @@ body {
 	background-color: var(--tl-color-panel);
 	border-left: 1px solid var(--tl-color-low);
 	color: var(--tl-color-text-1);
-	font-family: 'Inter', sans-serif;
+	font-family: "Inter", sans-serif;
 	font-weight: 400;
 	font-size: 12px;
 	line-height: 1.5;
@@ -128,7 +128,7 @@ body {
 	font-size: 11px;
 }
 
-.chat-input input[type='text'] {
+.chat-input input[type="text"] {
 	flex: 1;
 	padding: 8px 0px;
 	margin-bottom: 4px;
@@ -141,11 +141,11 @@ body {
 	width: 100%;
 }
 
-.chat-input input[type='text']::placeholder {
+.chat-input input[type="text"]::placeholder {
 	color: var(--tl-color-text-3);
 }
 
-.chat-input input[type='text']:focus {
+.chat-input input[type="text"]:focus {
 	border-color: var(--tl-color-primary);
 }
 
@@ -294,7 +294,7 @@ body {
 	-webkit-appearance: none;
 	-moz-appearance: none;
 	appearance: none;
-	font-family: 'Inter', sans-serif;
+	font-family: "Inter", sans-serif;
 }
 
 .chat-context-select select {
@@ -369,7 +369,7 @@ body {
 	box-shadow: var(--tl-shadow-1);
 	color: var(--tl-color-text-1);
 	width: 100%;
-	font-family: 'Inter', sans-serif;
+	font-family: "Inter", sans-serif;
 	font-weight: 400;
 	font-size: 12px;
 	padding: 8px;
@@ -414,7 +414,7 @@ body {
 	padding: 12px 0px;
 	margin: -12px 0px;
 	font-size: 12px;
-	font-family: 'Inter', sans-serif;
+	font-family: "Inter", sans-serif;
 	font-weight: 400;
 	color: var(--tl-color-text-2);
 	background-color: transparent;
@@ -480,7 +480,7 @@ body {
 	align-items: flex-start;
 	gap: 4px;
 	font-size: 12px;
-	font-family: 'Inter', sans-serif;
+	font-family: "Inter", sans-serif;
 	font-weight: 400;
 	color: var(--tl-color-text-2);
 }
@@ -550,7 +550,7 @@ body {
 	align-items: flex-start;
 	gap: 4px;
 	font-size: 12px;
-	font-family: 'Inter', sans-serif;
+	font-family: "Inter", sans-serif;
 	font-weight: 400;
 }
 
@@ -575,7 +575,7 @@ body {
 	height: 16px;
 	color: var(--tl-color-text-2);
 	white-space: nowrap;
-	font-family: 'Inter', sans-serif;
+	font-family: "Inter", sans-serif;
 	max-width: 100%;
 }
 
@@ -709,7 +709,7 @@ button.prompt-tag span {
 	font-weight: 500;
 	white-space: nowrap;
 	pointer-events: none;
-	font-family: 'Inter', sans-serif;
+	font-family: "Inter", sans-serif;
 	/* Scale the label to maintain constant visual size */
 	transform: scale(var(--tl-scale));
 	transform-origin: top left;

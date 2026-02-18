@@ -4,10 +4,10 @@ import {
 	convertTldrawShapeToFocusedShape,
 	convertTldrawShapeToFocusedType,
 } from '../../shared/format/convertTldrawShapeToFocusedShape'
-import { FocusedShape } from '../../shared/format/FocusedShape'
-import { UserActionHistoryPart } from '../../shared/schema/PromptPartDefinitions'
-import { AgentRequest } from '../../shared/types/AgentRequest'
-import { AgentHelpers } from '../AgentHelpers'
+import type { FocusedShape } from '../../shared/format/FocusedShape'
+import type { UserActionHistoryPart } from '../../shared/schema/PromptPartDefinitions'
+import type { AgentRequest } from '../../shared/types/AgentRequest'
+import type { AgentHelpers } from '../AgentHelpers'
 import { PromptPartUtil, registerPromptPartUtil } from './PromptPartUtil'
 
 export const UserActionHistoryPartUtil = registerPromptPartUtil(
@@ -72,7 +72,7 @@ export const UserActionHistoryPartUtil = registerPromptPartUtil(
 
 			return part
 		}
-	}
+	},
 )
 
 /**
@@ -83,7 +83,7 @@ export const UserActionHistoryPartUtil = registerPromptPartUtil(
  */
 function getFocusedShapeChange<T extends FocusedShape['_type']>(
 	from: FocusedShape & { _type: T },
-	to: FocusedShape & { _type: T }
+	to: FocusedShape & { _type: T },
 ) {
 	if (from._type !== to._type) {
 		return null

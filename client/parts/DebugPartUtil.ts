@@ -1,4 +1,4 @@
-import { DebugPart } from '../../shared/schema/PromptPartDefinitions'
+import type { DebugPart } from '../../shared/schema/PromptPartDefinitions'
 import { PromptPartUtil, registerPromptPartUtil } from './PromptPartUtil'
 
 export const DebugPartUtil = registerPromptPartUtil(
@@ -14,5 +14,5 @@ export const DebugPartUtil = registerPromptPartUtil(
 				logMessages: debugFlags.logMessages,
 			}
 		}
-	}
+	},
 )

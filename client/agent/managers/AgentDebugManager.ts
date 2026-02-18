@@ -1,4 +1,4 @@
-import { Atom, atom } from 'tldraw'
+import { type Atom, atom } from 'tldraw'
 import type { AgentAction } from '../../../shared/types/AgentAction'
 import type { Streaming } from '../../../shared/types/Streaming'
 import type { TldrawAgent } from '../TldrawAgent'

@@ -1,4 +1,4 @@
-import { TimePart } from '../../shared/schema/PromptPartDefinitions'
+import type { TimePart } from '../../shared/schema/PromptPartDefinitions'
 import { PromptPartUtil, registerPromptPartUtil } from './PromptPartUtil'
 
 export const TimePartUtil = registerPromptPartUtil(
@@ -11,5 +11,5 @@ export const TimePartUtil = registerPromptPartUtil(
 				time: new Date().toLocaleTimeString(),
 			}
 		}
-	}
+	},
 )

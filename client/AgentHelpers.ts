@@ -1,9 +1,9 @@
-import { BoxModel, createShapeId, Editor, TLShapeId, VecModel } from 'tldraw'
-import { FocusedFill, FocusedFillSchema } from '../shared/format/FocusedFill'
-import { FocusedShape } from '../shared/format/FocusedShape'
-import { ContextItem } from '../shared/types/ContextItem'
-import { SimpleShapeId } from '../shared/types/ids-schema'
-import { TldrawAgent } from './agent/TldrawAgent'
+import { type BoxModel, createShapeId, type Editor, type TLShapeId, type VecModel } from 'tldraw'
+import { type FocusedFill, FocusedFillSchema } from '../shared/format/FocusedFill'
+import type { FocusedShape } from '../shared/format/FocusedShape'
+import type { ContextItem } from '../shared/types/ContextItem'
+import type { SimpleShapeId } from '../shared/types/ids-schema'
+import type { TldrawAgent } from './agent/TldrawAgent'
 
 /**
  * This class contains handles the transformations that happen throughout a
@@ -451,7 +451,7 @@ export class AgentHelpers {
 
 		if (typeof value === 'string') {
 			const parsedValue = parseFloat(value)
-			if (isNaN(parsedValue)) {
+			if (Number.isNaN(parsedValue)) {
 				return null
 			}
 			return parsedValue

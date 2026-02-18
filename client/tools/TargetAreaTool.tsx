@@ -1,4 +1,4 @@
-import { BoxModel, StateNode, VecModel } from 'tldraw'
+import { type BoxModel, StateNode, type VecModel } from 'tldraw'
 import { AgentAppAgentsManager } from '../agent/managers/AgentAppAgentsManager'
 
 export class TargetAreaTool extends StateNode {

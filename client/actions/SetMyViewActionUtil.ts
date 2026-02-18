@@ -1,7 +1,7 @@
 import { structuredClone } from 'tldraw'
-import { SetMyViewAction } from '../../shared/schema/AgentActionSchemas'
-import { Streaming } from '../../shared/types/Streaming'
-import { AgentHelpers } from '../AgentHelpers'
+import type { SetMyViewAction } from '../../shared/schema/AgentActionSchemas'
+import type { Streaming } from '../../shared/types/Streaming'
+import type { AgentHelpers } from '../AgentHelpers'
 import { AgentActionUtil, registerActionUtil } from './AgentActionUtil'
 
 export const SetMyViewActionUtil = registerActionUtil(
@@ -38,5 +38,5 @@ export const SetMyViewActionUtil = registerActionUtil(
 				},
 			})
 		}
-	}
+	},
 )

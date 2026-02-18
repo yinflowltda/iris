@@ -1,7 +1,7 @@
-import { Editor } from 'tldraw'
-import { AgentRequest } from './AgentRequest'
-import { BasePromptPart } from './BasePromptPart'
-import { PromptPart } from './PromptPart'
+import type { Editor } from 'tldraw'
+import type { AgentRequest } from './AgentRequest'
+import type { BasePromptPart } from './BasePromptPart'
+import type { PromptPart } from './PromptPart'
 
 /**
  * AgentPromptOptions contains the information needed to construct all the parts of the prompt.

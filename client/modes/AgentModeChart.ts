@@ -72,7 +72,7 @@ const _AGENT_MODE_CHART: Record<AgentModeDefinition['type'], AgentModeNode> = {
 			if (incompleteTodos.length > 0) {
 				// Schedule continuation to complete remaining work
 				agent.schedule(
-					"Continue until all your todo items are marked as done. If you've completed the work, mark them as done, otherwise keep going."
+					"Continue until all your todo items are marked as done. If you've completed the work, mark them as done, otherwise keep going.",
 				)
 				return
 			}

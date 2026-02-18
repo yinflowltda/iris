@@ -1,5 +1,5 @@
-import path from 'path'
-import { fileURLToPath } from 'url'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -27,8 +27,7 @@ export function zodLocalePlugin(shimPath) {
 
 			// Catch relative imports within zod package
 			if (
-				importer &&
-				importer.includes('node_modules/zod') &&
+				importer?.includes('node_modules/zod') &&
 				(source.includes('../locales/index.js') || source.includes('../locales/index.cjs'))
 			) {
 				return resolvedShimPath

@@ -1,5 +1,5 @@
-import { MessageAction } from '../../shared/schema/AgentActionSchemas'
-import { Streaming } from '../../shared/types/Streaming'
+import type { MessageAction } from '../../shared/schema/AgentActionSchemas'
+import type { Streaming } from '../../shared/types/Streaming'
 import { AgentActionUtil, registerActionUtil } from './AgentActionUtil'
 
 export const MessageActionUtil = registerActionUtil(
@@ -12,5 +12,5 @@ export const MessageActionUtil = registerActionUtil(
 				canGroup: () => false,
 			}
 		}
-	}
+	},
 )

@@ -1,8 +1,8 @@
 import { Box } from 'tldraw'
-import { ReviewAction } from '../../shared/schema/AgentActionSchemas'
-import { AreaContextItem } from '../../shared/types/ContextItem'
-import { Streaming } from '../../shared/types/Streaming'
-import { AgentHelpers } from '../AgentHelpers'
+import type { ReviewAction } from '../../shared/schema/AgentActionSchemas'
+import type { AreaContextItem } from '../../shared/types/ContextItem'
+import type { Streaming } from '../../shared/types/Streaming'
+import type { AgentHelpers } from '../AgentHelpers'
 import { AgentActionUtil, registerActionUtil } from './AgentActionUtil'
 
 export const ReviewActionUtil = registerActionUtil(
@@ -49,7 +49,7 @@ export const ReviewActionUtil = registerActionUtil(
 				contextItems: [contextArea],
 			})
 		}
-	}
+	},
 )
 
 function getReviewMessage(intent: string) {

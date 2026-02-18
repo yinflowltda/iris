@@ -1,4 +1,4 @@
-import { AgentRequest } from './AgentRequest'
+import type { AgentRequest } from './AgentRequest'
 
 /**
  * A user input, used to form an agent request.

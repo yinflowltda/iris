@@ -1,17 +1,17 @@
-import { Editor, TLShape } from 'tldraw'
-import { BlurryShape } from './BlurryShape'
+import type { Editor, TLShape } from 'tldraw'
+import type { BlurryShape } from './BlurryShape'
 import {
 	convertTldrawIdToSimpleId,
 	convertTldrawShapeToFocusedType,
 } from './convertTldrawShapeToFocusedShape'
-import { FocusedShape } from './FocusedShape'
+import type { FocusedShape } from './FocusedShape'
 
 /**
  * Convert a tldraw shape to the blurry shape format
  */
 export function convertTldrawShapeToBlurryShape(
 	editor: Editor,
-	shape: TLShape
+	shape: TLShape,
 ): BlurryShape | null {
 	const bounds = editor.getShapeMaskedPageBounds(shape)
 	if (!bounds) return null

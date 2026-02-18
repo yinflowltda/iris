@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useValue } from 'tldraw'
-import { TldrawAgent } from '../../agent/TldrawAgent'
+import type { TldrawAgent } from '../../agent/TldrawAgent'
 import { ChatHistorySection, getAgentHistorySections } from './ChatHistorySection'
 
 /*
@@ -59,7 +59,7 @@ export function ChatHistory({ agent }: { agent: TldrawAgent }) {
 				historyRef.current.scrollTo(0, historyRef.current.scrollHeight)
 			}
 		}
-	}, [historyRef, historyItems])
+	}, [historyItems])
 
 	// Keep track of the user's scroll position
 	const handleScroll = () => {
@@ -79,7 +79,7 @@ export function ChatHistory({ agent }: { agent: TldrawAgent }) {
 			{sections.map((section, i) => {
 				return (
 					<ChatHistorySection
-						key={'history-section-' + i}
+						key={`history-section-${i}`}
 						section={section}
 						loading={i === sections.length - 1 && isGenerating}
 					/>

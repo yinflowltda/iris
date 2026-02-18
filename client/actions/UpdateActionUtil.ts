@@ -1,12 +1,12 @@
-import { TLBindingId } from 'tldraw'
+import type { TLBindingId } from 'tldraw'
 import {
 	convertFocusedShapeToTldrawShape,
 	convertSimpleIdToTldrawId,
 } from '../../shared/format/convertFocusedShapeToTldrawShape'
-import { UpdateAction } from '../../shared/schema/AgentActionSchemas'
+import type { UpdateAction } from '../../shared/schema/AgentActionSchemas'
 import { toSimpleShapeId } from '../../shared/types/ids-schema'
-import { Streaming } from '../../shared/types/Streaming'
-import { AgentHelpers } from '../AgentHelpers'
+import type { Streaming } from '../../shared/types/Streaming'
+import type { AgentHelpers } from '../AgentHelpers'
 import { AgentActionUtil, registerActionUtil } from './AgentActionUtil'
 
 export const UpdateActionUtil = registerActionUtil(
@@ -102,5 +102,5 @@ export const UpdateActionUtil = registerActionUtil(
 				}
 			}
 		}
-	}
+	},
 )

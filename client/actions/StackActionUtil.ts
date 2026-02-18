@@ -1,7 +1,7 @@
-import { TLShapeId } from 'tldraw'
-import { StackAction } from '../../shared/schema/AgentActionSchemas'
-import { Streaming } from '../../shared/types/Streaming'
-import { AgentHelpers } from '../AgentHelpers'
+import type { TLShapeId } from 'tldraw'
+import type { StackAction } from '../../shared/schema/AgentActionSchemas'
+import type { Streaming } from '../../shared/types/Streaming'
+import type { AgentHelpers } from '../AgentHelpers'
 import { AgentActionUtil, registerActionUtil } from './AgentActionUtil'
 
 export const StackActionUtil = registerActionUtil(
@@ -29,8 +29,8 @@ export const StackActionUtil = registerActionUtil(
 			this.editor.stackShapes(
 				action.shapeIds.map((id) => `shape:${id}` as TLShapeId),
 				action.direction,
-				Math.max(action.gap, 0)
+				Math.max(action.gap, 0),
 			)
 		}
-	}
+	},
 )

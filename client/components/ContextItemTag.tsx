@@ -1,5 +1,5 @@
-import { Editor } from 'tldraw'
-import { CONTEXT_TYPE_DEFINITIONS, ContextItem } from '../../shared/types/ContextItem'
+import type { Editor } from 'tldraw'
+import { CONTEXT_TYPE_DEFINITIONS, type ContextItem } from '../../shared/types/ContextItem'
 import { PromptTag } from './PromptTag'
 
 export function ContextItemTag({

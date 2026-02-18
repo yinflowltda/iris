@@ -1,12 +1,12 @@
-import { IndexKey, TLShape, TLShapeId, toRichText } from 'tldraw'
+import { type IndexKey, type TLShape, type TLShapeId, toRichText } from 'tldraw'
 import {
 	convertPartialFocusedShapeToTldrawShape,
 	FOCUSED_TO_GEO_TYPES,
 } from '../../shared/format/convertFocusedShapeToTldrawShape'
-import { FocusedShape } from '../../shared/format/FocusedShape'
-import { CreateAction } from '../../shared/schema/AgentActionSchemas'
-import { Streaming } from '../../shared/types/Streaming'
-import { AgentHelpers } from '../AgentHelpers'
+import type { FocusedShape } from '../../shared/format/FocusedShape'
+import type { CreateAction } from '../../shared/schema/AgentActionSchemas'
+import type { Streaming } from '../../shared/types/Streaming'
+import type { AgentHelpers } from '../AgentHelpers'
 import { AgentActionUtil, registerActionUtil } from './AgentActionUtil'
 
 export const CreateActionUtil = registerActionUtil(
@@ -91,7 +91,7 @@ export const CreateActionUtil = registerActionUtil(
 				}
 			}
 		}
-	}
+	},
 )
 
 function getDefaultShape(shapeType: FocusedShape['_type'], complete: boolean): Partial<TLShape> {

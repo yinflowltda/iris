@@ -1,7 +1,7 @@
-import { ExecutionContext } from '@cloudflare/workers-types'
 import { WorkerEntrypoint } from 'cloudflare:workers'
-import { AutoRouter, cors, error, IRequest } from 'itty-router'
-import { Environment } from './environment'
+import type { ExecutionContext } from '@cloudflare/workers-types'
+import { AutoRouter, cors, error, type IRequest } from 'itty-router'
+import type { Environment } from './environment'
 import { stream } from './routes/stream'
 
 const { preflight, corsify } = cors({ origin: '*' })

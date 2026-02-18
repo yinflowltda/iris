@@ -1,5 +1,5 @@
 import { react } from 'tldraw'
-import { PersistedAgentState, TldrawAgent } from '../TldrawAgent'
+import type { PersistedAgentState, TldrawAgent } from '../TldrawAgent'
 import { BaseAgentAppManager } from './BaseAgentAppManager'
 
 /**
@@ -57,7 +57,7 @@ export class AgentAppPersistenceManager extends BaseAgentAppManager {
 					acc[agent.id] = agent.serializeState()
 					return acc
 				},
-				{} as Record<string, PersistedAgentState>
+				{} as Record<string, PersistedAgentState>,
 			),
 		}
 	}

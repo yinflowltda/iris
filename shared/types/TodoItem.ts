@@ -1,4 +1,4 @@
-import { TodoId } from './ids-schema'
+import type { TodoId } from './ids-schema'
 
 export interface TodoItem {
 	id: TodoId

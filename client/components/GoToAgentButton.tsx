@@ -8,7 +8,7 @@ import {
 	useValue,
 	Vec,
 } from 'tldraw'
-import { TldrawAgent } from '../agent/TldrawAgent'
+import type { TldrawAgent } from '../agent/TldrawAgent'
 import { useAgents } from '../agent/TldrawAgentAppProvider'
 
 /**
@@ -35,36 +35,28 @@ export function GoToAgentButton({ agent }: { agent: TldrawAgent }) {
 	const agentViewport = currentRequest?.bounds
 
 	// We only show the button if the agent is offscreen
-	const agentIsOffscreen = useValue(
-		'agentIsOffscreen',
-		() => {
-			if (!agentViewport) return false
-			const screenBounds = editor.getViewportScreenBounds()
-			const agentViewportScreenCorners = Box.From(agentViewport).corners.map((corner) =>
-				editor.pageToViewport(corner)
-			)
+	const agentIsOffscreen = useValue('agentIsOffscreen', () => {
+		if (!agentViewport) return false
+		const screenBounds = editor.getViewportScreenBounds()
+		const agentViewportScreenCorners = Box.From(agentViewport).corners.map((corner) =>
+			editor.pageToViewport(corner),
+		)
 
-			return !Box.FromPoints(agentViewportScreenCorners).collides(screenBounds)
-		},
-		[agentViewport]
-	)
+		return !Box.FromPoints(agentViewportScreenCorners).collides(screenBounds)
+	}, [agentViewport])
 
 	// The button's arrow points towards the agent
-	const angleToAgent = useValue(
-		'angleToAgent',
-		() => {
-			if (!agentViewport) return
-			if (agentIsOffscreen) return
+	const angleToAgent = useValue('angleToAgent', () => {
+		if (!agentViewport) return
+		if (agentIsOffscreen) return
 
-			const agentCenter = Box.From(agentViewport).center
-			const agentScreenCenter = editor.pageToViewport(agentCenter)
-			const screenBounds = editor.getViewportScreenBounds()
-			const screenCenter = Box.From(screenBounds).center
-			const displacement = Vec.From(agentScreenCenter).sub(screenCenter)
-			return Math.atan2(displacement.y, displacement.x) * (180 / Math.PI)
-		},
-		[agentViewport]
-	)
+		const agentCenter = Box.From(agentViewport).center
+		const agentScreenCenter = editor.pageToViewport(agentCenter)
+		const screenBounds = editor.getViewportScreenBounds()
+		const screenCenter = Box.From(screenBounds).center
+		const displacement = Vec.From(agentScreenCenter).sub(screenCenter)
+		return Math.atan2(displacement.y, displacement.x) * (180 / Math.PI)
+	}, [agentViewport])
 
 	const handleClick = useCallback(() => {
 		if (agentViewport) {

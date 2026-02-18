@@ -1,5 +1,5 @@
 import z from 'zod'
-import { ActionMeta, AgentAction, getActionSchemaForMode } from '../types/AgentAction'
+import { type ActionMeta, type AgentAction, getActionSchemaForMode } from '../types/AgentAction'
 
 /**
  * Internal meta keys that should be stripped from the JSON schema.
@@ -21,7 +21,7 @@ export function stripInternalMeta(obj: object): object {
 		return Object.fromEntries(
 			Object.entries(obj)
 				.filter(([key]) => !INTERNAL_META_KEYS.has(key))
-				.map(([key, value]) => [key, stripInternalMeta(value)])
+				.map(([key, value]) => [key, stripInternalMeta(value)]),
 		)
 	}
 	return obj

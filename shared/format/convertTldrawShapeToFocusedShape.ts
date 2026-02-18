@@ -1,26 +1,26 @@
 import {
 	Box,
 	createShapeId,
-	Editor,
+	type Editor,
 	isPageId,
 	reverseRecordsDiff,
-	TLArrowBinding,
-	TLArrowShape,
-	TLDrawShape,
-	TLGeoShape,
-	TLGeoShapeGeoStyle,
-	TLLineShape,
-	TLNoteShape,
-	TLShape,
-	TLShapeId,
-	TLTextShape,
+	type TLArrowBinding,
+	type TLArrowShape,
+	type TLDrawShape,
+	type TLGeoShape,
+	type TLGeoShapeGeoStyle,
+	type TLLineShape,
+	type TLNoteShape,
+	type TLShape,
+	type TLShapeId,
+	type TLTextShape,
 	Vec,
 } from 'tldraw'
-import { SimpleShapeId } from '../types/ids-schema'
+import type { SimpleShapeId } from '../types/ids-schema'
 import { convertTldrawFillToFocusedFill } from './FocusedFill'
 import { convertTldrawFontSizeAndScaleToFocusedFontSize } from './FocusedFontSize'
-import { FocusedGeoShapeType } from './FocusedGeoShapeType'
-import {
+import type { FocusedGeoShapeType } from './FocusedGeoShapeType'
+import type {
 	FocusedArrowShape,
 	FocusedDrawShape,
 	FocusedGeoShape,
@@ -98,7 +98,7 @@ export function convertTldrawIdToSimpleId(id: TLShapeId): SimpleShapeId {
 	return id.slice(6) as SimpleShapeId
 }
 
-function convertDrawShapeToFocused(editor: Editor, shape: TLDrawShape): FocusedDrawShape {
+function convertDrawShapeToFocused(_editor: Editor, shape: TLDrawShape): FocusedDrawShape {
 	return {
 		_type: 'draw',
 		color: shape.props.color,
@@ -207,7 +207,7 @@ function convertArrowShapeToFocused(editor: Editor, shape: TLArrowShape): Focuse
 	const bounds = getSimpleBounds(editor, shape)
 	const bindings = editor.store.query.records('binding').get()
 	const arrowBindings = bindings.filter(
-		(b) => b.type === 'arrow' && b.fromId === shape.id
+		(b) => b.type === 'arrow' && b.fromId === shape.id,
 	) as TLArrowBinding[]
 	const startBinding = arrowBindings.find((b) => b.props.terminal === 'start')
 	const endBinding = arrowBindings.find((b) => b.props.terminal === 'end')
@@ -285,7 +285,7 @@ function getSimpleBounds(editor: Editor, shape: TLShape): Box {
 				})
 				mockBounds = editor.getShapePageBounds(mockId)
 			},
-			{ ignoreShapeLock: false, history: 'ignore' }
+			{ ignoreShapeLock: false, history: 'ignore' },
 		)
 	})
 	const reverseDiff = reverseRecordsDiff(diff)

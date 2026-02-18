@@ -1,0 +1,71 @@
+---
+description: Mandala geometry, cell ID conventions, and Emotions Map framework structure
+globs:
+  - "**/mandala*"
+  - "**/emotions-map*"
+---
+
+# Mandala & Emotions Map
+
+## Mandala Structure
+
+The Emotions Map mandala has:
+- **3 slices** (angular divisions): Past, Present, Future
+- **6 rings** (concentric circles): Events, Behaviors, Thoughts, Emotions, Beliefs, Evidence
+- **18 cells** total (3 slices x 6 rings)
+
+## Cell ID Convention
+
+Cell IDs combine `sliceId-ringId` in lowercase:
+
+```
+past-events, past-behaviors, past-thoughts, past-emotions, past-beliefs, past-evidence
+present-events, present-behaviors, present-thoughts, present-emotions, present-beliefs, present-evidence
+future-events, future-behaviors, future-thoughts, future-emotions, future-beliefs, future-evidence
+```
+
+## Slice Layout (Angular)
+
+- **Past**: 150 to 270 degrees (left side)
+- **Present**: 270 to 30 degrees (bottom-right)
+- **Future**: 30 to 150 degrees (top-right)
+
+## Ring Layout (Radial)
+
+- Ring 0 (outermost): Events
+- Ring 1: Behaviors
+- Ring 2: Thoughts
+- Ring 3: Emotions
+- Ring 4: Beliefs
+- Ring 5 (innermost): Evidence
+
+## Key Types (shared/types/MandalaTypes.ts)
+
+- `CellId` — template literal `${SliceId}-${RingId}`
+- `SliceId` — `"past" | "present" | "future"`
+- `RingId` — `"events" | "behaviors" | "thoughts" | "emotions" | "beliefs" | "evidence"`
+- `CellInfo` — `{ sliceIndex, ringIndex, sliceId, ringId, cellId }`
+- `MandalaConfig` — `{ slices, rings, radius, center }`
+- `MandalaState` — `Record<CellId, { status, contentShapeIds }>`
+
+## Geometry Functions (client/lib/mandala-geometry.ts)
+
+All geometry functions are **pure** (no side effects, no TLDraw dependency):
+
+- `getCellAtPoint(config, point)` — Cartesian to polar to cell mapping
+- `getCellCenter(config, sliceIndex, ringIndex)` — center point of a cell
+- `getContentShapeCell(config, shapeCenter)` — which cell contains a shape
+- `getAllCellIds()` — all 18 cell IDs
+- `getSliceDefinitions(config)` — slice angle ranges
+- `getRingDefinitions(config)` — ring radius ranges
+
+## Framework Config (client/lib/frameworks/emotions-map.ts)
+
+The `EMOTIONS_MAP_FRAMEWORK` constant defines all 18 cells with:
+- `question` — the Socratic question AI asks for each cell
+- `guidance` — tips for the AI
+- `examples` — sample answers
+
+## Verification
+
+Run `bun run verify` before delivering any changes.

@@ -1,5 +1,5 @@
-import { ClearAction } from '../../shared/schema/AgentActionSchemas'
-import { Streaming } from '../../shared/types/Streaming'
+import type { ClearAction } from '../../shared/schema/AgentActionSchemas'
+import type { Streaming } from '../../shared/types/Streaming'
 import { AgentActionUtil, registerActionUtil } from './AgentActionUtil'
 
 export const ClearActionUtil = registerActionUtil(
@@ -33,5 +33,5 @@ export const ClearActionUtil = registerActionUtil(
 			const allShapes = editor.getCurrentPageShapes()
 			editor.deleteShapes(allShapes)
 		}
-	}
+	},
 )

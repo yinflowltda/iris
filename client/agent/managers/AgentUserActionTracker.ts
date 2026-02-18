@@ -1,4 +1,4 @@
-import { Atom, atom, RecordsDiff, TLRecord } from 'tldraw'
+import { type Atom, atom, type RecordsDiff, type TLRecord } from 'tldraw'
 import type { TldrawAgent } from '../TldrawAgent'
 import { BaseAgentManager } from './BaseAgentManager'
 
@@ -53,7 +53,7 @@ export class AgentUserActionTracker extends BaseAgentManager {
 				}
 				this.$userActionHistory.update((prev) => [...prev, change])
 				return
-			}
+			},
 		)
 
 		const cleanUpDelete = editor.sideEffects.registerAfterDeleteHandler(
@@ -68,7 +68,7 @@ export class AgentUserActionTracker extends BaseAgentManager {
 				}
 				this.$userActionHistory.update((prev) => [...prev, change])
 				return
-			}
+			},
 		)
 
 		const cleanUpChange = editor.sideEffects.registerAfterChangeHandler(
@@ -83,7 +83,7 @@ export class AgentUserActionTracker extends BaseAgentManager {
 				}
 				this.$userActionHistory.update((prev) => [...prev, change])
 				return
-			}
+			},
 		)
 
 		const cleanUp = () => {

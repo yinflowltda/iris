@@ -1,27 +1,33 @@
-import { Editor, RecordsDiff, reverseRecordsDiff, structuredClone, TLRecord } from 'tldraw'
+import {
+	type Editor,
+	type RecordsDiff,
+	reverseRecordsDiff,
+	structuredClone,
+	type TLRecord,
+} from 'tldraw'
 import { convertTldrawShapeToFocusedShape } from '../../shared/format/convertTldrawShapeToFocusedShape'
-import { AgentModelName } from '../../shared/models'
-import { AgentAction } from '../../shared/types/AgentAction'
-import { AgentInput } from '../../shared/types/AgentInput'
-import { AgentPrompt, BaseAgentPrompt } from '../../shared/types/AgentPrompt'
-import { AgentRequest } from '../../shared/types/AgentRequest'
-import { ChatHistoryItem, ChatHistoryPromptItem } from '../../shared/types/ChatHistoryItem'
-import { ContextItem } from '../../shared/types/ContextItem'
-import { PromptPart } from '../../shared/types/PromptPart'
-import { Streaming } from '../../shared/types/Streaming'
-import { TodoItem } from '../../shared/types/TodoItem'
+import type { AgentModelName } from '../../shared/models'
+import type { AgentAction } from '../../shared/types/AgentAction'
+import type { AgentInput } from '../../shared/types/AgentInput'
+import type { AgentPrompt, BaseAgentPrompt } from '../../shared/types/AgentPrompt'
+import type { AgentRequest } from '../../shared/types/AgentRequest'
+import type { ChatHistoryItem, ChatHistoryPromptItem } from '../../shared/types/ChatHistoryItem'
+import type { ContextItem } from '../../shared/types/ContextItem'
+import type { PromptPart } from '../../shared/types/PromptPart'
+import type { Streaming } from '../../shared/types/Streaming'
+import type { TodoItem } from '../../shared/types/TodoItem'
 import { AgentHelpers } from '../AgentHelpers'
 import { getModeNode } from '../modes/AgentModeChart'
-import { AgentModeType } from '../modes/AgentModeDefinitions'
-import { getPromptPartUtilsRecord, PromptPartUtil } from '../parts/PromptPartUtil'
+import type { AgentModeType } from '../modes/AgentModeDefinitions'
+import { getPromptPartUtilsRecord, type PromptPartUtil } from '../parts/PromptPartUtil'
 import { AgentActionManager } from './managers/AgentActionManager'
 import { AgentChatManager } from './managers/AgentChatManager'
 import { AgentChatOriginManager } from './managers/AgentChatOriginManager'
 import { AgentContextManager } from './managers/AgentContextManager'
-import { AgentDebugFlags, AgentDebugManager } from './managers/AgentDebugManager'
+import { type AgentDebugFlags, AgentDebugManager } from './managers/AgentDebugManager'
 import { AgentLintManager } from './managers/AgentLintManager'
-import { AgentModeManager } from './managers/AgentModeManager'
 import { AgentModelNameManager } from './managers/AgentModelNameManager'
+import { AgentModeManager } from './managers/AgentModeManager'
 import { AgentRequestManager } from './managers/AgentRequestManager'
 import { AgentTodoManager } from './managers/AgentTodoManager'
 import { AgentUserActionTracker } from './managers/AgentUserActionTracker'
@@ -260,7 +266,7 @@ export class TldrawAgent {
 		const modeDefinition = this.mode.getCurrentModeDefinition()
 		if (!modeDefinition.active) {
 			throw new Error(
-				`Fairy is not in an active mode so can't act right now. Current mode: ${modeDefinition.type}`
+				`Fairy is not in an active mode so can't act right now. Current mode: ${modeDefinition.type}`,
 			)
 		}
 
@@ -307,7 +313,7 @@ export class TldrawAgent {
 
 		if (this.isActingOnEditor) {
 			throw new Error(
-				"Agent is already acting. It's illegal to prompt an agent during an action. Please use schedule instead."
+				"Agent is already acting. It's illegal to prompt an agent during an action. Please use schedule instead.",
 			)
 		}
 
@@ -346,7 +352,7 @@ export class TldrawAgent {
 		if (!scheduledRequest) {
 			if (eventualModeDefinition.active) {
 				throw new Error(
-					`Agent is not allowed to become inactive during the active mode: ${eventualModeType}`
+					`Agent is not allowed to become inactive during the active mode: ${eventualModeType}`,
 				)
 			}
 			this.requests.setIsPrompting(false)
@@ -523,7 +529,7 @@ export class TldrawAgent {
 			const newModeDefinition = this.mode.getCurrentModeDefinition()
 			if (newModeDefinition.active) {
 				throw new Error(
-					`Agent is not allowed to become inactive during the active mode: ${this.mode.getCurrentModeType()}`
+					`Agent is not allowed to become inactive during the active mode: ${this.mode.getCurrentModeType()}`,
 				)
 			}
 		}
@@ -582,7 +588,7 @@ export class TldrawAgent {
 		if (!modeDefinition.active) {
 			this.cancel()
 			throw new Error(
-				`Agent is not in an active mode so cannot take actions. Current mode: ${modeDefinition.type}`
+				`Agent is not in an active mode so cannot take actions. Current mode: ${modeDefinition.type}`,
 			)
 		}
 
@@ -647,7 +653,7 @@ export class TldrawAgent {
 							{
 								ignoreShapeLock: true,
 								history: 'ignore',
-							}
+							},
 						)
 					} finally {
 						this.setIsActingOnEditor(false)

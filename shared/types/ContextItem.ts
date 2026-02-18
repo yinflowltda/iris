@@ -1,6 +1,6 @@
-import { BoxModel, Editor, VecModel } from 'tldraw'
-import { FocusedShape } from '../format/FocusedShape'
-import { AgentIconType } from '../icons/AgentIcon'
+import type { BoxModel, Editor, VecModel } from 'tldraw'
+import type { FocusedShape } from '../format/FocusedShape'
+import type { AgentIconType } from '../icons/AgentIcon'
 
 export type ContextItem = ShapeContextItem | AreaContextItem | PointContextItem | ShapesContextItem
 
@@ -63,7 +63,7 @@ export const CONTEXT_TYPE_DEFINITIONS: Record<
 		icon: 'target',
 		name: (item: ShapesContextItem, editor: Editor) => {
 			const count = item.shapes.length
-			if (count === 1) return CONTEXT_TYPE_DEFINITIONS['shape'].name(item, editor)
+			if (count === 1) return CONTEXT_TYPE_DEFINITIONS.shape.name(item, editor)
 			return `${count} shapes`
 		},
 	},

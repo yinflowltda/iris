@@ -1,5 +1,5 @@
-import { Editor } from 'tldraw'
-import { ChatHistoryPromptItem } from '../../../shared/types/ChatHistoryItem'
+import type { Editor } from 'tldraw'
+import type { ChatHistoryPromptItem } from '../../../shared/types/ChatHistoryItem'
 import { ContextItemTag } from '../ContextItemTag'
 import { SelectionTag } from '../SelectionTag'
 
@@ -27,7 +27,7 @@ export function ChatHistoryPrompt({
 					<div className="prompt-tags">
 						{selectedShapes.length > 0 && <SelectionTag />}
 						{contextItems.map((contextItem, i) => (
-							<ContextItemTag editor={editor} key={'context-item-' + i} item={contextItem} />
+							<ContextItemTag editor={editor} key={`context-item-${i}`} item={contextItem} />
 						))}
 					</div>
 				)}

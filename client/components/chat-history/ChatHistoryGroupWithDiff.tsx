@@ -1,11 +1,11 @@
 import { useCallback, useMemo } from 'react'
 import { reverseRecordsDiff, squashRecordDiffs } from 'tldraw'
-import { AgentIcon, AgentIconType } from '../../../shared/icons/AgentIcon'
-import { ChatHistoryActionItem } from '../../../shared/types/ChatHistoryItem'
+import { AgentIcon, type AgentIconType } from '../../../shared/icons/AgentIcon'
+import type { ChatHistoryActionItem } from '../../../shared/types/ChatHistoryItem'
 import { useAgent } from '../../agent/TldrawAgentAppProvider'
-import { ChatHistoryGroup } from './ChatHistoryGroup'
-import { TldrawDiffViewer } from './TldrawDiffViewer'
+import type { ChatHistoryGroup } from './ChatHistoryGroup'
 import { getActionInfo } from './getActionInfo'
+import { TldrawDiffViewer } from './TldrawDiffViewer'
 
 export function ChatHistoryGroupWithDiff({ group }: { group: ChatHistoryGroup }) {
 	const agent = useAgent()
@@ -18,7 +18,7 @@ export function ChatHistoryGroupWithDiff({ group }: { group: ChatHistoryGroup })
 		agent.chat.update((currentChatHistoryItems) => {
 			const newItems = [...currentChatHistoryItems]
 			for (const item of items) {
-				const index = newItems.findIndex((v) => v === item)
+				const index = newItems.indexOf(item)
 
 				// Mark the item as accepted
 				if (index !== -1) {
@@ -39,7 +39,7 @@ export function ChatHistoryGroupWithDiff({ group }: { group: ChatHistoryGroup })
 		agent.chat.update((currentChatHistoryItems) => {
 			const newItems = [...currentChatHistoryItems]
 			for (const item of items) {
-				const index = newItems.findIndex((v) => v === item)
+				const index = newItems.indexOf(item)
 
 				// Mark the item as rejected
 				if (index !== -1) {
@@ -73,7 +73,7 @@ export function ChatHistoryGroupWithDiff({ group }: { group: ChatHistoryGroup })
 
 	const steps = useMemo(
 		() => items.map((item) => getActionInfo(item.action, agent)),
-		[items, agent]
+		[items, agent],
 	)
 
 	return (
@@ -107,7 +107,7 @@ function DiffSteps({ steps }: { steps: DiffStep[] }) {
 				if (step.description === previousDescription) return null
 				previousDescription = step.description
 				return (
-					<div className="agent-change" key={'intent-' + i}>
+					<div className="agent-change" key={`intent-${i}`}>
 						{step.icon && (
 							<span className="agent-change-icon">
 								<AgentIcon type={step.icon} />

@@ -1,5 +1,5 @@
-import { Atom, atom } from 'tldraw'
-import { AgentModelName, DEFAULT_MODEL_NAME } from '../../../shared/models'
+import { type Atom, atom } from 'tldraw'
+import { type AgentModelName, DEFAULT_MODEL_NAME } from '../../../shared/models'
 import type { TldrawAgent } from '../TldrawAgent'
 import { BaseAgentManager } from './BaseAgentManager'
 

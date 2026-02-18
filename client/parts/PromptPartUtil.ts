@@ -1,9 +1,9 @@
-import { Editor } from 'tldraw'
-import { AgentRequest } from '../../shared/types/AgentRequest'
-import { BasePromptPart } from '../../shared/types/BasePromptPart'
-import { PromptPart } from '../../shared/types/PromptPart'
-import { TldrawAgent } from '../agent/TldrawAgent'
-import { AgentHelpers } from '../AgentHelpers'
+import type { Editor } from 'tldraw'
+import type { AgentRequest } from '../../shared/types/AgentRequest'
+import type { BasePromptPart } from '../../shared/types/BasePromptPart'
+import type { PromptPart } from '../../shared/types/PromptPart'
+import type { AgentHelpers } from '../AgentHelpers'
+import type { TldrawAgent } from '../agent/TldrawAgent'
 
 // ============================================================================
 // Registry
@@ -15,7 +15,7 @@ const registry = new Map<string, PromptPartUtilConstructor<BasePromptPart>>()
  * Register a prompt part util class. Call this after defining each util class.
  */
 export function registerPromptPartUtil<T extends PromptPartUtilConstructor<BasePromptPart>>(
-	util: T
+	util: T,
 ): T {
 	if (registry.has(util.type)) {
 		throw new Error(`Prompt part util already registered: ${util.type}`)

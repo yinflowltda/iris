@@ -1,5 +1,5 @@
-import { UserViewportBoundsPart } from '../../shared/schema/PromptPartDefinitions'
-import { AgentHelpers } from '../AgentHelpers'
+import type { UserViewportBoundsPart } from '../../shared/schema/PromptPartDefinitions'
+import type { AgentHelpers } from '../AgentHelpers'
 import { PromptPartUtil, registerPromptPartUtil } from './PromptPartUtil'
 
 export const UserViewportBoundsPartUtil = registerPromptPartUtil(
@@ -15,5 +15,5 @@ export const UserViewportBoundsPartUtil = registerPromptPartUtil(
 				userBounds: helpers.roundBox(offsetUserBounds),
 			}
 		}
-	}
+	},
 )

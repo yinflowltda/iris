@@ -1,4 +1,4 @@
-import { AgentIcon, AgentIconType } from '../../shared/icons/AgentIcon'
+import { AgentIcon, type AgentIconType } from '../../shared/icons/AgentIcon'
 
 export function PromptTag({
 	text,

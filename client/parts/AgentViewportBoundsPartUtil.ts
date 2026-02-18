@@ -1,6 +1,6 @@
-import { AgentViewportBoundsPart } from '../../shared/schema/PromptPartDefinitions'
-import { AgentRequest } from '../../shared/types/AgentRequest'
-import { AgentHelpers } from '../AgentHelpers'
+import type { AgentViewportBoundsPart } from '../../shared/schema/PromptPartDefinitions'
+import type { AgentRequest } from '../../shared/types/AgentRequest'
+import type { AgentHelpers } from '../AgentHelpers'
 import { PromptPartUtil, registerPromptPartUtil } from './PromptPartUtil'
 
 export const AgentViewportBoundsPartUtil = registerPromptPartUtil(
@@ -15,5 +15,5 @@ export const AgentViewportBoundsPartUtil = registerPromptPartUtil(
 				agentBounds: helpers.roundBox(offsetAgentBounds),
 			}
 		}
-	}
+	},
 )

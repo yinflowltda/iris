@@ -1,6 +1,6 @@
-import { AgentIconType } from '../icons/AgentIcon'
-import { BaseAgentAction } from './BaseAgentAction'
-import { Streaming } from './Streaming'
+import type { AgentIconType } from '../icons/AgentIcon'
+import type { BaseAgentAction } from './BaseAgentAction'
+import type { Streaming } from './Streaming'
 
 /**
  * Information on how the action should be displayed in chat history.

@@ -1,5 +1,5 @@
-import { MessagesPart } from '../../shared/schema/PromptPartDefinitions'
-import { AgentRequest } from '../../shared/types/AgentRequest'
+import type { MessagesPart } from '../../shared/schema/PromptPartDefinitions'
+import type { AgentRequest } from '../../shared/types/AgentRequest'
 import { PromptPartUtil, registerPromptPartUtil } from './PromptPartUtil'
 
 export const MessagesPartUtil = registerPromptPartUtil(
@@ -14,5 +14,5 @@ export const MessagesPartUtil = registerPromptPartUtil(
 				requestSource: source,
 			}
 		}
-	}
+	},
 )

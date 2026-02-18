@@ -2,13 +2,13 @@ import { useCallback, useMemo, useState } from 'react'
 import {
 	DefaultSizeStyle,
 	ErrorBoundary,
-	TLComponents,
+	type TLComponents,
+	type TLUiOverrides,
 	Tldraw,
 	TldrawOverlays,
 	TldrawUiToastsProvider,
-	TLUiOverrides,
 } from 'tldraw'
-import { TldrawAgentApp } from './agent/TldrawAgentApp'
+import type { TldrawAgentApp } from './agent/TldrawAgentApp'
 import {
 	TldrawAgentAppContextProvider,
 	TldrawAgentAppProvider,

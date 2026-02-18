@@ -1,17 +1,17 @@
-import { Box, BoxModel, JsonValue } from 'tldraw'
-import { BlurryShape } from '../format/BlurryShape'
-import { FocusedShape } from '../format/FocusedShape'
-import { PeripheralShapeCluster } from '../format/PeripheralShapesCluster'
-import { AgentModelName } from '../models'
+import { Box, type BoxModel, type JsonValue } from 'tldraw'
+import type { BlurryShape } from '../format/BlurryShape'
+import type { FocusedShape } from '../format/FocusedShape'
+import type { PeripheralShapeCluster } from '../format/PeripheralShapesCluster'
+import type { AgentModelName } from '../models'
 import type { AgentAction } from '../types/AgentAction'
-import { AgentCanvasLint } from '../types/AgentCanvasLint'
-import { AgentMessage, AgentMessageContent } from '../types/AgentMessage'
-import { AgentRequest } from '../types/AgentRequest'
-import { ChatHistoryItem } from '../types/ChatHistoryItem'
-import { ContextItem } from '../types/ContextItem'
+import type { AgentCanvasLint } from '../types/AgentCanvasLint'
+import type { AgentMessage, AgentMessageContent } from '../types/AgentMessage'
+import type { AgentRequest } from '../types/AgentRequest'
+import type { ChatHistoryItem } from '../types/ChatHistoryItem'
+import type { ContextItem } from '../types/ContextItem'
+import type { SimpleShapeId } from '../types/ids-schema'
 import type { PromptPart, PromptPartDefinition } from '../types/PromptPart'
-import { TodoItem } from '../types/TodoItem'
-import { SimpleShapeId } from '../types/ids-schema'
+import type { TodoItem } from '../types/TodoItem'
 
 // ============================================================================
 // Prompt Part Type Interfaces
@@ -151,7 +151,7 @@ export const CanvasLintsPartDefinition: PromptPartDefinition<CanvasLintsPart> = 
 		const friendlessArrowLints = lints.filter((l) => l.type === 'friendless-arrow')
 
 		messages.push(
-			"[LINTER]: The following potential visual problems have been detected in the canvas. You should decide if you want to address them. Defer to your view of the canvas to decide if you need to make changes; it's very possible that you don't need to make any changes."
+			"[LINTER]: The following potential visual problems have been detected in the canvas. You should decide if you want to address them. Defer to your view of the canvas to decide if you need to make changes; it's very possible that you don't need to make any changes.",
 		)
 
 		if (growYLints.length > 0) {
@@ -286,12 +286,12 @@ function buildHistoryItemMessage(item: ChatHistoryItem, priority: number): Agent
 					break
 				}
 				case 'think': {
-					text = '[THOUGHT]: ' + (action.text || '<thought data lost>')
+					text = `[THOUGHT]: ${action.text || '<thought data lost>'}`
 					break
 				}
 				default: {
 					const { complete: _complete, time: _time, ...rawAction } = action || {}
-					text = '[ACTION]: ' + JSON.stringify(rawAction)
+					text = `[ACTION]: ${JSON.stringify(rawAction)}`
 					break
 				}
 			}
@@ -323,7 +323,7 @@ export const ContextItemsPartDefinition: PromptPartDefinition<ContextItemsPart> 
 			messages.push(
 				isSelf
 					? 'You have decided to focus your view on the following area. Make sure to focus your task here.'
-					: 'The user has specifically brought your attention to the following areas in this request. The user might refer to them as the "area(s)" or perhaps "here" or "there", but either way, it\'s implied that you should focus on these areas in both your reasoning and actions. Make sure to focus your task on these areas:'
+					: 'The user has specifically brought your attention to the following areas in this request. The user might refer to them as the "area(s)" or perhaps "here" or "there", but either way, it\'s implied that you should focus on these areas in both your reasoning and actions. Make sure to focus your task on these areas:',
 			)
 			for (const area of areas) {
 				messages.push(JSON.stringify(area))
@@ -334,7 +334,7 @@ export const ContextItemsPartDefinition: PromptPartDefinition<ContextItemsPart> 
 		if (pointItems.length > 0) {
 			const points = pointItems.map((item) => item.point)
 			messages.push(
-				'The user has specifically brought your attention to the following points in this request. The user might refer to them as the "point(s)" or perhaps "here" or "there", but either way, it\'s implied that you should focus on these points in both your reasoning and actions. Make sure to focus your task on these points:'
+				'The user has specifically brought your attention to the following points in this request. The user might refer to them as the "point(s)" or perhaps "here" or "there", but either way, it\'s implied that you should focus on these points in both your reasoning and actions. Make sure to focus your task on these points:',
 			)
 			for (const point of points) {
 				messages.push(JSON.stringify(point))
@@ -345,7 +345,7 @@ export const ContextItemsPartDefinition: PromptPartDefinition<ContextItemsPart> 
 		if (shapeItems.length > 0) {
 			const shapes = shapeItems.map((item) => item.shape)
 			messages.push(
-				`The user has specifically brought your attention to these ${shapes.length} shapes individually in this request. Make sure to focus your task on these shapes where applicable:`
+				`The user has specifically brought your attention to these ${shapes.length} shapes individually in this request. Make sure to focus your task on these shapes where applicable:`,
 			)
 			for (const shape of shapes) {
 				messages.push(JSON.stringify(shape))
@@ -357,7 +357,7 @@ export const ContextItemsPartDefinition: PromptPartDefinition<ContextItemsPart> 
 			const shapes = contextItem.shapes
 			if (shapes.length > 0) {
 				messages.push(
-					`The user has specifically brought your attention to the following group of ${shapes.length} shapes in this request. Make sure to focus your task on these shapes where applicable:`
+					`The user has specifically brought your attention to the following group of ${shapes.length} shapes in this request. Make sure to focus your task on these shapes where applicable:`,
 				)
 				messages.push(shapes.map((shape) => JSON.stringify(shape)).join('\n'))
 			}

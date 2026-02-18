@@ -1,10 +1,10 @@
-import { Editor } from 'tldraw'
-import { AgentAction } from '../../shared/types/AgentAction'
-import { BaseAgentAction } from '../../shared/types/BaseAgentAction'
-import { ChatHistoryInfo } from '../../shared/types/ChatHistoryInfo'
-import { Streaming } from '../../shared/types/Streaming'
-import { TldrawAgent } from '../agent/TldrawAgent'
-import { AgentHelpers } from '../AgentHelpers'
+import type { Editor } from 'tldraw'
+import type { AgentAction } from '../../shared/types/AgentAction'
+import type { BaseAgentAction } from '../../shared/types/BaseAgentAction'
+import type { ChatHistoryInfo } from '../../shared/types/ChatHistoryInfo'
+import type { Streaming } from '../../shared/types/Streaming'
+import type { AgentHelpers } from '../AgentHelpers'
+import type { TldrawAgent } from '../agent/TldrawAgent'
 
 // ============================================================================
 // Registry
@@ -36,7 +36,7 @@ const modeRegistry = new Map<string, Map<string, AgentActionUtilConstructor<Base
  */
 export function registerActionUtil<T extends AgentActionUtilConstructor<BaseAgentAction>>(
 	util: T,
-	options?: RegisterActionUtilOptions
+	options?: RegisterActionUtilOptions,
 ): T {
 	const { forModes } = options ?? {}
 

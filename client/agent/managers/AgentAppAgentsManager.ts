@@ -1,4 +1,4 @@
-import { Editor, EditorAtom, uniqueId } from 'tldraw'
+import { type Editor, EditorAtom, uniqueId } from 'tldraw'
 import { TldrawAgent } from '../TldrawAgent'
 import { BaseAgentAppManager } from './BaseAgentAppManager'
 
@@ -121,7 +121,7 @@ export class AgentAppAgentsManager extends BaseAgentAppManager {
 
 		// Remove from the static atom
 		AgentAppAgentsManager.$agents.update(this.app.editor, (agents) =>
-			agents.filter((a) => a.id !== id)
+			agents.filter((a) => a.id !== id),
 		)
 
 		return true

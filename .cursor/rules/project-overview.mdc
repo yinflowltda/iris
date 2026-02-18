@@ -1,0 +1,75 @@
+---
+description: Project structure, tech stack, conventions, and how to run/verify the Iris application
+alwaysApply: true
+---
+
+# Project Overview — Iris (Yinflow MVP)
+
+## What is this project?
+
+Iris is an AI-powered visual framework tool built on the TLDraw Agent Starter Kit. The MVP focuses on an "Emotions Map" — a mandala-based therapeutic interface with Socratic AI guidance.
+
+**Live URL**: `iris.yinflow.life`
+
+## Tech Stack
+
+- **Build**: Vite 7 + React 19 + TypeScript 5.8
+- **Canvas**: TLDraw v4.3.1
+- **AI SDK**: Vercel AI SDK v5 (`ai` package) with Cloudflare Workers AI via `workers-ai-provider`
+- **Backend**: Cloudflare Workers + Durable Objects
+- **State**: localStorage (client) + Durable Objects (server)
+- **Linting**: Biome
+- **Testing**: Vitest (unit/integration) + Playwright (E2E)
+- **Package Manager**: Bun
+
+## Project Structure
+
+```
+iris/
+├── client/          # React frontend (components, shapes, actions, tools, agent)
+│   ├── actions/     # Agent action executors (ActionUtil pattern)
+│   ├── agent/       # TldrawAgentApp + managers
+│   ├── components/  # React UI components
+│   ├── modes/       # Agent mode definitions
+│   ├── parts/       # Prompt part utilities
+│   ├── shapes/      # Custom TLDraw shapes (ShapeUtil)
+│   ├── lib/         # Pure utility functions
+│   └── tools/       # Custom TLDraw tools
+├── shared/          # Code shared between client and worker
+│   ├── schema/      # Zod schemas (actions, prompt parts)
+│   ├── types/       # TypeScript type definitions
+│   ├── format/      # Shape format conversion
+│   └── icons/       # SVG icon components
+├── worker/          # Cloudflare Workers backend
+│   ├── do/          # Durable Object (AgentService, AgentDurableObject)
+│   ├── prompt/      # System prompt builder + sections
+│   └── routes/      # API routes
+├── tests/           # All test files
+│   ├── unit/        # Vitest unit tests
+│   ├── integration/ # Vitest integration tests
+│   ├── e2e/         # Playwright E2E tests
+│   ├── fixtures/    # JSON seed data
+│   └── mocks/       # Mock providers
+└── scripts/         # Build scripts
+```
+
+## Key Commands
+
+```bash
+bun run dev        # Start local dev server (http://localhost:5173)
+bun run build      # Production build
+bun run verify     # Lint + typecheck + test (run before EVERY commit)
+bun run lint       # Biome check only
+bun run lint:fix   # Biome auto-fix
+bun run typecheck  # tsc --noEmit
+bun run test       # Vitest unit + integration
+bun run test:e2e   # Playwright E2E tests
+```
+
+## Critical Rules
+
+1. **Always run `bun run verify` before delivering any changes.**
+2. **English only** — all code, comments, commit messages, documentation, tests, and UI copy must be in English.
+3. **Do not modify files outside your assigned file zone** when working on a specific task.
+4. Use `import type` for type-only imports.
+5. Use tabs for indentation, single quotes, no semicolons (enforced by Biome).

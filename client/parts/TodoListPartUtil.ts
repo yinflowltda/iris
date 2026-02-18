@@ -1,6 +1,6 @@
-import { TodoListPart } from '../../shared/schema/PromptPartDefinitions'
-import { AgentRequest } from '../../shared/types/AgentRequest'
-import { AgentHelpers } from '../AgentHelpers'
+import type { TodoListPart } from '../../shared/schema/PromptPartDefinitions'
+import type { AgentRequest } from '../../shared/types/AgentRequest'
+import type { AgentHelpers } from '../AgentHelpers'
 import { PromptPartUtil, registerPromptPartUtil } from './PromptPartUtil'
 
 export const TodoListPartUtil = registerPromptPartUtil(
@@ -13,5 +13,5 @@ export const TodoListPartUtil = registerPromptPartUtil(
 				items: this.agent.todos.getTodos(),
 			}
 		}
-	}
+	},
 )

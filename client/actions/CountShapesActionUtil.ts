@@ -1,6 +1,6 @@
-import { CountShapesAction } from '../../shared/schema/AgentActionSchemas'
-import { Streaming } from '../../shared/types/Streaming'
-import { AgentHelpers } from '../AgentHelpers'
+import type { CountShapesAction } from '../../shared/schema/AgentActionSchemas'
+import type { Streaming } from '../../shared/types/Streaming'
+import type { AgentHelpers } from '../AgentHelpers'
 import { AgentActionUtil, registerActionUtil } from './AgentActionUtil'
 
 export const CountShapesActionUtil = registerActionUtil(
@@ -24,5 +24,5 @@ export const CountShapesActionUtil = registerActionUtil(
 				data: [`Number of shapes on the canvas: ${editor.getCurrentPageShapes().length}`],
 			})
 		}
-	}
+	},
 )

@@ -1,6 +1,6 @@
 import { isRecordsDiffEmpty } from 'tldraw'
-import { ChatHistoryActionItem } from '../../../shared/types/ChatHistoryItem'
-import { TldrawAgent } from '../../agent/TldrawAgent'
+import type { ChatHistoryActionItem } from '../../../shared/types/ChatHistoryItem'
+import type { TldrawAgent } from '../../agent/TldrawAgent'
 import { ChatHistoryGroupWithDiff } from './ChatHistoryGroupWithDiff'
 import { ChatHistoryGroupWithoutDiff } from './ChatHistoryGroupWithoutDiff'
 import { getActionInfo } from './getActionInfo'
@@ -23,7 +23,7 @@ export function ChatHistoryGroup({ group }: { group: ChatHistoryGroup }) {
  */
 export function getActionHistoryGroups(
 	items: ChatHistoryActionItem[],
-	agent: TldrawAgent
+	agent: TldrawAgent,
 ): ChatHistoryGroup[] {
 	const groups: ChatHistoryGroup[] = []
 

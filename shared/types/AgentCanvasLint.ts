@@ -1,4 +1,4 @@
-import { SimpleShapeId } from './ids-schema'
+import type { SimpleShapeId } from './ids-schema'
 
 export interface AgentCanvasLint {
 	type: AgentCanvasLintType

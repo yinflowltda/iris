@@ -1,7 +1,7 @@
 import { structuredClone } from 'tldraw'
-import { ChatHistoryPart } from '../../shared/schema/PromptPartDefinitions'
-import { AgentRequest } from '../../shared/types/AgentRequest'
-import { AgentHelpers } from '../AgentHelpers'
+import type { ChatHistoryPart } from '../../shared/schema/PromptPartDefinitions'
+import type { AgentRequest } from '../../shared/types/AgentRequest'
+import type { AgentHelpers } from '../AgentHelpers'
 import { PromptPartUtil, registerPromptPartUtil } from './PromptPartUtil'
 
 export const ChatHistoryPartUtil = registerPromptPartUtil(
@@ -28,5 +28,5 @@ export const ChatHistoryPartUtil = registerPromptPartUtil(
 				history,
 			}
 		}
-	}
+	},
 )

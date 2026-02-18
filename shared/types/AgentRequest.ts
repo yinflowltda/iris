@@ -1,5 +1,5 @@
-import { BoxModel, JsonValue } from 'tldraw'
-import { ContextItem } from './ContextItem'
+import type { BoxModel, JsonValue } from 'tldraw'
+import type { ContextItem } from './ContextItem'
 
 /**
  * A request that we send to the agent.

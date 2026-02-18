@@ -1,7 +1,7 @@
-import { TLShapeId } from 'tldraw'
-import { ResizeAction } from '../../shared/schema/AgentActionSchemas'
-import { Streaming } from '../../shared/types/Streaming'
-import { AgentHelpers } from '../AgentHelpers'
+import type { TLShapeId } from 'tldraw'
+import type { ResizeAction } from '../../shared/schema/AgentActionSchemas'
+import type { Streaming } from '../../shared/types/Streaming'
+import type { AgentHelpers } from '../AgentHelpers'
 import { AgentActionUtil, registerActionUtil } from './AgentActionUtil'
 
 export const ResizeActionUtil = registerActionUtil(
@@ -41,9 +41,9 @@ export const ResizeActionUtil = registerActionUtil(
 				this.editor.resizeShape(
 					shapeId,
 					{ x: action.scaleX, y: action.scaleY },
-					{ scaleOrigin: origin }
+					{ scaleOrigin: origin },
 				)
 			}
 		}
-	}
+	},
 )

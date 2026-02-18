@@ -1,11 +1,11 @@
 import { forwardRef, useMemo } from 'react'
 import {
 	DefaultShapeWrapper,
-	RecordsDiff,
-	TLRecord,
-	TLShape,
-	TLShapeId,
-	TLShapeWrapperProps,
+	type RecordsDiff,
+	type TLRecord,
+	type TLShape,
+	type TLShapeId,
+	type TLShapeWrapperProps,
 } from 'tldraw'
 import { TldrawViewer } from './TldrawViewer'
 
@@ -54,7 +54,7 @@ function getDiffShapesFromDiff(diff: RecordsDiff<TLRecord>): TLShape[] {
 
 		const before = {
 			...prevBefore,
-			id: (id + '-before') as TLShapeId,
+			id: `${id}-before` as TLShapeId,
 			opacity: prevAfter.opacity / 2,
 			meta: {
 				...prevBefore.meta,
@@ -118,7 +118,7 @@ function getDiffShapesFromDiff(diff: RecordsDiff<TLRecord>): TLShape[] {
 
 const DiffShapeWrapper = forwardRef(function DiffShapeWrapper(
 	{ children, shape, isBackground }: TLShapeWrapperProps,
-	ref: React.Ref<HTMLDivElement>
+	ref: React.Ref<HTMLDivElement>,
 ) {
 	const changeType = shape.meta.changeType
 
@@ -127,7 +127,7 @@ const DiffShapeWrapper = forwardRef(function DiffShapeWrapper(
 			ref={ref}
 			shape={shape}
 			isBackground={isBackground}
-			className={changeType ? 'diff-shape-' + changeType : undefined}
+			className={changeType ? `diff-shape-${changeType}` : undefined}
 		>
 			{children}
 		</DefaultShapeWrapper>
