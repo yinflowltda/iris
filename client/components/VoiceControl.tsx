@@ -54,9 +54,6 @@ export function useVoice(agent: TldrawAgent) {
 				}
 			}),
 			client.on('canvas.action', ({ instruction }) => {
-				// #region agent log
-				fetch('http://127.0.0.1:7242/ingest/6f34135a-2aef-478a-8061-5e0a8253db16',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceControl.tsx:canvas.action',message:'Canvas action received by client',data:{instruction:instruction?.slice(0,200),hasAgent:!!agent,hasEditor:!!agent?.editor},timestamp:Date.now(),hypothesisId:'H2,H3'})}).catch(()=>{});
-				// #endregion
 				if (!instruction) return
 				agent.interrupt({
 					input: {
@@ -66,9 +63,6 @@ export function useVoice(agent: TldrawAgent) {
 						contextItems: agent.context.getItems(),
 					},
 				})
-				// #region agent log
-				fetch('http://127.0.0.1:7242/ingest/6f34135a-2aef-478a-8061-5e0a8253db16',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceControl.tsx:canvas.action:afterInterrupt',message:'agent.interrupt called',data:{instruction:instruction?.slice(0,100)},timestamp:Date.now(),hypothesisId:'H3'})}).catch(()=>{});
-				// #endregion
 			}),
 			client.on('error', (msg) => {
 				setErrorMsg(msg)

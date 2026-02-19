@@ -135,9 +135,6 @@ export class VoiceAgentDurableObject extends DurableObject<Environment> {
 				text: result.responseText,
 			})
 
-			// #region agent log
-			fetch('http://127.0.0.1:7242/ingest/6f34135a-2aef-478a-8061-5e0a8253db16',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceAgentDO.ts:processAudio:canvasCheck',message:'Canvas instruction check',data:{hasCanvasInstruction:!!result.canvasInstruction,canvasInstruction:result.canvasInstruction?.slice(0,200)},timestamp:Date.now(),hypothesisId:'H1,H2'})}).catch(()=>{});
-			// #endregion
 			if (result.canvasInstruction) {
 				this.sendToClient(ws, {
 					type: 'canvas.action',

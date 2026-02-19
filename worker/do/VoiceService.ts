@@ -128,9 +128,6 @@ export class VoiceService {
 		})
 
 		const toolCalls = result.steps.flatMap((s) => s.toolCalls)
-		// #region agent log
-		fetch('http://127.0.0.1:7242/ingest/6f34135a-2aef-478a-8061-5e0a8253db16',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceService.ts:think:toolCalls',message:'LLM result',data:{stepsCount:result.steps.length,toolCallsCount:toolCalls.length,toolCallNames:toolCalls.map(t=>t.toolName),text:result.text?.slice(0,200),hasToolCalls:toolCalls.length>0},timestamp:Date.now(),hypothesisId:'H1'})}).catch(()=>{});
-		// #endregion
 		if (toolCalls.length > 0) {
 			const instructions: string[] = []
 			for (const tc of toolCalls) {
