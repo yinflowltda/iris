@@ -67,11 +67,6 @@ export class AgentService {
 			}
 		}
 
-		messages.push({
-			role: 'assistant',
-			content: '{"actions": [{"_type":',
-		})
-
 		try {
 			const { textStream } = streamText({
 				model,
@@ -87,47 +82,46 @@ export class AgentService {
 				},
 			})
 
-			let buffer = '{"actions": [{"_type":'
-			let cursor = 0
+			let buffer = ''
+			let lastActionIndex = -1
 			let maybeIncompleteAction: AgentAction | null = null
 
 			let startTime = Date.now()
 			for await (const text of textStream) {
 				buffer += text
 
-				const partialObject = closeAndParseJson(buffer)
+				const partialObject = tryParseStreamingJson(buffer)
 				if (!partialObject) continue
 
 				const actions = partialObject.actions
 				if (!Array.isArray(actions)) continue
 				if (actions.length === 0) continue
 
-				if (actions.length > cursor) {
-					const action = actions[cursor - 1] as AgentAction
-					if (action) {
+				const latestIndex = actions.length - 1
+
+				// A new action was appended; finalize the previous one.
+				if (latestIndex !== lastActionIndex) {
+					if (maybeIncompleteAction) {
 						yield {
-							...action,
+							...maybeIncompleteAction,
 							complete: true,
 							time: Date.now() - startTime,
 						}
 						maybeIncompleteAction = null
 					}
-					cursor++
+
+					lastActionIndex = latestIndex
+					startTime = Date.now()
 				}
 
-				const action = actions[cursor - 1] as AgentAction
-				if (action) {
-					if (!maybeIncompleteAction) {
-						startTime = Date.now()
-					}
+				const latestAction = actions[latestIndex] as AgentAction | undefined
+				if (!latestAction || !latestAction._type) continue
 
-					maybeIncompleteAction = action
-
-					yield {
-						...action,
-						complete: false,
-						time: Date.now() - startTime,
-					}
+				maybeIncompleteAction = latestAction
+				yield {
+					...latestAction,
+					complete: false,
+					time: Date.now() - startTime,
 				}
 			}
 
@@ -143,4 +137,24 @@ export class AgentService {
 			throw error
 		}
 	}
+}
+
+function tryParseStreamingJson(buffer: string): any | null {
+	let text = buffer.trimStart()
+
+	// Strip code fences if the model uses them.
+	if (text.startsWith('```')) {
+		text = text.replace(/^```[a-zA-Z]*\n?/, '')
+		text = text.replace(/```$/, '')
+	}
+
+	// Ignore any leading non-JSON text until the first object.
+	const firstBrace = text.indexOf('{')
+	if (firstBrace > 0) {
+		text = text.slice(firstBrace)
+	}
+
+	if (!text.startsWith('{')) return null
+
+	return closeAndParseJson(text)
 }

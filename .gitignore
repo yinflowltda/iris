@@ -5,5 +5,6 @@ node_modules
 *.dev.vars
 .tsbuild/
 dist/
+.wrangler/
 test-results/
 playwright-report/
