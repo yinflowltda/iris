@@ -4,16 +4,25 @@ import { AtIcon } from '../../shared/icons/AtIcon'
 import { BrainIcon } from '../../shared/icons/BrainIcon'
 import { ChevronDownIcon } from '../../shared/icons/ChevronDownIcon'
 import { AGENT_MODEL_DEFINITIONS, type AgentModelName } from '../../shared/models'
+import { getContextItemKey } from '../../shared/types/ContextItem'
+import type { VoiceState } from '../../shared/types/VoiceTypes'
 import { useAgent } from '../agent/TldrawAgentAppProvider'
 import { ContextItemTag } from './ContextItemTag'
 import { SelectionTag } from './SelectionTag'
+import { MicIcon } from './VoiceControl'
 
 export function ChatInput({
 	handleSubmit,
 	inputRef,
+	voiceState,
+	isListening,
+	onMicClick,
 }: {
 	handleSubmit: FormEventHandler<HTMLFormElement>
 	inputRef: React.RefObject<HTMLTextAreaElement | null>
+	voiceState: VoiceState
+	isListening: boolean
+	onMicClick: () => void
 }) {
 	const agent = useAgent()
 	const { editor } = agent
@@ -28,6 +37,9 @@ export function ChatInput({
 	const selectedShapes = useValue('selectedShapes', () => editor.getSelectedShapes(), [editor])
 	const contextItems = useValue('contextItems', () => agent.context.getItems(), [agent])
 	const modelName = useValue('modelName', () => agent.modelName.getModelName(), [agent])
+
+	const hasText = inputValue.trim() !== ''
+	const showSendButton = hasText || isGenerating
 
 	return (
 		<div className="chat-input">
@@ -61,11 +73,11 @@ export function ChatInput({
 						</select>
 					</div>
 					{selectedShapes.length > 0 && <SelectionTag onClick={() => editor.selectNone()} />}
-					{contextItems.map((item, i) => (
+					{contextItems.map((item) => (
 						<ContextItemTag
 							editor={editor}
 							onClick={() => agent.context.remove(item)}
-							key={`context-item-${i}`}
+							key={getContextItemKey(item)}
 							item={item}
 						/>
 					))}
@@ -81,10 +93,12 @@ export function ChatInput({
 					onKeyDown={(e) => {
 						if (e.key === 'Enter' && !e.shiftKey) {
 							e.preventDefault()
-							//idk about this but it works oops -max
 							const form = e.currentTarget.closest('form')
 							if (form) {
-								const submitEvent = new Event('submit', { bubbles: true, cancelable: true })
+								const submitEvent = new Event('submit', {
+									bubbles: true,
+									cancelable: true,
+								})
 								form.dispatchEvent(submitEvent)
 							}
 						}
@@ -109,13 +123,24 @@ export function ChatInput({
 							<ChevronDownIcon />
 						</div>
 					</div>
-					<button
-						type="submit"
-						className="chat-input-submit"
-						disabled={inputValue === '' && !isGenerating}
-					>
-						{isGenerating && inputValue === '' ? '◼' : '⬆'}
-					</button>
+					{showSendButton ? (
+						<button
+							type="submit"
+							className="chat-input-submit"
+							disabled={!hasText && !isGenerating}
+						>
+							{isGenerating && !hasText ? '◼' : '⬆'}
+						</button>
+					) : (
+						<button
+							type="button"
+							className={`chat-input-submit chat-input-mic ${isListening ? 'chat-input-mic--active' : ''} ${voiceState === 'transcribing' || voiceState === 'thinking' ? 'chat-input-mic--processing' : ''}`}
+							onClick={onMicClick}
+							aria-label={isListening ? 'Stop listening' : 'Start voice input'}
+						>
+							<MicIcon state={voiceState} isListening={isListening} />
+						</button>
+					)}
 				</span>
 			</form>
 		</div>

@@ -1,4 +1,4 @@
-import { type ReactElement, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { type ReactElement, useEffect, useMemo, useRef, useState } from 'react'
 import {
 	Box,
 	Circle2d,
@@ -11,11 +11,13 @@ import {
 	type TLBaseShape,
 	type TLResizeInfo,
 	useEditor,
+	type VecLike,
 } from 'tldraw'
 import type { CellStatus, MandalaState } from '../../shared/types/MandalaTypes'
 import { EMOTIONS_MAP } from '../lib/frameworks/emotions-map'
 import {
 	computeMandalaOuterRadius,
+	getCellAtPoint,
 	getCellBoundingBox,
 	makeEmptyState,
 } from '../lib/mandala-geometry'
@@ -135,22 +137,17 @@ function describeTextArc(
 
 // ─── SVG rendering component ────────────────────────────────────────────────
 
-const SINGLE_CLICK_DELAY_MS = 300
-
 function MandalaSvg({
 	w,
 	h,
 	mandalaState,
-	isExport,
-	onCellClick,
-	onCellDoubleClick,
+	hoveredCell,
 }: {
 	w: number
 	h: number
 	mandalaState: MandalaState
 	isExport?: boolean
-	onCellClick?: (cellId: string) => void
-	onCellDoubleClick?: (cellId: string, screenX: number, screenY: number) => void
+	hoveredCell?: string | null
 }) {
 	const map = EMOTIONS_MAP
 	const size = Math.min(w, h)
@@ -162,49 +159,6 @@ function MandalaSvg({
 
 	const sliceLabelFontSize = Math.max(10, Math.min(16, outerRadius * 0.045))
 	const centerFontSize = sliceLabelFontSize
-
-	const [hoveredCell, setHoveredCell] = useState<string | null>(null)
-	const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-	useEffect(() => {
-		return () => {
-			if (clickTimerRef.current) clearTimeout(clickTimerRef.current)
-		}
-	}, [])
-
-	const handleCellEnter = useCallback(
-		(cellId: string) => {
-			if (!isExport) setHoveredCell(cellId)
-		},
-		[isExport],
-	)
-
-	const handleCellLeave = useCallback(() => {
-		if (!isExport) setHoveredCell(null)
-	}, [isExport])
-
-	const handleDelayedClick = useCallback(
-		(cellId: string) => {
-			if (!onCellClick) return
-			if (clickTimerRef.current) clearTimeout(clickTimerRef.current)
-			clickTimerRef.current = setTimeout(() => {
-				clickTimerRef.current = null
-				onCellClick(cellId)
-			}, SINGLE_CLICK_DELAY_MS)
-		},
-		[onCellClick],
-	)
-
-	const handleDoubleClick = useCallback(
-		(cellId: string, e: React.MouseEvent) => {
-			if (clickTimerRef.current) {
-				clearTimeout(clickTimerRef.current)
-				clickTimerRef.current = null
-			}
-			onCellDoubleClick?.(cellId, e.clientX, e.clientY)
-		},
-		[onCellDoubleClick],
-	)
 
 	const sliceFlip = useMemo(() => {
 		const result: Record<string, boolean> = {}
@@ -236,7 +190,6 @@ function MandalaSvg({
 			const path = describeCellPath(cx, cy, innerR, outerR, slice.startAngle, slice.endAngle)
 
 			cellPaths.push(
-				// biome-ignore lint/a11y/noStaticElementInteractions: SVG path used as interactive cell in canvas
 				<path
 					key={cell.id}
 					d={path}
@@ -244,18 +197,7 @@ function MandalaSvg({
 					fillOpacity={opacity}
 					stroke={STROKE_COLOR}
 					strokeWidth={1}
-					onPointerEnter={(e) => {
-						e.stopPropagation()
-						handleCellEnter(cell.id)
-					}}
-					onPointerLeave={(e) => {
-						e.stopPropagation()
-						handleCellLeave()
-					}}
-					onPointerDown={(e) => e.stopPropagation()}
-					onClick={() => handleDelayedClick(cell.id)}
-					onDoubleClick={(e) => handleDoubleClick(cell.id, e)}
-					style={{ cursor: 'pointer', pointerEvents: 'all', transition: 'fill 0.15s ease' }}
+					style={{ transition: 'fill 0.15s ease' }}
 				/>,
 			)
 
@@ -340,7 +282,6 @@ function MandalaSvg({
 	const isCenterHovered = hoveredCell === map.center.id
 	const centerCircle = (
 		<g key="center">
-			{/* biome-ignore lint/a11y/noStaticElementInteractions: SVG circle used as interactive cell in canvas */}
 			<circle
 				cx={cx}
 				cy={cy}
@@ -348,18 +289,7 @@ function MandalaSvg({
 				fill={isCenterHovered ? CELL_HOVER_FILL_COLOR : 'white'}
 				stroke={STROKE_COLOR}
 				strokeWidth={1.5}
-				onPointerEnter={(e) => {
-					e.stopPropagation()
-					handleCellEnter(map.center.id)
-				}}
-				onPointerLeave={(e) => {
-					e.stopPropagation()
-					handleCellLeave()
-				}}
-				onPointerDown={(e) => e.stopPropagation()}
-				onClick={() => handleDelayedClick(map.center.id)}
-				onDoubleClick={(e) => handleDoubleClick(map.center.id, e)}
-				style={{ cursor: 'pointer', pointerEvents: 'all', transition: 'fill 0.15s ease' }}
+				style={{ transition: 'fill 0.15s ease' }}
 			/>
 			<text
 				x={cx}
@@ -467,66 +397,61 @@ function MandalaSvg({
 
 // ─── Interactive wrapper (needs useEditor) ───────────────────────────────────
 
-const NOTE_HALF_SIZE = 100
+const NOTE_INITIAL_SCALE = 2.5
+const NOTE_HALF_SIZE = 100 * NOTE_INITIAL_SCALE
+
+type MandalaPointInShapeSpaceEditor = {
+	getPointInShapeSpace(shape: MandalaShape, point: VecLike): VecLike
+}
+
+function getLocalCellFromPage(
+	editor: MandalaPointInShapeSpaceEditor,
+	shape: MandalaShape,
+	pagePoint: VecLike,
+): string | null {
+	const localPoint = editor.getPointInShapeSpace(shape, pagePoint)
+	const outerR = computeMandalaOuterRadius(shape.props.w, shape.props.h)
+	const localCenter = { x: shape.props.w / 2, y: shape.props.h / 2 }
+	return getCellAtPoint(EMOTIONS_MAP, localCenter, outerR, localPoint)
+}
 
 function MandalaInteractive({ shape }: { shape: MandalaShape }) {
 	const editor = useEditor()
+	const [hoveredCell, setHoveredCell] = useState<string | null>(null)
+	const hoveredCellRef = useRef<string | null>(null)
 
-	const handleCellClick = useCallback(
-		(cellId: string) => {
+	useEffect(() => {
+		function onPointerMove(e: PointerEvent) {
 			const mandala = editor.getShape<MandalaShape>(shape.id)
-			if (!mandala) return
+			if (!mandala) {
+				if (hoveredCellRef.current !== null) {
+					hoveredCellRef.current = null
+					setHoveredCell(null)
+				}
+				return
+			}
 
-			const outerR = computeMandalaOuterRadius(mandala.props.w, mandala.props.h)
-			const localCenter = { x: mandala.props.w / 2, y: mandala.props.h / 2 }
-			const box = getCellBoundingBox(EMOTIONS_MAP, localCenter, outerR, cellId)
-			if (!box) return
+			const pagePoint = editor.screenToPage({ x: e.clientX, y: e.clientY })
+			const cellId = getLocalCellFromPage(editor, mandala, pagePoint)
 
-			const pageBox = Box.From({
-				x: box.x + mandala.x,
-				y: box.y + mandala.y,
-				w: box.w,
-				h: box.h,
-			})
+			if (cellId !== hoveredCellRef.current) {
+				hoveredCellRef.current = cellId
+				setHoveredCell(cellId)
+			}
+		}
 
-			const shrunk = Box.From({
-				x: pageBox.x + pageBox.w * 0.125,
-				y: pageBox.y + pageBox.h * 0.125,
-				w: pageBox.w * 0.75,
-				h: pageBox.h * 0.75,
-			})
-			editor.zoomToBounds(shrunk, { animation: { duration: 300 } })
-		},
-		[editor, shape.id],
-	)
-
-	const handleCellDoubleClick = useCallback(
-		(_cellId: string, screenX: number, screenY: number) => {
-			const viewport = editor.getViewportScreenBounds()
-			const camera = editor.getCamera()
-			const pageX = (screenX - viewport.x) / camera.z - camera.x
-			const pageY = (screenY - viewport.y) / camera.z - camera.y
-
-			const noteId = createShapeId()
-			editor.createShape({
-				id: noteId,
-				type: 'note',
-				x: pageX - NOTE_HALF_SIZE,
-				y: pageY - NOTE_HALF_SIZE,
-			})
-			editor.setSelectedShapes([noteId])
-			editor.setEditingShape(noteId)
-		},
-		[editor],
-	)
+		document.addEventListener('pointermove', onPointerMove)
+		return () => {
+			document.removeEventListener('pointermove', onPointerMove)
+		}
+	}, [editor, shape.id])
 
 	return (
 		<MandalaSvg
 			w={shape.props.w}
 			h={shape.props.h}
 			mandalaState={shape.props.state}
-			onCellClick={handleCellClick}
-			onCellDoubleClick={handleCellDoubleClick}
+			hoveredCell={hoveredCell}
 		/>
 	)
 }
@@ -565,6 +490,54 @@ export class MandalaShapeUtil extends ShapeUtil<MandalaShape> {
 
 	indicator(_shape: MandalaShape) {
 		return null
+	}
+
+	override onClick(shape: MandalaShape) {
+		const pagePoint = this.editor.inputs.currentPagePoint
+		const cellId = getLocalCellFromPage(this.editor, shape, pagePoint)
+
+		if (cellId) {
+			const outerR = computeMandalaOuterRadius(shape.props.w, shape.props.h)
+			const localCenter = { x: shape.props.w / 2, y: shape.props.h / 2 }
+			const box = getCellBoundingBox(EMOTIONS_MAP, localCenter, outerR, cellId)
+
+			if (box) {
+				const pageBox = Box.From({
+					x: box.x + shape.x,
+					y: box.y + shape.y,
+					w: box.w,
+					h: box.h,
+				})
+
+				const shrunk = Box.From({
+					x: pageBox.x + pageBox.w * 0.125,
+					y: pageBox.y + pageBox.h * 0.125,
+					w: pageBox.w * 0.75,
+					h: pageBox.h * 0.75,
+				})
+				this.editor.zoomToBounds(shrunk, { animation: { duration: 300 } })
+			}
+		}
+
+		return { id: shape.id, type: 'mandala' as const }
+	}
+
+	override onDoubleClick(shape: MandalaShape) {
+		const pagePoint = this.editor.inputs.currentPagePoint
+		const cellId = getLocalCellFromPage(this.editor, shape, pagePoint)
+		if (!cellId) return { id: shape.id, type: 'mandala' as const }
+
+		const noteId = createShapeId()
+		this.editor.createShape({
+			id: noteId,
+			type: 'note',
+			x: pagePoint.x - NOTE_HALF_SIZE,
+			y: pagePoint.y - NOTE_HALF_SIZE,
+			props: { scale: NOTE_INITIAL_SCALE },
+		})
+		this.editor.setSelectedShapes([noteId])
+		this.editor.setEditingShape(noteId)
+		return { id: shape.id, type: 'mandala' as const }
 	}
 
 	override onResize(shape: MandalaShape, info: TLResizeInfo<MandalaShape>) {

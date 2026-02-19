@@ -35,3 +35,6 @@ renamed_classes = [
 [[migrations]]
 tag = "v3"
 new_classes = ["VoiceAgentDurableObject"]
+
+[vars]
+TTS_ENABLED = "false"

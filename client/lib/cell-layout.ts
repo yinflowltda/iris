@@ -8,35 +8,30 @@ export interface LayoutItem {
 	diameter: number
 }
 
-const DEFAULT_PADDING = 10
+// Cell boundaries (mandala lines) already provide visual separation,
+// so edge padding can be minimal. Inter-item gap only prevents overlap.
+const EDGE_PAD = 1
+const ITEM_GAP = 2
 
-export function computeCellContentLayout(
-	bounds: CellBounds,
-	itemCount: number,
-	padding: number = DEFAULT_PADDING,
-): LayoutItem[] {
+export function computeCellContentLayout(bounds: CellBounds, itemCount: number): LayoutItem[] {
 	if (itemCount <= 0) return []
 
 	if (bounds.type === 'circle') {
-		return layoutCircleCell(bounds, itemCount, padding)
+		return layoutCircleCell(bounds, itemCount)
 	}
 
-	return layoutSectorCell(bounds, itemCount, padding)
+	return layoutSectorCell(bounds, itemCount)
 }
 
-function layoutCircleCell(
-	bounds: CircleCellBounds,
-	itemCount: number,
-	padding: number,
-): LayoutItem[] {
-	const usableRadius = bounds.radius - padding
+function layoutCircleCell(bounds: CircleCellBounds, itemCount: number): LayoutItem[] {
+	const usableRadius = bounds.radius - EDGE_PAD
 	if (usableRadius <= 0) return []
 
 	if (itemCount === 1) {
 		return [
 			{
 				center: { ...bounds.center },
-				diameter: usableRadius * 2 * 0.7,
+				diameter: usableRadius * 2 * 0.95,
 			},
 		]
 	}
@@ -44,14 +39,13 @@ function layoutCircleCell(
 	const inscribedHalf = usableRadius / Math.SQRT2
 	const cols = Math.ceil(Math.sqrt(itemCount))
 	const rows = Math.ceil(itemCount / cols)
-	const gap = padding / 2
 
-	const cellW = (inscribedHalf * 2 - gap * (cols - 1)) / cols
-	const cellH = (inscribedHalf * 2 - gap * (rows - 1)) / rows
+	const cellW = (inscribedHalf * 2 - ITEM_GAP * (cols - 1)) / cols
+	const cellH = (inscribedHalf * 2 - ITEM_GAP * (rows - 1)) / rows
 	const diameter = Math.max(Math.min(cellW, cellH), 1)
 
-	const gridW = cols * diameter + (cols - 1) * gap
-	const gridH = rows * diameter + (rows - 1) * gap
+	const gridW = cols * diameter + (cols - 1) * ITEM_GAP
+	const gridH = rows * diameter + (rows - 1) * ITEM_GAP
 	const startX = bounds.center.x - gridW / 2
 	const startY = bounds.center.y - gridH / 2
 
@@ -61,8 +55,8 @@ function layoutCircleCell(
 		const row = Math.floor(i / cols)
 		items.push({
 			center: {
-				x: startX + col * (diameter + gap) + diameter / 2,
-				y: startY + row * (diameter + gap) + diameter / 2,
+				x: startX + col * (diameter + ITEM_GAP) + diameter / 2,
+				y: startY + row * (diameter + ITEM_GAP) + diameter / 2,
 			},
 			diameter,
 		})
@@ -71,11 +65,7 @@ function layoutCircleCell(
 	return items
 }
 
-function layoutSectorCell(
-	bounds: SectorCellBounds,
-	itemCount: number,
-	padding: number,
-): LayoutItem[] {
+function layoutSectorCell(bounds: SectorCellBounds, itemCount: number): LayoutItem[] {
 	let sweep = bounds.endAngle - bounds.startAngle
 	if (sweep <= 0) sweep += 360
 	const sweepRad = sweep * DEG_TO_RAD
@@ -85,7 +75,7 @@ function layoutSectorCell(
 	let bestMinDiameter = 0
 
 	for (let bandCount = 1; bandCount <= maxBands; bandCount++) {
-		const result = tryBandLayout(bounds, itemCount, padding, bandCount, sweepRad)
+		const result = tryBandLayout(bounds, itemCount, bandCount, sweepRad)
 		if (result.minDiameter > bestMinDiameter) {
 			bestMinDiameter = result.minDiameter
 			bestItems = result.items
@@ -98,14 +88,13 @@ function layoutSectorCell(
 function tryBandLayout(
 	bounds: SectorCellBounds,
 	itemCount: number,
-	padding: number,
 	bandCount: number,
 	sweepRad: number,
 ): { items: LayoutItem[]; minDiameter: number } {
 	const { innerRadius, outerRadius, startAngle, center } = bounds
 	const radialDepth = outerRadius - innerRadius
 
-	const availableRadial = radialDepth - padding * (bandCount + 1)
+	const availableRadial = radialDepth - 2 * EDGE_PAD - Math.max(0, bandCount - 1) * ITEM_GAP
 	if (availableRadial <= 0) return { items: [], minDiameter: 0 }
 	const bandHeight = availableRadial / bandCount
 
@@ -118,18 +107,25 @@ function tryBandLayout(
 		const n = itemsPerBand[b]
 		if (n === 0) continue
 
-		const bandCenterR = innerRadius + padding + bandHeight / 2 + b * (bandHeight + padding)
+		const bandCenterR = innerRadius + EDGE_PAD + bandHeight / 2 + b * (bandHeight + ITEM_GAP)
 
-		const angularPadRad = padding / bandCenterR
-		const effectiveSweepRad = sweepRad - 2 * angularPadRad
+		const edgeAngularPad = EDGE_PAD / bandCenterR
+		const effectiveSweepRad = sweepRad - 2 * edgeAngularPad
 		if (effectiveSweepRad <= 0) return { items: [], minDiameter: 0 }
 
 		const slotAngleRad = effectiveSweepRad / n
-		const slotArcLength = bandCenterR * slotAngleRad
-		const diameter = Math.max(Math.min(bandHeight, slotArcLength - padding), 1)
+
+		// For multiple items, use chord distance (actual Euclidean distance
+		// between adjacent centers) to size items without overlap.
+		const angularLimit =
+			n > 1
+				? 2 * bandCenterR * Math.sin(slotAngleRad / 2) - ITEM_GAP
+				: bandCenterR * effectiveSweepRad
+
+		const diameter = Math.max(Math.min(bandHeight, angularLimit), 1)
 		minDiameter = Math.min(minDiameter, diameter)
 
-		const firstSlotStartRad = startAngle * DEG_TO_RAD + angularPadRad
+		const firstSlotStartRad = startAngle * DEG_TO_RAD + edgeAngularPad
 
 		for (let i = 0; i < n; i++) {
 			const angleRad = firstSlotStartRad + (i + 0.5) * slotAngleRad

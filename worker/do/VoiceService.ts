@@ -26,6 +26,10 @@ export class VoiceService {
 		this.workersai = createWorkersAI({ binding: env.AI })
 	}
 
+	get ttsEnabled(): boolean {
+		return this.env.TTS_ENABLED === 'true'
+	}
+
 	async process(
 		audio: Uint8Array,
 		history: VoiceMessage[],
@@ -37,10 +41,15 @@ export class VoiceService {
 		}
 
 		const updatedHistory: VoiceMessage[] = [...history, { role: 'user', content: transcript }]
-		const responseText = await this.think(updatedHistory, signal)
-		const audioResponse = await this.synthesize(responseText)
+		const thinkResult = await this.think(updatedHistory, signal)
+		const audioResponse = this.ttsEnabled ? await this.synthesize(thinkResult.responseText) : null
 
-		return { transcript, responseText, audioResponse }
+		return {
+			transcript,
+			responseText: thinkResult.responseText,
+			audioResponse,
+			canvasInstruction: thinkResult.canvasInstruction,
+		}
 	}
 
 	async transcribe(audio: Uint8Array): Promise<string> {
@@ -88,7 +97,10 @@ export class VoiceService {
 		return alt?.transcript ?? ''
 	}
 
-	async think(history: VoiceMessage[], signal: AbortSignal): Promise<string> {
+	async think(
+		history: VoiceMessage[],
+		signal: AbortSignal,
+	): Promise<{ responseText: string; canvasInstruction: string | null }> {
 		const model = this.workersai(VOICE_LLM_MODEL as any)
 
 		const messages = history.map((m) => ({
@@ -116,40 +128,28 @@ export class VoiceService {
 		})
 
 		const toolCalls = result.steps.flatMap((s) => s.toolCalls)
+		// #region agent log
+		fetch('http://127.0.0.1:7242/ingest/6f34135a-2aef-478a-8061-5e0a8253db16',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceService.ts:think:toolCalls',message:'LLM result',data:{stepsCount:result.steps.length,toolCallsCount:toolCalls.length,toolCallNames:toolCalls.map(t=>t.toolName),text:result.text?.slice(0,200),hasToolCalls:toolCalls.length>0},timestamp:Date.now(),hypothesisId:'H1'})}).catch(()=>{});
+		// #endregion
 		if (toolCalls.length > 0) {
-			const canvasResults: string[] = []
+			const instructions: string[] = []
 			for (const tc of toolCalls) {
 				if (tc.toolName === 'delegateToCanvasAgent') {
-					const canvasResult = await this.delegateToCanvas(
-						(tc as any).input?.instruction ?? (tc as any).args?.instruction ?? '',
-					)
-					canvasResults.push(canvasResult)
+					const instruction = (tc as any).input?.instruction ?? (tc as any).args?.instruction ?? ''
+					if (instruction) instructions.push(instruction)
 				}
 			}
 
-			const followUp = await generateText({
-				model,
-				system: VOICE_SYSTEM_PROMPT,
-				messages: [
-					...messages,
-					{
-						role: 'assistant' as const,
-						content: `I performed canvas actions. Results: ${canvasResults.join('; ')}`,
-					},
-					{
-						role: 'user' as const,
-						content: 'Summarize what you just did in one brief spoken sentence for the user.',
-					},
-				],
-				temperature: 0.7,
-				maxOutputTokens: 128,
-				abortSignal: signal,
-			})
+			const canvasInstruction = instructions.join('. ') || null
+			const responseText = result.text || "I'll do that for you."
 
-			return followUp.text || 'Done.'
+			return { responseText, canvasInstruction }
 		}
 
-		return result.text || "I'm sorry, I didn't catch that."
+		return {
+			responseText: result.text || "I'm sorry, I didn't catch that.",
+			canvasInstruction: null,
+		}
 	}
 
 	async synthesize(text: string): Promise<ArrayBuffer> {
@@ -184,69 +184,5 @@ export class VoiceService {
 		if (result instanceof Uint8Array) return result.buffer as ArrayBuffer
 
 		throw new Error('Unexpected TTS response format')
-	}
-
-	async delegateToCanvas(instruction: string): Promise<string> {
-		try {
-			const id = this.env.AGENT_DURABLE_OBJECT.idFromName('anonymous')
-			const stub = this.env.AGENT_DURABLE_OBJECT.get(id)
-
-			const minimalPrompt = {
-				mode: {
-					type: 'mode',
-					modeType: 'emotions-map',
-					actionTypes: [
-						'message',
-						'think',
-						'create',
-						'delete',
-						'update',
-						'move',
-						'fill_cell',
-						'highlight_cell',
-						'detect_conflict',
-					],
-					partTypes: ['messages', 'mode'],
-				},
-				messages: {
-					type: 'messages',
-					messages: [
-						{
-							role: 'user',
-							content: instruction,
-						},
-					],
-				},
-			}
-
-			const response = await stub.fetch('https://internal/stream', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(minimalPrompt),
-			})
-
-			const text = await response.text()
-			const lines = text.split('\n\n').filter((l) => l.startsWith('data: '))
-			const actions: string[] = []
-
-			for (const line of lines) {
-				try {
-					const data = JSON.parse(line.replace('data: ', ''))
-					if (data.error) return `Error: ${data.error}`
-					if (data._type === 'message' && data.message) {
-						actions.push(data.message)
-					} else if (data._type && data.complete) {
-						actions.push(`${data._type} action completed`)
-					}
-				} catch {
-					// skip unparseable lines
-				}
-			}
-
-			return actions.length > 0 ? actions.join('. ') : 'Canvas action completed.'
-		} catch (error: any) {
-			console.error('Canvas delegation error:', error)
-			return `Canvas action failed: ${error?.message ?? 'unknown error'}`
-		}
 	}
 }

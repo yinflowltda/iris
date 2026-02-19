@@ -76,12 +76,12 @@ export function ChatHistory({ agent }: { agent: TldrawAgent }) {
 
 	return (
 		<div className="chat-history" ref={historyRef} onScroll={handleScroll}>
-			{sections.map((section, i) => {
+			{sections.map((section) => {
 				return (
 					<ChatHistorySection
-						key={`history-section-${i}`}
+						key={section.id}
 						section={section}
-						loading={i === sections.length - 1 && isGenerating}
+						loading={section === sections.at(-1) && isGenerating}
 					/>
 				)
 			})}

@@ -28,10 +28,11 @@ export function AreaHighlight({ pageBounds, color, generating, label }: AreaHigh
 					height: maxY - minY,
 				}}
 			>
-				{bounds.sides.map((side, j) => {
+				{bounds.sides.map((side) => {
+					const key = `${side[0].x},${side[0].y}-${side[1].x},${side[1].y}`
 					return (
 						<line
-							key={`context-highlight-side-${j}`}
+							key={key}
 							x1={side[0].x - bounds.minX}
 							y1={side[0].y - bounds.minY}
 							x2={side[1].x - bounds.minX}

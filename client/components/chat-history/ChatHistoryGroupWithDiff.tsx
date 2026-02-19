@@ -101,13 +101,13 @@ function DiffSteps({ steps }: { steps: DiffStep[] }) {
 	let previousDescription = ''
 	return (
 		<div className="agent-changes">
-			{steps.map((step, i) => {
+			{steps.map((step) => {
 				if (!step.description) return null
 
 				if (step.description === previousDescription) return null
 				previousDescription = step.description
 				return (
-					<div className="agent-change" key={`intent-${i}`}>
+					<div className="agent-change" key={`${step.icon ?? 'none'}:${step.description}`}>
 						{step.icon && (
 							<span className="agent-change-icon">
 								<AgentIcon type={step.icon} />

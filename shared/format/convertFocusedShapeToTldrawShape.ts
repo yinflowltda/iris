@@ -13,6 +13,7 @@ import {
 	type TLGeoShapeGeoStyle,
 	type TLLineShape,
 	type TLNoteShape,
+	type TLRichText,
 	type TLShape,
 	type TLShapeId,
 	type TLTextShape,
@@ -169,7 +170,7 @@ function convertTextShapeToTldrawShape(
 			: (defaultTextShape.props?.autoSize ?? true)
 	const font = defaultTextShape.props?.font ?? 'draw'
 
-	let richText
+	let richText: TLRichText
 	if (focusedShape.text !== undefined) {
 		richText = toRichText(focusedShape.text)
 	} else if (defaultTextShape.props?.richText) {
@@ -360,7 +361,7 @@ function convertArrowShapeToTldrawShape(
 	const minY = Math.min(y1, y2)
 
 	// Handle richText properly - focusedShape takes priority
-	let richText
+	let richText: TLRichText
 	if (focusedShape.text !== undefined) {
 		richText = toRichText(focusedShape.text)
 	} else if (defaultArrowShape.props?.richText) {
@@ -466,7 +467,7 @@ function convertGeoShapeToTldrawShape(
 	const defaultGeoShape = defaultShape as TLGeoShape
 
 	// Handle richText properly - focusedShape takes priority
-	let richText
+	let richText: TLRichText
 	if (focusedShape.text !== undefined) {
 		richText = toRichText(focusedShape.text)
 	} else if (defaultGeoShape.props?.richText) {
@@ -476,7 +477,7 @@ function convertGeoShapeToTldrawShape(
 	}
 
 	// Handle fill properly - focusedShape takes priority
-	let fill
+	let fill: TLGeoShape['props']['fill']
 	if (focusedShape.fill !== undefined) {
 		fill = convertFocusedFillToTldrawFill(focusedShape.fill) ?? 'none'
 	} else if (defaultGeoShape.props?.fill) {
@@ -531,7 +532,7 @@ function convertNoteShapeToTldrawShape(
 	const defaultNoteShape = defaultShape as TLNoteShape
 
 	// Handle richText properly - focusedShape takes priority
-	let richText
+	let richText: TLRichText
 	if (focusedShape.text !== undefined) {
 		richText = toRichText(focusedShape.text)
 	} else if (defaultNoteShape.props?.richText) {
@@ -581,7 +582,7 @@ function convertDrawShapeToTldrawShape(
 	const defaultDrawShape = defaultShape as TLDrawShape
 
 	// Handle fill properly - focusedShape takes priority
-	let fill
+	let fill: TLDrawShape['props']['fill']
 	if (focusedShape.fill !== undefined) {
 		fill = convertFocusedFillToTldrawFill(focusedShape.fill)
 	} else if (defaultDrawShape.props?.fill) {

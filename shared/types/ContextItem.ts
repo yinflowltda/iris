@@ -68,3 +68,16 @@ export const CONTEXT_TYPE_DEFINITIONS: Record<
 		},
 	},
 }
+
+export function getContextItemKey(item: ContextItem): string {
+	switch (item.type) {
+		case 'shape':
+			return `shape:${item.source}:${item.shape.shapeId}`
+		case 'shapes':
+			return `shapes:${item.source}:${item.shapes.map((s) => s.shapeId).join(',')}`
+		case 'area':
+			return `area:${item.source}:${item.bounds.x},${item.bounds.y},${item.bounds.w},${item.bounds.h}`
+		case 'point':
+			return `point:${item.source}:${item.point.x},${item.point.y}`
+	}
+}

@@ -21,5 +21,6 @@ export interface VoiceMessage {
 export interface VoiceProcessResult {
 	transcript: string
 	responseText: string
-	audioResponse: ArrayBuffer
+	audioResponse: ArrayBuffer | null
+	canvasInstruction: string | null
 }

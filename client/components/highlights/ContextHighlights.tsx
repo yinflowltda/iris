@@ -168,24 +168,32 @@ export function ContextHighlights({ agent }: { agent: TldrawAgent }) {
 
 	return (
 		<>
-			{allAreaHighlights.map((highlight, i) => (
-				<AreaHighlight
-					key={`context-highlight-${i}`}
-					pageBounds={highlight.pageBounds}
-					color={highlight.color}
-					generating={highlight.generating}
-					label={highlight.label}
-				/>
-			))}
+			{allAreaHighlights.map((highlight) => {
+				const b = highlight.pageBounds
+				const key = `${b.x},${b.y},${b.w},${b.h}:${highlight.color}:${highlight.generating ? 'generating' : 'selected'}:${highlight.label ?? ''}`
+				return (
+					<AreaHighlight
+						key={key}
+						pageBounds={highlight.pageBounds}
+						color={highlight.color}
+						generating={highlight.generating}
+						label={highlight.label}
+					/>
+				)
+			})}
 
-			{allPointsHighlights.map((highlight, i) => (
-				<PointHighlight
-					key={`context-point-${i}`}
-					pagePoint={highlight.pagePoint}
-					color={highlight.color}
-					generating={highlight.generating}
-				/>
-			))}
+			{allPointsHighlights.map((highlight) => {
+				const p = highlight.pagePoint
+				const key = `${p.x},${p.y}:${highlight.color}:${highlight.generating ? 'generating' : 'selected'}`
+				return (
+					<PointHighlight
+						key={key}
+						pagePoint={highlight.pagePoint}
+						color={highlight.color}
+						generating={highlight.generating}
+					/>
+				)
+			})}
 		</>
 	)
 }

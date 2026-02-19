@@ -41,8 +41,9 @@ export function ChatHistoryGroupWithoutDiff({ group }: { group: ChatHistoryGroup
 	if (nonEmptyItems.length < 2) {
 		return (
 			<div className="chat-history-group">
-				{nonEmptyItems.map((item, i) => {
-					return <ChatHistoryItem item={item} key={`action-${i}`} />
+				{nonEmptyItems.map((item) => {
+					const key = `${item.acceptance}:${item.action.time}:${item.action.complete ? 'complete' : 'partial'}:${item.action._type ?? 'unknown'}`
+					return <ChatHistoryItem item={item} key={key} />
 				})}
 			</div>
 		)
@@ -60,8 +61,9 @@ export function ChatHistoryGroupWithoutDiff({ group }: { group: ChatHistoryGroup
 			)}
 			{showContent && (
 				<div className="agent-actions-container">
-					{nonEmptyItems.map((item, i) => {
-						return <ChatHistoryItemExpanded action={item.action} key={`action-${i}`} />
+					{nonEmptyItems.map((item) => {
+						const key = `${item.acceptance}:${item.action.time}:${item.action.complete ? 'complete' : 'partial'}:${item.action._type ?? 'unknown'}`
+						return <ChatHistoryItemExpanded action={item.action} key={key} />
 					})}
 				</div>
 			)}

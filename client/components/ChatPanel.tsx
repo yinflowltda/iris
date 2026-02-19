@@ -4,7 +4,7 @@ import { ChatInput } from './ChatInput'
 import { ChatHistory } from './chat-history/ChatHistory'
 import { ProgressIndicator } from './ProgressIndicator'
 import { TodoList } from './TodoList'
-import { VoiceControl } from './VoiceControl'
+import { useVoice } from './VoiceControl'
 
 export function ChatPanel({
 	filledCells,
@@ -17,6 +17,7 @@ export function ChatPanel({
 }) {
 	const agent = useAgent()
 	const inputRef = useRef<HTMLTextAreaElement>(null)
+	const { voiceState, isListening, errorMsg, toggleListening } = useVoice(agent)
 
 	const handleSubmit = useCallback<FormEventHandler<HTMLFormElement>>(
 		async (e) => {
@@ -59,10 +60,18 @@ export function ChatPanel({
 			<ChatHistory agent={agent} />
 			<div className="chat-input-container">
 				<TodoList agent={agent} />
-				<div className="chat-input-row">
-					<ChatInput handleSubmit={handleSubmit} inputRef={inputRef} />
-					<VoiceControl />
-				</div>
+				<ChatInput
+					handleSubmit={handleSubmit}
+					inputRef={inputRef}
+					voiceState={voiceState}
+					isListening={isListening}
+					onMicClick={toggleListening}
+				/>
+				{errorMsg && (
+					<div className="voice-error" role="alert">
+						{errorMsg}
+					</div>
+				)}
 			</div>
 		</div>
 	)

@@ -12,6 +12,7 @@ export function TickIcon() {
 			strokeLinejoin="round"
 			className="chat-icon"
 		>
+			<title>Check</title>
 			<path d="M20 6 9 17l-5-5" />
 		</svg>
 	)

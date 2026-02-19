@@ -118,6 +118,9 @@ function processPendingSnaps(
 		x: mandala.props.w / 2,
 		y: mandala.props.h / 2,
 	}
+	// #region agent log
+	fetch('http://127.0.0.1:7242/ingest/6f34135a-2aef-478a-8061-5e0a8253db16',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'mandala-snap.ts:processPendingSnaps',message:'snap context',data:{mandalaW:mandala.props.w,mandalaH:mandala.props.h,outerRadius,shapeCount:shapeIds.size},timestamp:Date.now(),hypothesisId:'H-C'})}).catch(()=>{});
+	// #endregion
 
 	let stateChanged = false
 	const currentState: MandalaState = JSON.parse(JSON.stringify(mandala.props.state))
@@ -243,6 +246,10 @@ function processPendingSnaps(
 		if (!bounds) continue
 
 		const layout = computeCellContentLayout(bounds, cellState.contentShapeIds.length)
+		// #region agent log
+		const _boundsData = bounds.type === 'circle' ? {type:'circle',radius:bounds.radius} : {type:'sector',innerRadius:bounds.innerRadius,outerRadius:bounds.outerRadius,startAngle:bounds.startAngle,endAngle:bounds.endAngle,radialDepth:bounds.outerRadius-bounds.innerRadius};
+		fetch('http://127.0.0.1:7242/ingest/6f34135a-2aef-478a-8061-5e0a8253db16',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'mandala-snap.ts:relayout',message:'cell layout computed',data:{cellId,itemCount:cellState.contentShapeIds.length,bounds:_boundsData,layoutDiameters:layout.map(l=>l.diameter),layoutScales:layout.map(l=>l.diameter/NOTE_BASE_SIZE),NOTE_BASE_SIZE},timestamp:Date.now(),hypothesisId:'H-A,H-B,H-D'})}).catch(()=>{});
+		// #endregion
 		const targets = cellState.contentShapeIds
 			.map((simpleId, i) => {
 				const fullId = `shape:${simpleId}` as TLShapeId

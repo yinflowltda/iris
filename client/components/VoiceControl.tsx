@@ -1,23 +1,17 @@
-import { memo, useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import type {
+	ChatHistoryActionItem,
+	ChatHistoryPromptItem,
+} from '../../shared/types/ChatHistoryItem'
 import type { VoiceState } from '../../shared/types/VoiceTypes'
-import { VoiceClient, type VoiceMode } from '../lib/voice-client'
+import type { TldrawAgent } from '../agent/TldrawAgent'
+import { VoiceClient } from '../lib/voice-client'
 
-interface VoiceTranscriptEntry {
-	role: 'user' | 'assistant'
-	text: string
-	timestamp: number
-}
-
-export const VoiceControl = memo(function VoiceControl() {
+export function useVoice(agent: TldrawAgent) {
 	const clientRef = useRef<VoiceClient | null>(null)
 	const [voiceState, setVoiceState] = useState<VoiceState>('idle')
-	const [isConnected, setIsConnected] = useState(false)
 	const [isListening, setIsListening] = useState(false)
-	const [mode, setMode] = useState<VoiceMode>('toggle')
-	const [transcript, setTranscript] = useState<VoiceTranscriptEntry[]>([])
 	const [errorMsg, setErrorMsg] = useState<string | null>(null)
-	const [showTranscript, setShowTranscript] = useState(false)
-	const transcriptEndRef = useRef<HTMLDivElement>(null)
 
 	useEffect(() => {
 		const client = new VoiceClient()
@@ -28,15 +22,53 @@ export const VoiceControl = memo(function VoiceControl() {
 				setVoiceState(state)
 			}),
 			client.on('connected', () => {
-				setIsConnected(true)
 				setErrorMsg(null)
 			}),
 			client.on('disconnected', () => {
-				setIsConnected(false)
 				setIsListening(false)
 			}),
 			client.on('transcript', ({ role, text }) => {
-				setTranscript((prev) => [...prev.slice(-49), { role, text, timestamp: Date.now() }])
+				if (role === 'user') {
+					const promptItem: ChatHistoryPromptItem = {
+						type: 'prompt',
+						promptSource: 'user',
+						agentFacingMessage: text,
+						userFacingMessage: text,
+						contextItems: [],
+						selectedShapes: [],
+					}
+					agent.chat.push(promptItem)
+				} else {
+					const actionItem: ChatHistoryActionItem = {
+						type: 'action',
+						action: {
+							_type: 'message',
+							text,
+							complete: true,
+							time: 0,
+						} as any,
+						diff: { added: {}, updated: {}, removed: {} } as any,
+						acceptance: 'accepted',
+					}
+					agent.chat.push(actionItem)
+				}
+			}),
+			client.on('canvas.action', ({ instruction }) => {
+				// #region agent log
+				fetch('http://127.0.0.1:7242/ingest/6f34135a-2aef-478a-8061-5e0a8253db16',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceControl.tsx:canvas.action',message:'Canvas action received by client',data:{instruction:instruction?.slice(0,200),hasAgent:!!agent,hasEditor:!!agent?.editor},timestamp:Date.now(),hypothesisId:'H2,H3'})}).catch(()=>{});
+				// #endregion
+				if (!instruction) return
+				agent.interrupt({
+					input: {
+						agentMessages: [instruction],
+						bounds: agent.editor.getViewportPageBounds(),
+						source: 'user',
+						contextItems: agent.context.getItems(),
+					},
+				})
+				// #region agent log
+				fetch('http://127.0.0.1:7242/ingest/6f34135a-2aef-478a-8061-5e0a8253db16',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceControl.tsx:canvas.action:afterInterrupt',message:'agent.interrupt called',data:{instruction:instruction?.slice(0,100)},timestamp:Date.now(),hypothesisId:'H3'})}).catch(()=>{});
+				// #endregion
 			}),
 			client.on('error', (msg) => {
 				setErrorMsg(msg)
@@ -49,15 +81,9 @@ export const VoiceControl = memo(function VoiceControl() {
 			client.destroy()
 			clientRef.current = null
 		}
-	}, [])
+	}, [agent])
 
-	const transcriptLength = transcript.length
-	// biome-ignore lint/correctness/useExhaustiveDependencies: scroll must fire when transcript changes
-	useEffect(() => {
-		transcriptEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-	}, [transcriptLength])
-
-	const handleToggleClick = useCallback(async () => {
+	const toggleListening = useCallback(async () => {
 		const client = clientRef.current
 		if (!client) return
 
@@ -74,125 +100,13 @@ export const VoiceControl = memo(function VoiceControl() {
 		}
 	}, [isListening])
 
-	const handlePushDown = useCallback(async () => {
-		const client = clientRef.current
-		if (!client) return
-		try {
-			await client.startListening()
-			setIsListening(true)
-		} catch {
-			// error emitted via event
-		}
-	}, [])
+	return { voiceState, isListening, errorMsg, toggleListening }
+}
 
-	const handlePushUp = useCallback(() => {
-		const client = clientRef.current
-		if (!client) return
-		client.stopListening()
-		setIsListening(false)
-	}, [])
-
-	const toggleMode = useCallback(() => {
-		setMode((prev) => (prev === 'push' ? 'toggle' : 'push'))
-	}, [])
-
-	const buttonClass = [
-		'voice-button',
-		`voice-button--${voiceState}`,
-		isListening ? 'voice-button--active' : '',
-		!isConnected && voiceState === 'idle' ? 'voice-button--disconnected' : '',
-	]
-		.filter(Boolean)
-		.join(' ')
-
-	const stateLabel = {
-		idle: 'Voice',
-		listening: 'Listening...',
-		transcribing: 'Processing...',
-		thinking: 'Thinking...',
-		speaking: 'Speaking...',
-	}[voiceState]
-
-	return (
-		<div className="voice-control">
-			<div className="voice-control__top">
-				{mode === 'toggle' ? (
-					<button
-						type="button"
-						className={buttonClass}
-						onClick={handleToggleClick}
-						aria-label={isListening ? 'Stop listening' : 'Start listening'}
-						title={stateLabel}
-					>
-						<MicIcon state={voiceState} isListening={isListening} />
-					</button>
-				) : (
-					<button
-						type="button"
-						className={buttonClass}
-						onPointerDown={handlePushDown}
-						onPointerUp={handlePushUp}
-						onPointerLeave={handlePushUp}
-						aria-label="Hold to talk"
-						title={stateLabel}
-					>
-						<MicIcon state={voiceState} isListening={isListening} />
-					</button>
-				)}
-
-				<button
-					type="button"
-					className="voice-mode-toggle"
-					onClick={toggleMode}
-					title={mode === 'push' ? 'Push-to-Talk mode' : 'Toggle mode'}
-					aria-label={`Switch to ${mode === 'push' ? 'toggle' : 'push-to-talk'} mode`}
-				>
-					{mode === 'push' ? 'PTT' : 'TOG'}
-				</button>
-
-				{transcript.length > 0 && (
-					<button
-						type="button"
-						className="voice-transcript-toggle"
-						onClick={() => setShowTranscript((s) => !s)}
-						title={showTranscript ? 'Hide transcript' : 'Show transcript'}
-						aria-label={showTranscript ? 'Hide transcript' : 'Show transcript'}
-					>
-						<TranscriptIcon />
-					</button>
-				)}
-			</div>
-
-			{errorMsg && (
-				<div className="voice-error" role="alert">
-					{errorMsg}
-				</div>
-			)}
-
-			{showTranscript && transcript.length > 0 && (
-				<div className="voice-transcript">
-					{transcript.map((entry) => (
-						<div
-							key={`${entry.timestamp}-${entry.role}`}
-							className={`voice-transcript__entry voice-transcript__entry--${entry.role}`}
-						>
-							<span className="voice-transcript__role">
-								{entry.role === 'user' ? 'You' : 'Iris'}
-							</span>
-							<span className="voice-transcript__text">{entry.text}</span>
-						</div>
-					))}
-					<div ref={transcriptEndRef} />
-				</div>
-			)}
-		</div>
-	)
-})
-
-function MicIcon({ state, isListening }: { state: VoiceState; isListening: boolean }) {
+export function MicIcon({ state, isListening }: { state: VoiceState; isListening: boolean }) {
 	if (state === 'speaking') {
 		return (
-			<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+			<svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
 				<path
 					d="M3 10h2v4H3zm4-3h2v10H7zm4-4h2v18h-2zm4 4h2v10h-2zm4 3h2v4h-2z"
 					fill="currentColor"
@@ -202,7 +116,7 @@ function MicIcon({ state, isListening }: { state: VoiceState; isListening: boole
 	}
 
 	return (
-		<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+		<svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
 			<path
 				d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3Z"
 				fill={isListening ? 'currentColor' : 'none'}
@@ -216,20 +130,6 @@ function MicIcon({ state, isListening }: { state: VoiceState; isListening: boole
 				strokeLinecap="round"
 			/>
 			<path d="M12 19v4m-4 0h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-		</svg>
-	)
-}
-
-function TranscriptIcon() {
-	return (
-		<svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-			<path
-				d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
-				stroke="currentColor"
-				strokeWidth="2"
-				strokeLinecap="round"
-				strokeLinejoin="round"
-			/>
 		</svg>
 	)
 }

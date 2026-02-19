@@ -12,6 +12,7 @@ export function ChevronRightIcon() {
 			strokeLinejoin="round"
 			className="chat-icon"
 		>
+			<title>Chevron Right</title>
 			<path d="m9 18 6-6-6-6" />
 		</svg>
 	)

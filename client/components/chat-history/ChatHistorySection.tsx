@@ -10,6 +10,7 @@ import { ChatHistoryGroup, getActionHistoryGroups } from './ChatHistoryGroup'
 import { ChatHistoryPrompt } from './ChatHistoryPrompt'
 
 export interface ChatHistorySection {
+	id: string
 	prompt: ChatHistoryPromptItem
 	items: (ChatHistoryActionItem | ChatHistoryContinuationItem)[]
 }
@@ -27,8 +28,11 @@ export function ChatHistorySection({
 	return (
 		<div className="chat-history-section">
 			<ChatHistoryPrompt item={section.prompt} editor={agent.editor} />
-			{groups.map((group, i) => {
-				return <ChatHistoryGroup key={`chat-history-group-${i}`} group={group} />
+			{groups.map((group) => {
+				const first = group.items[0]
+				const last = group.items.at(-1)
+				const key = `${group.withDiff ? 'diff' : 'nodiff'}:${group.items.length}:${first?.acceptance ?? 'unknown'}:${first?.action.time ?? 0}:${last?.action.time ?? 0}`
+				return <ChatHistoryGroup key={key} group={group} />
 			})}
 			{loading && <SmallSpinner />}
 		</div>
@@ -42,7 +46,7 @@ export function getAgentHistorySections(items: ChatHistoryItem[]): ChatHistorySe
 		if (item.type === 'prompt') {
 			// Filter out 'self' prompts from the UI
 			if (item.promptSource === 'self') continue
-			sections.push({ prompt: item, items: [] })
+			sections.push({ id: `section-${sections.length}`, prompt: item, items: [] })
 			continue
 		}
 

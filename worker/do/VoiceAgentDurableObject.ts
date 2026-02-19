@@ -129,14 +129,27 @@ export class VoiceAgentDurableObject extends DurableObject<Environment> {
 
 			this.sendToClient(ws, { type: 'transcript', role: 'user', text: result.transcript })
 
-			this.updateState(ws, 'speaking')
 			this.sendToClient(ws, {
 				type: 'transcript',
 				role: 'assistant',
 				text: result.responseText,
 			})
 
-			ws.send(result.audioResponse)
+			// #region agent log
+			fetch('http://127.0.0.1:7242/ingest/6f34135a-2aef-478a-8061-5e0a8253db16',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceAgentDO.ts:processAudio:canvasCheck',message:'Canvas instruction check',data:{hasCanvasInstruction:!!result.canvasInstruction,canvasInstruction:result.canvasInstruction?.slice(0,200)},timestamp:Date.now(),hypothesisId:'H1,H2'})}).catch(()=>{});
+			// #endregion
+			if (result.canvasInstruction) {
+				this.sendToClient(ws, {
+					type: 'canvas.action',
+					instruction: result.canvasInstruction,
+					result: '',
+				})
+			}
+
+			if (result.audioResponse) {
+				this.updateState(ws, 'speaking')
+				ws.send(result.audioResponse)
+			}
 
 			this.conversationHistory.push(
 				{ role: 'user', content: result.transcript },
