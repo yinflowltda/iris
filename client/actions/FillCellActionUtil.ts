@@ -1,12 +1,11 @@
 import { type TLShapeId, toRichText } from 'tldraw'
 import type { FillCellAction } from '../../shared/schema/AgentActionSchemas'
 import type { SimpleShapeId } from '../../shared/types/ids-schema'
-import type { CellId, MandalaConfig, MandalaState } from '../../shared/types/MandalaTypes'
-import { RING_IDS, SLICE_IDS } from '../../shared/types/MandalaTypes'
+import type { MandalaState } from '../../shared/types/MandalaTypes'
 import type { Streaming } from '../../shared/types/Streaming'
 import type { AgentHelpers } from '../AgentHelpers'
-import { EMOTIONS_MAP_FRAMEWORK } from '../lib/frameworks/emotions-map'
-import { getCellCenter } from '../lib/mandala-geometry'
+import { EMOTIONS_MAP } from '../lib/frameworks/emotions-map'
+import { getCellCenter, isValidCellId } from '../lib/mandala-geometry'
 import type { MandalaShape } from '../shapes/MandalaShapeUtil'
 import { AgentActionUtil, registerActionUtil } from './AgentActionUtil'
 
@@ -28,7 +27,7 @@ export const FillCellActionUtil = registerActionUtil(
 			if (!mandalaId) return null
 			action.mandalaId = mandalaId
 
-			if (!action.cellId || !isValidCellId(action.cellId)) return null
+			if (!action.cellId || !isValidCellId(EMOTIONS_MAP, action.cellId)) return null
 
 			return action
 		}
@@ -41,23 +40,15 @@ export const FillCellActionUtil = registerActionUtil(
 			const mandala = editor.getShape(mandalaShapeId) as MandalaShape | undefined
 			if (!mandala) return
 
-			const cellId = action.cellId as CellId
-			const sliceIndex = SLICE_IDS.indexOf(cellId.split('-')[0] as any)
-			const ringIndex = RING_IDS.indexOf(cellId.split('-')[1] as any)
-			if (sliceIndex === -1 || ringIndex === -1) return
-
-			const config: MandalaConfig = {
-				center: {
-					x: mandala.x + mandala.props.w / 2,
-					y: mandala.y + mandala.props.h / 2,
-				},
-				radius: Math.min(mandala.props.w, mandala.props.h) / 2,
-				slices: SLICE_IDS,
-				rings: RING_IDS,
-				startAngle: EMOTIONS_MAP_FRAMEWORK.startAngle,
+			const cellId = action.cellId as string
+			const radius = Math.min(mandala.props.w, mandala.props.h) / 2
+			const shapeCenter = {
+				x: mandala.x + mandala.props.w / 2,
+				y: mandala.y + mandala.props.h / 2,
 			}
 
-			const center = getCellCenter(config, sliceIndex, ringIndex)
+			const center = getCellCenter(EMOTIONS_MAP, shapeCenter, radius, cellId)
+			if (!center) return
 
 			const contentShapeId = `shape:${action.mandalaId}-${cellId}` as TLShapeId
 			const existingShape = editor.getShape(contentShapeId)
@@ -105,9 +96,3 @@ export const FillCellActionUtil = registerActionUtil(
 		}
 	},
 )
-
-function isValidCellId(cellId: string): boolean {
-	const parts = cellId.split('-')
-	if (parts.length !== 2) return false
-	return SLICE_IDS.includes(parts[0] as any) && RING_IDS.includes(parts[1] as any)
-}

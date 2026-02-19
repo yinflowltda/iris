@@ -1,55 +1,43 @@
 import type { SimpleShapeId } from './ids-schema'
 
-export type SliceId = 'past' | 'present' | 'future'
-
-export type RingId = 'events' | 'behaviors' | 'thoughts' | 'emotions' | 'beliefs' | 'evidence'
-
-export type CellId = `${SliceId}-${RingId}`
-
-export const SLICE_IDS: readonly SliceId[] = ['past', 'present', 'future']
-
-export const RING_IDS: readonly RingId[] = [
-	'events',
-	'behaviors',
-	'thoughts',
-	'emotions',
-	'beliefs',
-	'evidence',
-]
-
 export interface Point2d {
 	x: number
 	y: number
 }
 
-export interface CellInfo {
-	sliceIndex: number
-	ringIndex: number
-	sliceId: SliceId
-	ringId: RingId
-	cellId: CellId
+export interface MapCellDef {
+	id: string
+	label: string
+	innerRatio: number
+	outerRatio: number
+	question: string
+	guidance: string
+	examples: string[]
 }
 
-export interface MandalaConfig {
-	center: Point2d
-	radius: number
-	slices: readonly SliceId[]
-	rings: readonly RingId[]
-	startAngle: number
-}
-
-export interface SliceDefinition {
-	sliceId: SliceId
-	sliceIndex: number
+export interface MapSliceDef {
+	id: string
+	label: string
 	startAngle: number
 	endAngle: number
+	cells: MapCellDef[]
 }
 
-export interface RingDefinition {
-	ringId: RingId
-	ringIndex: number
-	innerRadius: number
-	outerRadius: number
+export interface MapCenterDef {
+	id: string
+	label: string
+	radiusRatio: number
+	question: string
+	guidance: string
+	examples: string[]
+}
+
+export interface MapDefinition {
+	id: string
+	name: string
+	description: string
+	center: MapCenterDef
+	slices: MapSliceDef[]
 }
 
 export type CellStatus = 'empty' | 'active' | 'filled'
@@ -59,4 +47,4 @@ export interface CellState {
 	contentShapeIds: SimpleShapeId[]
 }
 
-export type MandalaState = Record<CellId, CellState>
+export type MandalaState = Record<string, CellState>

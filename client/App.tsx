@@ -9,8 +9,7 @@ import {
 	TldrawOverlays,
 	TldrawUiToastsProvider,
 } from 'tldraw'
-import type { CellId, MandalaState } from '../shared/types/MandalaTypes'
-import { RING_IDS, SLICE_IDS } from '../shared/types/MandalaTypes'
+import type { MandalaState } from '../shared/types/MandalaTypes'
 import type { TldrawAgentApp } from './agent/TldrawAgentApp'
 import {
 	TldrawAgentAppContextProvider,
@@ -22,6 +21,8 @@ import { CustomHelperButtons } from './components/CustomHelperButtons'
 import { AgentViewportBoundsHighlights } from './components/highlights/AgentViewportBoundsHighlights'
 import { AllContextHighlights } from './components/highlights/ContextHighlights'
 import { TemplateChooser } from './components/TemplateChooser'
+import { EMOTIONS_MAP } from './lib/frameworks/emotions-map'
+import { getAllCellIds, makeEmptyState } from './lib/mandala-geometry'
 import { MandalaShapeTool } from './shapes/MandalaShapeTool'
 import { type MandalaShape, MandalaShapeUtil } from './shapes/MandalaShapeUtil'
 import { TargetAreaTool } from './tools/TargetAreaTool'
@@ -57,22 +58,12 @@ const overrides: TLUiOverrides = {
 	},
 }
 
-const TOTAL_CELLS = SLICE_IDS.length * RING_IDS.length
-
-function makeEmptyMandalaState(): MandalaState {
-	const state = {} as MandalaState
-	for (const slice of SLICE_IDS) {
-		for (const ring of RING_IDS) {
-			state[`${slice}-${ring}`] = { status: 'empty', contentShapeIds: [] }
-		}
-	}
-	return state
-}
+const TOTAL_CELLS = getAllCellIds(EMOTIONS_MAP).length
 
 function countFilledCells(state: MandalaState): number {
 	let count = 0
 	for (const key of Object.keys(state)) {
-		if (state[key as CellId]?.status === 'filled') count++
+		if (state[key]?.status === 'filled') count++
 	}
 	return count
 }
@@ -138,7 +129,7 @@ function App() {
 				type: 'mandala',
 				x: viewport.x + viewport.w / 2 - size / 2,
 				y: viewport.y + viewport.h / 2 - size / 2,
-				props: { w: size, h: size, state: makeEmptyMandalaState() },
+				props: { w: size, h: size, state: makeEmptyState(EMOTIONS_MAP) },
 			})
 
 			try {

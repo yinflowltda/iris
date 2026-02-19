@@ -1,9 +1,10 @@
 import type { TLShapeId } from 'tldraw'
 import type { DetectConflictAction } from '../../shared/schema/AgentActionSchemas'
-import type { CellId, MandalaState } from '../../shared/types/MandalaTypes'
-import { RING_IDS, SLICE_IDS } from '../../shared/types/MandalaTypes'
+import type { MandalaState } from '../../shared/types/MandalaTypes'
 import type { Streaming } from '../../shared/types/Streaming'
 import type { AgentHelpers } from '../AgentHelpers'
+import { EMOTIONS_MAP } from '../lib/frameworks/emotions-map'
+import { isValidCellId } from '../lib/mandala-geometry'
 import type { MandalaShape } from '../shapes/MandalaShapeUtil'
 import { AgentActionUtil, registerActionUtil } from './AgentActionUtil'
 
@@ -26,7 +27,7 @@ export const DetectConflictActionUtil = registerActionUtil(
 			action.mandalaId = mandalaId
 
 			if (!action.cellIds || action.cellIds.length < 2) return null
-			if (!action.cellIds.every(isValidCellId)) return null
+			if (!action.cellIds.every((id) => isValidCellId(EMOTIONS_MAP, id))) return null
 
 			return action
 		}
@@ -41,11 +42,10 @@ export const DetectConflictActionUtil = registerActionUtil(
 
 			const currentState: MandalaState = { ...mandala.props.state }
 			for (const id of action.cellIds) {
-				const cellId = id as CellId
-				const cellState = currentState[cellId]
+				const cellState = currentState[id]
 				if (!cellState) continue
 
-				currentState[cellId] = {
+				currentState[id] = {
 					...cellState,
 					status: 'active',
 				}
@@ -59,9 +59,3 @@ export const DetectConflictActionUtil = registerActionUtil(
 		}
 	},
 )
-
-function isValidCellId(cellId: string): boolean {
-	const parts = cellId.split('-')
-	if (parts.length !== 2) return false
-	return SLICE_IDS.includes(parts[0] as any) && RING_IDS.includes(parts[1] as any)
-}

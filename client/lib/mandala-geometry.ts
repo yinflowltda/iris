@@ -1,13 +1,4 @@
-import {
-	type CellId,
-	type CellInfo,
-	type MandalaConfig,
-	type Point2d,
-	RING_IDS,
-	type RingDefinition,
-	SLICE_IDS,
-	type SliceDefinition,
-} from '../../shared/types/MandalaTypes'
+import type { MandalaState, MapDefinition, Point2d } from '../../shared/types/MandalaTypes'
 
 const DEG_TO_RAD = Math.PI / 180
 const RAD_TO_DEG = 180 / Math.PI
@@ -16,84 +7,94 @@ function normalizeAngle(degrees: number): number {
 	return ((degrees % 360) + 360) % 360
 }
 
-export function getAllCellIds(): CellId[] {
-	const ids: CellId[] = []
-	for (const slice of SLICE_IDS) {
-		for (const ring of RING_IDS) {
-			ids.push(`${slice}-${ring}`)
+function isAngleInRange(angle: number, start: number, end: number): boolean {
+	const a = normalizeAngle(angle)
+	const s = normalizeAngle(start)
+	const e = normalizeAngle(end)
+	if (s < e) return a >= s && a < e
+	return a >= s || a < e
+}
+
+export function getAllCellIds(map: MapDefinition): string[] {
+	const ids: string[] = [map.center.id]
+	for (const slice of map.slices) {
+		for (const cell of slice.cells) {
+			ids.push(cell.id)
 		}
 	}
 	return ids
 }
 
-export function getSliceDefinitions(config: MandalaConfig): SliceDefinition[] {
-	const span = 360 / config.slices.length
-	return config.slices.map((sliceId, sliceIndex) => ({
-		sliceId,
-		sliceIndex,
-		startAngle: normalizeAngle(config.startAngle + sliceIndex * span),
-		endAngle: normalizeAngle(config.startAngle + (sliceIndex + 1) * span),
-	}))
+export function isValidCellId(map: MapDefinition, cellId: string): boolean {
+	if (cellId === map.center.id) return true
+	return map.slices.some((s) => s.cells.some((c) => c.id === cellId))
 }
 
-export function getRingDefinitions(config: MandalaConfig): RingDefinition[] {
-	const width = config.radius / config.rings.length
-	return config.rings.map((ringId, ringIndex) => ({
-		ringId,
-		ringIndex,
-		outerRadius: config.radius - ringIndex * width,
-		innerRadius: config.radius - (ringIndex + 1) * width,
-	}))
-}
-
-export function getCellAtPoint(config: MandalaConfig, point: Point2d): CellInfo | null {
-	const dx = point.x - config.center.x
-	const dy = config.center.y - point.y
+export function getCellAtPoint(
+	map: MapDefinition,
+	center: Point2d,
+	outerRadius: number,
+	point: Point2d,
+): string | null {
+	const dx = point.x - center.x
+	const dy = center.y - point.y
 	const distance = Math.sqrt(dx * dx + dy * dy)
 
-	if (distance > config.radius) return null
+	if (distance > outerRadius) return null
+
+	const ratio = distance / outerRadius
+
+	if (ratio <= map.center.radiusRatio) return map.center.id
 
 	const angleDeg = normalizeAngle(Math.atan2(dy, dx) * RAD_TO_DEG)
-	const sliceSpan = 360 / config.slices.length
-	const sliceIndex = Math.floor(normalizeAngle(angleDeg - config.startAngle) / sliceSpan)
 
-	if (sliceIndex >= config.slices.length) return null
-
-	const ringWidth = config.radius / config.rings.length
-	const ringIndex = Math.min(
-		Math.floor((config.radius - distance) / ringWidth),
-		config.rings.length - 1,
-	)
-
-	const sliceId = config.slices[sliceIndex]
-	const ringId = config.rings[ringIndex]
-
-	return {
-		sliceIndex,
-		ringIndex,
-		sliceId,
-		ringId,
-		cellId: `${sliceId}-${ringId}`,
+	for (const slice of map.slices) {
+		if (isAngleInRange(angleDeg, slice.startAngle, slice.endAngle)) {
+			for (const cell of slice.cells) {
+				if (ratio >= cell.innerRatio && ratio <= cell.outerRatio) {
+					return cell.id
+				}
+			}
+			return null
+		}
 	}
+
+	return null
 }
 
 export function getCellCenter(
-	config: MandalaConfig,
-	sliceIndex: number,
-	ringIndex: number,
-): Point2d {
-	const sliceSpan = 360 / config.slices.length
-	const midAngleRad = (config.startAngle + (sliceIndex + 0.5) * sliceSpan) * DEG_TO_RAD
+	map: MapDefinition,
+	center: Point2d,
+	outerRadius: number,
+	cellId: string,
+): Point2d | null {
+	if (cellId === map.center.id) return { ...center }
 
-	const ringWidth = config.radius / config.rings.length
-	const midRadius = config.radius - (ringIndex + 0.5) * ringWidth
+	for (const slice of map.slices) {
+		for (const cell of slice.cells) {
+			if (cell.id === cellId) {
+				const midRatio = (cell.innerRatio + cell.outerRatio) / 2
+				const midRadius = midRatio * outerRadius
 
-	return {
-		x: config.center.x + midRadius * Math.cos(midAngleRad),
-		y: config.center.y - midRadius * Math.sin(midAngleRad),
+				let sweep = slice.endAngle - slice.startAngle
+				if (sweep <= 0) sweep += 360
+				const midAngleRad = (slice.startAngle + sweep / 2) * DEG_TO_RAD
+
+				return {
+					x: center.x + midRadius * Math.cos(midAngleRad),
+					y: center.y - midRadius * Math.sin(midAngleRad),
+				}
+			}
+		}
 	}
+
+	return null
 }
 
-export function getContentShapeCell(config: MandalaConfig, shapeCenter: Point2d): CellInfo | null {
-	return getCellAtPoint(config, shapeCenter)
+export function makeEmptyState(map: MapDefinition): MandalaState {
+	const state: MandalaState = {}
+	for (const id of getAllCellIds(map)) {
+		state[id] = { status: 'empty', contentShapeIds: [] }
+	}
+	return state
 }

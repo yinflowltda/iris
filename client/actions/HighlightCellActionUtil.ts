@@ -1,9 +1,10 @@
 import type { TLShapeId } from 'tldraw'
 import type { HighlightCellAction } from '../../shared/schema/AgentActionSchemas'
-import type { CellId, MandalaState } from '../../shared/types/MandalaTypes'
-import { RING_IDS, SLICE_IDS } from '../../shared/types/MandalaTypes'
+import type { MandalaState } from '../../shared/types/MandalaTypes'
 import type { Streaming } from '../../shared/types/Streaming'
 import type { AgentHelpers } from '../AgentHelpers'
+import { EMOTIONS_MAP } from '../lib/frameworks/emotions-map'
+import { isValidCellId } from '../lib/mandala-geometry'
 import type { MandalaShape } from '../shapes/MandalaShapeUtil'
 import { AgentActionUtil, registerActionUtil } from './AgentActionUtil'
 
@@ -25,7 +26,7 @@ export const HighlightCellActionUtil = registerActionUtil(
 			if (!mandalaId) return null
 			action.mandalaId = mandalaId
 
-			if (!action.cellId || !isValidCellId(action.cellId)) return null
+			if (!action.cellId || !isValidCellId(EMOTIONS_MAP, action.cellId)) return null
 
 			return action
 		}
@@ -38,7 +39,7 @@ export const HighlightCellActionUtil = registerActionUtil(
 			const mandala = editor.getShape(mandalaShapeId) as MandalaShape | undefined
 			if (!mandala) return
 
-			const cellId = action.cellId as CellId
+			const cellId = action.cellId as string
 			const currentState: MandalaState = { ...mandala.props.state }
 			const cellState = currentState[cellId]
 			if (!cellState) return
@@ -56,9 +57,3 @@ export const HighlightCellActionUtil = registerActionUtil(
 		}
 	},
 )
-
-function isValidCellId(cellId: string): boolean {
-	const parts = cellId.split('-')
-	if (parts.length !== 2) return false
-	return SLICE_IDS.includes(parts[0] as any) && RING_IDS.includes(parts[1] as any)
-}

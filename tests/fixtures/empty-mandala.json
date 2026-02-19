@@ -1,20 +1,9 @@
 {
+	"evidence": { "status": "empty", "contentShapeIds": [] },
 	"past-events": { "status": "empty", "contentShapeIds": [] },
-	"past-behaviors": { "status": "empty", "contentShapeIds": [] },
-	"past-thoughts": { "status": "empty", "contentShapeIds": [] },
-	"past-emotions": { "status": "empty", "contentShapeIds": [] },
-	"past-beliefs": { "status": "empty", "contentShapeIds": [] },
-	"past-evidence": { "status": "empty", "contentShapeIds": [] },
-	"present-events": { "status": "empty", "contentShapeIds": [] },
-	"present-behaviors": { "status": "empty", "contentShapeIds": [] },
-	"present-thoughts": { "status": "empty", "contentShapeIds": [] },
-	"present-emotions": { "status": "empty", "contentShapeIds": [] },
-	"present-beliefs": { "status": "empty", "contentShapeIds": [] },
-	"present-evidence": { "status": "empty", "contentShapeIds": [] },
+	"past-thoughts-emotions": { "status": "empty", "contentShapeIds": [] },
 	"future-events": { "status": "empty", "contentShapeIds": [] },
-	"future-behaviors": { "status": "empty", "contentShapeIds": [] },
-	"future-thoughts": { "status": "empty", "contentShapeIds": [] },
-	"future-emotions": { "status": "empty", "contentShapeIds": [] },
 	"future-beliefs": { "status": "empty", "contentShapeIds": [] },
-	"future-evidence": { "status": "empty", "contentShapeIds": [] }
+	"present-behaviors": { "status": "empty", "contentShapeIds": [] },
+	"present-beliefs": { "status": "empty", "contentShapeIds": [] }
 }

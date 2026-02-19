@@ -1,4 +1,4 @@
-import { type ReactElement, useCallback, useState } from 'react'
+import { type ReactElement, useCallback, useMemo, useState } from 'react'
 import {
 	Circle2d,
 	type RecordProps,
@@ -9,15 +9,9 @@ import {
 	type TLBaseShape,
 	type TLResizeInfo,
 } from 'tldraw'
-import type {
-	CellId,
-	CellStatus,
-	MandalaConfig,
-	MandalaState,
-} from '../../shared/types/MandalaTypes'
-import { RING_IDS, SLICE_IDS } from '../../shared/types/MandalaTypes'
-import { EMOTIONS_MAP_FRAMEWORK } from '../lib/frameworks/emotions-map'
-import { getRingDefinitions, getSliceDefinitions } from '../lib/mandala-geometry'
+import type { CellStatus, MandalaState } from '../../shared/types/MandalaTypes'
+import { EMOTIONS_MAP } from '../lib/frameworks/emotions-map'
+import { makeEmptyState } from '../lib/mandala-geometry'
 
 const DEG_TO_RAD = Math.PI / 180
 
@@ -37,23 +31,18 @@ declare module 'tldraw' {
 
 export type MandalaShape = TLBaseShape<'mandala', MandalaShapeProps>
 
-function makeEmptyState(): MandalaState {
-	const state = {} as MandalaState
-	for (const slice of SLICE_IDS) {
-		for (const ring of RING_IDS) {
-			state[`${slice}-${ring}`] = { status: 'empty', contentShapeIds: [] }
-		}
-	}
-	return state
-}
-
 // ─── Color palette ───────────────────────────────────────────────────────────
 
-const SLICE_COLORS: Record<string, { fill: string; stroke: string; hover: string }> = {
-	past: { fill: '#e8d5f5', stroke: '#9b6db8', hover: '#d9bce8' },
-	present: { fill: '#d5e8f5', stroke: '#6d9bb8', hover: '#bcd9e8' },
-	future: { fill: '#d5f5e0', stroke: '#6db87a', hover: '#bce8c8' },
+const STROKE_COLOR = '#114559'
+const TEXT_COLOR = '#114559'
+
+const SLICE_COLORS: Record<string, { fill: string; hover: string }> = {
+	past: { fill: '#e8d5f5', hover: '#d9bce8' },
+	present: { fill: '#d5e8f5', hover: '#bcd9e8' },
+	future: { fill: '#d5f5e0', hover: '#bce8c8' },
 }
+
+const DEFAULT_SLICE_COLOR = { fill: '#e0e0e0', hover: '#d0d0d0' }
 
 const STATUS_OPACITY: Record<CellStatus, number> = {
 	empty: 0.35,
@@ -88,7 +77,7 @@ function describeCellPath(
 	const ix2 = cx + innerR * Math.cos(startRad)
 	const iy2 = cy - innerR * Math.sin(startRad)
 
-	if (innerR === 0) {
+	if (innerR <= 0) {
 		return [
 			`M ${ox1} ${oy1}`,
 			`A ${outerR} ${outerR} 0 ${largeArc} 0 ${ox2} ${oy2}`,
@@ -106,6 +95,42 @@ function describeCellPath(
 	].join(' ')
 }
 
+function getMidAngle(startDeg: number, endDeg: number): number {
+	let sweep = endDeg - startDeg
+	if (sweep <= 0) sweep += 360
+	return (((startDeg + sweep / 2) % 360) + 360) % 360
+}
+
+function describeTextArc(
+	cx: number,
+	cy: number,
+	r: number,
+	startDeg: number,
+	endDeg: number,
+	flip: boolean,
+): string {
+	let sweep = endDeg - startDeg
+	if (sweep <= 0) sweep += 360
+	const largeArc = sweep > 180 ? 1 : 0
+
+	const startRad = startDeg * DEG_TO_RAD
+	const endRad = (startDeg + sweep) * DEG_TO_RAD
+
+	if (flip) {
+		const x1 = cx + r * Math.cos(endRad)
+		const y1 = cy - r * Math.sin(endRad)
+		const x2 = cx + r * Math.cos(startRad)
+		const y2 = cy - r * Math.sin(startRad)
+		return `M ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2}`
+	}
+
+	const x1 = cx + r * Math.cos(startRad)
+	const y1 = cy - r * Math.sin(startRad)
+	const x2 = cx + r * Math.cos(endRad)
+	const y2 = cy - r * Math.sin(endRad)
+	return `M ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 0 ${x2} ${y2}`
+}
+
 // ─── SVG rendering component ────────────────────────────────────────────────
 
 function MandalaSvg({
@@ -119,25 +144,21 @@ function MandalaSvg({
 	mandalaState: MandalaState
 	isExport?: boolean
 }) {
-	const radius = Math.min(w, h) / 2
+	const map = EMOTIONS_MAP
+	const size = Math.min(w, h)
+	const labelPadding = Math.max(20, size * 0.05)
+	const outerRadius = (size - labelPadding * 2) / 2
 	const cx = w / 2
 	const cy = h / 2
+	const centerRadius = outerRadius * map.center.radiusRatio
 
-	const config: MandalaConfig = {
-		center: { x: cx, y: cy },
-		radius,
-		slices: SLICE_IDS,
-		rings: RING_IDS,
-		startAngle: EMOTIONS_MAP_FRAMEWORK.startAngle,
-	}
+	const sliceLabelFontSize = Math.max(10, Math.min(16, outerRadius * 0.045))
+	const centerFontSize = Math.max(8, Math.min(13, centerRadius * 0.18))
 
-	const sliceDefs = getSliceDefinitions(config)
-	const ringDefs = getRingDefinitions(config)
-
-	const [hoveredCell, setHoveredCell] = useState<CellId | null>(null)
+	const [hoveredCell, setHoveredCell] = useState<string | null>(null)
 
 	const handleCellEnter = useCallback(
-		(cellId: CellId) => {
+		(cellId: string) => {
 			if (!isExport) setHoveredCell(cellId)
 		},
 		[isExport],
@@ -147,127 +168,210 @@ function MandalaSvg({
 		if (!isExport) setHoveredCell(null)
 	}, [isExport])
 
-	const cells: ReactElement[] = []
-	const labels: ReactElement[] = []
+	const sliceFlip = useMemo(() => {
+		const result: Record<string, boolean> = {}
+		for (const slice of map.slices) {
+			const mid = getMidAngle(slice.startAngle, slice.endAngle)
+			result[slice.id] = mid > 0 && mid < 180
+		}
+		return result
+	}, [])
 
-	for (const slice of sliceDefs) {
-		for (const ring of ringDefs) {
-			const cellId: CellId = `${slice.sliceId}-${ring.ringId}`
-			const cellState = mandalaState[cellId]
-			const colors = SLICE_COLORS[slice.sliceId]
-			const isHovered = hoveredCell === cellId
+	// ── 1. Cell paths ─────────────────────────────────────────────────────
+	const cellPaths: ReactElement[] = []
+	const arcDefs: ReactElement[] = []
+	const cellLabels: ReactElement[] = []
+
+	for (const slice of map.slices) {
+		const colors = SLICE_COLORS[slice.id] ?? DEFAULT_SLICE_COLOR
+		const shouldFlip = sliceFlip[slice.id]
+
+		for (const cell of slice.cells) {
+			const cellState = mandalaState[cell.id]
+			const isHovered = hoveredCell === cell.id
 			const opacity = STATUS_OPACITY[cellState?.status ?? 'empty']
 
-			const path = describeCellPath(
-				cx,
-				cy,
-				ring.innerRadius,
-				ring.outerRadius,
-				slice.startAngle,
-				slice.endAngle,
-			)
+			const innerR = cell.innerRatio * outerRadius
+			const outerR = cell.outerRatio * outerRadius
 
-			cells.push(
+			const path = describeCellPath(cx, cy, innerR, outerR, slice.startAngle, slice.endAngle)
+
+			cellPaths.push(
 				<path
-					key={cellId}
+					key={cell.id}
 					d={path}
 					fill={isHovered ? colors.hover : colors.fill}
 					fillOpacity={opacity}
-					stroke={colors.stroke}
-					strokeWidth={1.5}
-					onPointerEnter={() => handleCellEnter(cellId)}
+					stroke={STROKE_COLOR}
+					strokeWidth={1}
+					onPointerEnter={() => handleCellEnter(cell.id)}
 					onPointerLeave={handleCellLeave}
 					style={{ cursor: 'pointer', transition: 'fill 0.15s ease' }}
 				/>,
 			)
 
-			const cellDef = EMOTIONS_MAP_FRAMEWORK.cells[cellId]
-			if (cellDef && ring.outerRadius - ring.innerRadius > 30) {
-				let sweep = slice.endAngle - slice.startAngle
-				if (sweep <= 0) sweep += 360
-				const midAngle = (slice.startAngle + sweep / 2) * DEG_TO_RAD
-				const midR = (ring.innerRadius + ring.outerRadius) / 2
-				const lx = cx + midR * Math.cos(midAngle)
-				const ly = cy - midR * Math.sin(midAngle)
-				const fontSize = Math.max(8, Math.min(12, radius / 50))
+			const midR = (innerR + outerR) / 2
+			const pathId = `arc-${cell.id}`
+			arcDefs.push(
+				<path
+					key={pathId}
+					id={pathId}
+					d={describeTextArc(cx, cy, midR, slice.startAngle, slice.endAngle, shouldFlip)}
+					fill="none"
+					stroke="none"
+				/>,
+			)
 
-				labels.push(
-					<text
-						key={`label-${cellId}`}
-						x={lx}
-						y={ly}
+			const cellFontSize = Math.max(7, Math.min(12, (outerR - innerR) * 0.22))
+			cellLabels.push(
+				<text
+					key={`label-${cell.id}`}
+					fontSize={cellFontSize}
+					fill={TEXT_COLOR}
+					pointerEvents="none"
+					style={{ userSelect: 'none', fontFamily: 'system-ui, sans-serif' }}
+				>
+					<textPath
+						href={`#${pathId}`}
+						startOffset="50%"
 						textAnchor="middle"
 						dominantBaseline="central"
-						fontSize={fontSize}
-						fill="#333"
-						pointerEvents="none"
-						style={{ userSelect: 'none' }}
 					>
-						{cellDef.label}
-					</text>,
-				)
-			}
+						{cell.label}
+					</textPath>
+				</text>,
+			)
 		}
 	}
 
-	const sliceLabels: ReactElement[] = sliceDefs.map((slice) => {
-		let sweep = slice.endAngle - slice.startAngle
-		if (sweep <= 0) sweep += 360
-		const midAngle = (slice.startAngle + sweep / 2) * DEG_TO_RAD
-		const labelR = radius + 20
-		const lx = cx + labelR * Math.cos(midAngle)
-		const ly = cy - labelR * Math.sin(midAngle)
-		const fontSize = Math.max(12, Math.min(16, radius / 30))
-
-		return (
-			<text
-				key={`slice-label-${slice.sliceId}`}
-				x={lx}
-				y={ly}
-				textAnchor="middle"
-				dominantBaseline="central"
-				fontSize={fontSize}
-				fontWeight="bold"
-				fill={SLICE_COLORS[slice.sliceId].stroke}
-				pointerEvents="none"
-				style={{ userSelect: 'none', textTransform: 'uppercase' }}
-			>
-				{slice.sliceId}
-			</text>
-		)
-	})
-
-	const ringLines: ReactElement[] = ringDefs.map((ring) => (
-		<circle
-			key={`ring-${ring.ringId}`}
-			cx={cx}
-			cy={cy}
-			r={ring.outerRadius}
-			fill="none"
-			stroke="#999"
-			strokeWidth={0.5}
-			strokeDasharray="4 2"
-			pointerEvents="none"
-		/>
-	))
-
-	const sliceLines: ReactElement[] = sliceDefs.map((slice) => {
+	// ── 2. Slice divider lines ────────────────────────────────────────────
+	const sliceLines: ReactElement[] = map.slices.map((slice) => {
 		const rad = slice.startAngle * DEG_TO_RAD
-		const x2 = cx + radius * Math.cos(rad)
-		const y2 = cy - radius * Math.sin(rad)
+		const x1 = cx + centerRadius * Math.cos(rad)
+		const y1 = cy - centerRadius * Math.sin(rad)
+		const x2 = cx + outerRadius * Math.cos(rad)
+		const y2 = cy - outerRadius * Math.sin(rad)
 		return (
 			<line
-				key={`slice-line-${slice.sliceId}`}
-				x1={cx}
-				y1={cy}
+				key={`slice-line-${slice.id}`}
+				x1={x1}
+				y1={y1}
 				x2={x2}
 				y2={y2}
-				stroke="#999"
-				strokeWidth={1}
+				stroke={STROKE_COLOR}
+				strokeWidth={1.5}
 				pointerEvents="none"
 			/>
 		)
 	})
+
+	// ── 3. Ring boundary circles ──────────────────────────────────────────
+	const ringBoundaries = new Set<number>()
+	for (const slice of map.slices) {
+		for (const cell of slice.cells) {
+			ringBoundaries.add(cell.innerRatio)
+			ringBoundaries.add(cell.outerRatio)
+		}
+	}
+	const ringCircles: ReactElement[] = [...ringBoundaries].map((ratio) => (
+		<circle
+			key={`ring-${ratio}`}
+			cx={cx}
+			cy={cy}
+			r={ratio * outerRadius}
+			fill="none"
+			stroke={STROKE_COLOR}
+			strokeWidth={0.75}
+			pointerEvents="none"
+		/>
+	))
+
+	// ── 4. Center circle ─────────────────────────────────────────────────
+	const centerCircle = (
+		<g key="center">
+			<circle
+				cx={cx}
+				cy={cy}
+				r={centerRadius}
+				fill="white"
+				stroke={STROKE_COLOR}
+				strokeWidth={1.5}
+				pointerEvents="none"
+			/>
+			<text
+				x={cx}
+				y={cy}
+				textAnchor="middle"
+				dominantBaseline="central"
+				fontSize={centerFontSize}
+				fontWeight="bold"
+				fill="#999"
+				pointerEvents="none"
+				style={{ userSelect: 'none', fontFamily: 'system-ui, sans-serif' }}
+			>
+				{map.center.label}
+			</text>
+		</g>
+	)
+
+	// ── 5. Outer slice labels (via textPath) ─────────────────────────────
+	const sliceLabelR = outerRadius + labelPadding * 0.45
+	const sliceLabelDefs: ReactElement[] = []
+	const sliceLabelTexts: ReactElement[] = []
+
+	for (const slice of map.slices) {
+		const shouldFlip = sliceFlip[slice.id]
+		const pathId = `slice-arc-${slice.id}`
+
+		sliceLabelDefs.push(
+			<path
+				key={pathId}
+				id={pathId}
+				d={describeTextArc(cx, cy, sliceLabelR, slice.startAngle, slice.endAngle, shouldFlip)}
+				fill="none"
+				stroke="none"
+			/>,
+		)
+
+		sliceLabelTexts.push(
+			<text
+				key={`slabel-${slice.id}`}
+				fontSize={sliceLabelFontSize}
+				fontWeight="bold"
+				fill={STROKE_COLOR}
+				pointerEvents="none"
+				style={{
+					userSelect: 'none',
+					fontFamily: 'system-ui, sans-serif',
+					textTransform: 'uppercase',
+					letterSpacing: '0.08em',
+				}}
+			>
+				<textPath
+					href={`#${pathId}`}
+					startOffset="50%"
+					textAnchor="middle"
+					dominantBaseline="central"
+				>
+					{slice.label}
+				</textPath>
+			</text>,
+		)
+	}
+
+	// ── 6. Outer boundary circle ─────────────────────────────────────────
+	const outerCircle = (
+		<circle
+			key="outer-boundary"
+			cx={cx}
+			cy={cy}
+			r={outerRadius}
+			fill="none"
+			stroke={STROKE_COLOR}
+			strokeWidth={1.5}
+			pointerEvents="none"
+		/>
+	)
 
 	return (
 		<svg
@@ -278,11 +382,17 @@ function MandalaSvg({
 			role="img"
 			aria-label="Emotions Map Mandala"
 		>
-			<g>{cells}</g>
-			<g>{ringLines}</g>
+			<defs>
+				{arcDefs}
+				{sliceLabelDefs}
+			</defs>
+			<g>{cellPaths}</g>
+			<g>{ringCircles}</g>
+			{outerCircle}
 			<g>{sliceLines}</g>
-			<g>{labels}</g>
-			<g>{sliceLabels}</g>
+			{centerCircle}
+			<g>{cellLabels}</g>
+			<g>{sliceLabelTexts}</g>
 		</svg>
 	)
 }
@@ -301,7 +411,7 @@ export class MandalaShapeUtil extends ShapeUtil<MandalaShape> {
 		return {
 			w: 800,
 			h: 800,
-			state: makeEmptyState(),
+			state: makeEmptyState(EMOTIONS_MAP),
 		}
 	}
 

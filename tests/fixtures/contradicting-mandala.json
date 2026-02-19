@@ -1,20 +1,9 @@
 {
-	"past-events": { "status": "filled", "contentShapeIds": ["shape-c01"] },
-	"past-behaviors": { "status": "filled", "contentShapeIds": ["shape-c02"] },
-	"past-thoughts": { "status": "filled", "contentShapeIds": ["shape-c03a", "shape-c03b"] },
-	"past-emotions": { "status": "filled", "contentShapeIds": ["shape-c04a", "shape-c04b"] },
-	"past-beliefs": { "status": "filled", "contentShapeIds": ["shape-c05a", "shape-c05b"] },
-	"past-evidence": { "status": "filled", "contentShapeIds": ["shape-c06a", "shape-c06b"] },
-	"present-events": { "status": "filled", "contentShapeIds": ["shape-c07"] },
-	"present-behaviors": { "status": "filled", "contentShapeIds": ["shape-c08"] },
-	"present-thoughts": { "status": "filled", "contentShapeIds": ["shape-c09a", "shape-c09b"] },
-	"present-emotions": { "status": "filled", "contentShapeIds": ["shape-c10a", "shape-c10b"] },
-	"present-beliefs": { "status": "filled", "contentShapeIds": ["shape-c11a", "shape-c11b"] },
-	"present-evidence": { "status": "filled", "contentShapeIds": ["shape-c12a", "shape-c12b"] },
-	"future-events": { "status": "active", "contentShapeIds": ["shape-c13"] },
-	"future-behaviors": { "status": "active", "contentShapeIds": ["shape-c14"] },
-	"future-thoughts": { "status": "empty", "contentShapeIds": [] },
-	"future-emotions": { "status": "empty", "contentShapeIds": [] },
+	"evidence": { "status": "filled", "contentShapeIds": ["shape-c01a", "shape-c01b"] },
+	"past-events": { "status": "filled", "contentShapeIds": ["shape-c02"] },
+	"past-thoughts-emotions": { "status": "filled", "contentShapeIds": ["shape-c03a", "shape-c03b"] },
+	"future-events": { "status": "active", "contentShapeIds": ["shape-c04"] },
 	"future-beliefs": { "status": "empty", "contentShapeIds": [] },
-	"future-evidence": { "status": "empty", "contentShapeIds": [] }
+	"present-behaviors": { "status": "filled", "contentShapeIds": ["shape-c05"] },
+	"present-beliefs": { "status": "active", "contentShapeIds": ["shape-c06a", "shape-c06b"] }
 }

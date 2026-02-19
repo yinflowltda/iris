@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import z from 'zod'
 import { getAllActionUtils } from '../../client/actions/AgentActionUtil'
+import { EMOTIONS_MAP } from '../../client/lib/frameworks/emotions-map'
 import { getAllCellIds } from '../../client/lib/mandala-geometry'
 // Import mode definitions to trigger self-registration of all action utils
 import {
@@ -13,7 +13,6 @@ import {
 	HighlightCellAction,
 } from '../../shared/schema/AgentActionSchemas'
 import { getActionSchema, hasActionSchema } from '../../shared/types/AgentAction'
-import { RING_IDS, SLICE_IDS } from '../../shared/types/MandalaTypes'
 import { getResponseForInput } from '../mocks/mock-ai-provider'
 
 // ─── Schema Validation ───────────────────────────────────────────────────────
@@ -22,9 +21,9 @@ describe('FillCellAction schema', () => {
 	it('accepts a valid fill_cell action', () => {
 		const result = FillCellAction.safeParse({
 			_type: 'fill_cell',
-			intent: 'Capturing the user emotion in present-emotions',
+			intent: 'Capturing the user events in past-events',
 			mandalaId: 'mandala',
-			cellId: 'present-emotions',
+			cellId: 'past-events',
 			content: 'I feel cautiously optimistic',
 		})
 		expect(result.success).toBe(true)
@@ -35,7 +34,7 @@ describe('FillCellAction schema', () => {
 			_type: 'wrong_type',
 			intent: 'test',
 			mandalaId: 'mandala',
-			cellId: 'present-emotions',
+			cellId: 'past-events',
 			content: 'text',
 		})
 		expect(result.success).toBe(false)
@@ -49,8 +48,8 @@ describe('FillCellAction schema', () => {
 		expect(result.success).toBe(false)
 	})
 
-	it('accepts all 18 valid cell IDs', () => {
-		for (const cellId of getAllCellIds()) {
+	it('accepts all 7 valid cell IDs', () => {
+		for (const cellId of getAllCellIds(EMOTIONS_MAP)) {
 			const result = FillCellAction.safeParse({
 				_type: 'fill_cell',
 				intent: `Filling ${cellId}`,
@@ -67,9 +66,9 @@ describe('HighlightCellAction schema', () => {
 	it('accepts a valid highlight_cell action', () => {
 		const result = HighlightCellAction.safeParse({
 			_type: 'highlight_cell',
-			intent: 'Drawing attention to past beliefs',
+			intent: 'Drawing attention to present beliefs',
 			mandalaId: 'mandala',
-			cellId: 'past-beliefs',
+			cellId: 'present-beliefs',
 			color: 'yellow',
 		})
 		expect(result.success).toBe(true)
@@ -80,7 +79,7 @@ describe('HighlightCellAction schema', () => {
 			_type: 'highlight_cell',
 			intent: 'test',
 			mandalaId: 'mandala',
-			cellId: 'past-beliefs',
+			cellId: 'present-beliefs',
 			color: 'rainbow',
 		})
 		expect(result.success).toBe(false)
@@ -107,7 +106,7 @@ describe('HighlightCellAction schema', () => {
 				_type: 'highlight_cell',
 				intent: 'test',
 				mandalaId: 'mandala',
-				cellId: 'present-events',
+				cellId: 'past-events',
 				color,
 			})
 			expect(result.success).toBe(true)
@@ -121,9 +120,9 @@ describe('DetectConflictAction schema', () => {
 			_type: 'detect_conflict',
 			intent: 'Noticed contradiction between past and present beliefs',
 			mandalaId: 'mandala',
-			cellIds: ['past-beliefs', 'present-beliefs'],
+			cellIds: ['past-thoughts-emotions', 'present-beliefs'],
 			description:
-				'The user believes they are unlovable (past) but also that they deserve good things (present).',
+				'The user feels unlovable (past) but believes they deserve good things (present).',
 		})
 		expect(result.success).toBe(true)
 	})
@@ -133,7 +132,7 @@ describe('DetectConflictAction schema', () => {
 			_type: 'detect_conflict',
 			intent: 'Multi-cell conflict',
 			mandalaId: 'mandala',
-			cellIds: ['past-beliefs', 'present-beliefs', 'future-beliefs'],
+			cellIds: ['past-thoughts-emotions', 'present-beliefs', 'future-beliefs'],
 			description: 'Beliefs across all time periods are contradictory.',
 		})
 		expect(result.success).toBe(true)
@@ -147,7 +146,6 @@ describe('DetectConflictAction schema', () => {
 			cellIds: [],
 			description: 'test',
 		})
-		// Schema allows empty array, but sanitizeAction rejects < 2
 		expect(result.success).toBe(true)
 	})
 
@@ -156,7 +154,7 @@ describe('DetectConflictAction schema', () => {
 			_type: 'detect_conflict',
 			intent: 'test',
 			mandalaId: 'mandala',
-			cellIds: ['past-beliefs', 'present-beliefs'],
+			cellIds: ['past-thoughts-emotions', 'present-beliefs'],
 		})
 		expect(result.success).toBe(false)
 	})
@@ -280,7 +278,7 @@ describe('mock AI provider mandala action integration', () => {
 		const fillAction = response.actions.find((a) => a._type === 'fill_cell')
 		expect(fillAction).toBeDefined()
 		expect(fillAction!._type).toBe('fill_cell')
-		expect(fillAction!.cellId).toBe('present-events')
+		expect(fillAction!.cellId).toBe('past-events')
 		expect(fillAction!.content).toBe('Mock content')
 	})
 
@@ -293,7 +291,7 @@ describe('mock AI provider mandala action integration', () => {
 		const result = FillCellAction.safeParse(withIntent)
 		expect(result.success).toBe(true)
 		if (result.success) {
-			expect(result.data.cellId).toBe('present-events')
+			expect(result.data.cellId).toBe('past-events')
 			expect(result.data.content).toBe('Mock content')
 		}
 	})
@@ -308,19 +306,11 @@ describe('mock AI provider mandala action integration', () => {
 // ─── Cell ID Validation (cross-check with geometry) ──────────────────────────
 
 describe('cell ID consistency across schemas and geometry', () => {
-	const allCellIds = getAllCellIds()
+	const allCellIds = getAllCellIds(EMOTIONS_MAP)
 
-	it('produces 18 unique cell IDs', () => {
-		expect(allCellIds).toHaveLength(18)
-		expect(new Set(allCellIds).size).toBe(18)
-	})
-
-	it('every cell ID matches sliceId-ringId format', () => {
-		for (const cellId of allCellIds) {
-			const [sliceId, ringId] = cellId.split('-')
-			expect(SLICE_IDS).toContain(sliceId)
-			expect(RING_IDS).toContain(ringId)
-		}
+	it('produces 7 unique cell IDs', () => {
+		expect(allCellIds).toHaveLength(7)
+		expect(new Set(allCellIds).size).toBe(7)
 	})
 
 	it('every cell ID is accepted by FillCellAction schema', () => {

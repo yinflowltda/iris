@@ -49,7 +49,7 @@ const PATTERN_RESPONSES: Array<{ pattern: RegExp; response: MockResponse }> = [
 				{
 					_type: 'fill_cell',
 					mandalaId: 'shape:mandala',
-					cellId: 'present-events',
+					cellId: 'past-events',
 					content: 'Mock content',
 				},
 			],
