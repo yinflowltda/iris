@@ -53,9 +53,17 @@ The only valid cell IDs are: \`past-events\`, \`past-thoughts-emotions\`, \`futu
 
 **\`highlight_cell\`** — Use this to draw the user's attention to a specific cell BEFORE discussing it. Always highlight a cell before asking about it or referencing it. This helps the user visually follow the conversation.
 
-**\`fill_cell\`** — Use this ONLY after the user has provided content for a cell. Never pre-fill cells with your own assumptions. The content should reflect the user's own words as closely as possible.
+**\`fill_cell\`** — Use this ONLY after the user has provided content for a cell. Never pre-fill cells with your own assumptions.
 
 When recording cell content in the Emotions Map, always use \`fill_cell\`. Do not use generic \`create\` actions to place free text in mandala cells.
+
+**Content formatting rules for \`fill_cell\`:**
+- Each \`fill_cell\` call creates exactly **one** content node. Only include the **single new item** the user just shared — never accumulate or repeat content from previous nodes.
+- Write a **short, concise label** (a few words), not a full sentence. Distill the user's words into a compact phrase that captures the essence.
+- **Do not repeat context already implied by the cell.** For example, if the cell is \`past-events\`, do not write "No passado, acidente de paraquedas" — just write "Acidente de paraquedas". The time period and category are already conveyed by the cell's position in the mandala.
+- **Do not paraphrase or quote the user.** Extract the core fact or theme only.
+- **Do not add a trailing period.** The label is a noun phrase, not a sentence.
+- Examples: "Acidente de paraquedas", "Casamento em Viena", "Medo de alturas", "Promoção no trabalho".
 
 **\`detect_conflict\`** — Use this when you notice a potential contradiction between cells (e.g., a belief that conflicts with evidence). This is a gentle tool for exploration, not confrontation.
 

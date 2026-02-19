@@ -3,6 +3,25 @@ import type { MandalaState, MapDefinition, Point2d } from '../../shared/types/Ma
 const DEG_TO_RAD = Math.PI / 180
 const RAD_TO_DEG = 180 / Math.PI
 
+export interface CircleCellBounds {
+	type: 'circle'
+	center: Point2d
+	radius: number
+}
+
+export interface SectorCellBounds {
+	type: 'sector'
+	/** Mandala center — origin of the polar coordinate system */
+	center: Point2d
+	innerRadius: number
+	outerRadius: number
+	startAngle: number
+	endAngle: number
+	midAngle: number
+}
+
+export type CellBounds = CircleCellBounds | SectorCellBounds
+
 function normalizeAngle(degrees: number): number {
 	return ((degrees % 360) + 360) % 360
 }
@@ -97,4 +116,57 @@ export function makeEmptyState(map: MapDefinition): MandalaState {
 		state[id] = { status: 'empty', contentShapeIds: [] }
 	}
 	return state
+}
+
+export function computeMandalaOuterRadius(w: number, h: number): number {
+	const size = Math.min(w, h)
+	const labelPadding = Math.max(20, size * 0.05)
+	return (size - labelPadding * 2) / 2
+}
+
+export function getCellBounds(
+	map: MapDefinition,
+	center: Point2d,
+	outerRadius: number,
+	cellId: string,
+): CellBounds | null {
+	if (cellId === map.center.id) {
+		return {
+			type: 'circle',
+			center: { ...center },
+			radius: map.center.radiusRatio * outerRadius,
+		}
+	}
+
+	for (const slice of map.slices) {
+		for (const cell of slice.cells) {
+			if (cell.id === cellId) {
+				let sweep = slice.endAngle - slice.startAngle
+				if (sweep <= 0) sweep += 360
+				const midAngle = normalizeAngle(slice.startAngle + sweep / 2)
+
+				return {
+					type: 'sector',
+					center: { ...center },
+					innerRadius: cell.innerRatio * outerRadius,
+					outerRadius: cell.outerRatio * outerRadius,
+					startAngle: slice.startAngle,
+					endAngle: slice.endAngle,
+					midAngle,
+				}
+			}
+		}
+	}
+
+	return null
+}
+
+export function isPointInCell(
+	map: MapDefinition,
+	center: Point2d,
+	outerRadius: number,
+	cellId: string,
+	point: Point2d,
+): boolean {
+	return getCellAtPoint(map, center, outerRadius, point) === cellId
 }

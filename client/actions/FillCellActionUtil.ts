@@ -4,13 +4,14 @@ import type { SimpleShapeId } from '../../shared/types/ids-schema'
 import type { MandalaState } from '../../shared/types/MandalaTypes'
 import type { Streaming } from '../../shared/types/Streaming'
 import type { AgentHelpers } from '../AgentHelpers'
+import { computeCellContentLayout } from '../lib/cell-layout'
 import { EMOTIONS_MAP } from '../lib/frameworks/emotions-map'
-import { getCellCenter, isValidCellId } from '../lib/mandala-geometry'
+import { computeMandalaOuterRadius, getCellBounds, isValidCellId } from '../lib/mandala-geometry'
 import type { MandalaShape } from '../shapes/MandalaShapeUtil'
 import { AgentActionUtil, registerActionUtil } from './AgentActionUtil'
 import { resolveMandalaId } from './mandala-action-utils'
 
-const NOTE_DIAMETER = 200
+const NOTE_BASE_SIZE = 200
 
 export const FillCellActionUtil = registerActionUtil(
 	class FillCellActionUtil extends AgentActionUtil<FillCellAction> {
@@ -44,66 +45,67 @@ export const FillCellActionUtil = registerActionUtil(
 			if (!mandala) return
 
 			const cellId = action.cellId as string
-			const radius = Math.min(mandala.props.w, mandala.props.h) / 2
+			const outerRadius = computeMandalaOuterRadius(mandala.props.w, mandala.props.h)
 			const shapeCenter = {
 				x: mandala.x + mandala.props.w / 2,
 				y: mandala.y + mandala.props.h / 2,
 			}
 
-			const center = getCellCenter(EMOTIONS_MAP, shapeCenter, radius, cellId)
-			if (!center) return
+			const bounds = getCellBounds(EMOTIONS_MAP, shapeCenter, outerRadius, cellId)
+			if (!bounds) return
 
-			const contentShapeId = `shape:${action.mandalaId}-${cellId}` as TLShapeId
-			const existingShape = editor.getShape(contentShapeId)
-			const x = center.x - NOTE_DIAMETER / 2
-			const y = center.y - NOTE_DIAMETER / 2
+			const currentState: MandalaState = { ...mandala.props.state }
+			const existingIds = currentState[cellId]?.contentShapeIds ?? []
 
-			if (existingShape?.type === 'note') {
+			const nextIndex = existingIds.length
+			const newSimpleId = `${action.mandalaId}-${cellId}-${nextIndex}` as SimpleShapeId
+			const newShapeId = `shape:${newSimpleId}` as TLShapeId
+
+			const allSimpleIds = [...existingIds, newSimpleId]
+			const layout = computeCellContentLayout(bounds, allSimpleIds.length)
+			if (layout.length === 0) return
+
+			const newLayout = layout[layout.length - 1]
+			const scale = newLayout.diameter / NOTE_BASE_SIZE
+
+			editor.createShape({
+				id: newShapeId,
+				type: 'note',
+				x: newLayout.center.x - newLayout.diameter / 2,
+				y: newLayout.center.y - newLayout.diameter / 2,
+				props: {
+					richText: toRichText(action.content),
+					color: 'black',
+					size: 's',
+					font: 'draw',
+					scale,
+					align: 'middle',
+					verticalAlign: 'middle',
+					labelColor: 'black',
+					fontSizeAdjustment: 0,
+					growY: 0,
+					url: '',
+				},
+			})
+
+			for (let i = 0; i < existingIds.length; i++) {
+				const existingShapeId = `shape:${existingIds[i]}` as TLShapeId
+				const existingShape = editor.getShape(existingShapeId)
+				if (!existingShape || !layout[i]) continue
+
+				const itemScale = layout[i].diameter / NOTE_BASE_SIZE
 				editor.updateShape({
-					id: contentShapeId,
+					id: existingShapeId,
 					type: 'note',
-					x,
-					y,
-					props: {
-						richText: toRichText(action.content),
-						align: 'middle',
-						verticalAlign: 'middle',
-					},
-				})
-			} else {
-				if (existingShape) {
-					editor.deleteShape(contentShapeId)
-				}
-
-				editor.createShape({
-					id: contentShapeId,
-					type: 'note',
-					x,
-					y,
-					props: {
-						richText: toRichText(action.content),
-						color: 'black',
-						size: 's',
-						font: 'draw',
-						scale: 1,
-						align: 'middle',
-						verticalAlign: 'middle',
-						labelColor: 'black',
-						fontSizeAdjustment: 0,
-						growY: 0,
-						url: '',
-					},
+					x: layout[i].center.x - layout[i].diameter / 2,
+					y: layout[i].center.y - layout[i].diameter / 2,
+					props: { scale: itemScale },
 				})
 			}
 
-			const currentState: MandalaState = { ...mandala.props.state }
-			const simpleContentId = `${action.mandalaId}-${cellId}` as SimpleShapeId
 			currentState[cellId] = {
 				status: 'filled',
-				contentShapeIds: [
-					...(currentState[cellId]?.contentShapeIds ?? []).filter((id) => id !== simpleContentId),
-					simpleContentId,
-				],
+				contentShapeIds: allSimpleIds,
 			}
 
 			editor.updateShape({

@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { EMOTIONS_MAP } from '../../client/lib/frameworks/emotions-map'
 import {
+	computeMandalaOuterRadius,
 	getAllCellIds,
 	getCellAtPoint,
+	getCellBounds,
 	getCellCenter,
+	isPointInCell,
 	isValidCellId,
 	makeEmptyState,
 } from '../../client/lib/mandala-geometry'
@@ -182,5 +185,109 @@ describe('makeEmptyState', () => {
 		const keys = Object.keys(state).sort()
 		const expected = getAllCellIds(EMOTIONS_MAP).sort()
 		expect(keys).toEqual(expected)
+	})
+})
+
+// ─── computeMandalaOuterRadius ──────────────────────────────────────────────
+
+describe('computeMandalaOuterRadius', () => {
+	it('computes correct radius for 800x800 mandala', () => {
+		const r = computeMandalaOuterRadius(800, 800)
+		const expected = (800 - Math.max(20, 800 * 0.05) * 2) / 2
+		expect(r).toBe(expected)
+	})
+
+	it('uses the smaller dimension for non-square mandalas', () => {
+		const r = computeMandalaOuterRadius(1000, 800)
+		const rSquare = computeMandalaOuterRadius(800, 800)
+		expect(r).toBe(rSquare)
+	})
+
+	it('returns positive value for small mandalas', () => {
+		expect(computeMandalaOuterRadius(100, 100)).toBeGreaterThan(0)
+	})
+})
+
+// ─── getCellBounds ──────────────────────────────────────────────────────────
+
+describe('getCellBounds', () => {
+	it('returns circle bounds for center cell', () => {
+		const bounds = getCellBounds(EMOTIONS_MAP, CENTER, OUTER_RADIUS, 'evidence')
+		expect(bounds).not.toBeNull()
+		expect(bounds!.type).toBe('circle')
+		if (bounds!.type === 'circle') {
+			expect(bounds!.center).toEqual(CENTER)
+			expect(bounds!.radius).toBe(EMOTIONS_MAP.center.radiusRatio * OUTER_RADIUS)
+		}
+	})
+
+	it('returns sector bounds for slice cells', () => {
+		const bounds = getCellBounds(EMOTIONS_MAP, CENTER, OUTER_RADIUS, 'past-events')
+		expect(bounds).not.toBeNull()
+		expect(bounds!.type).toBe('sector')
+		if (bounds!.type === 'sector') {
+			expect(bounds!.innerRadius).toBe(0.467 * OUTER_RADIUS)
+			expect(bounds!.outerRadius).toBe(1.0 * OUTER_RADIUS)
+			expect(bounds!.startAngle).toBe(150)
+			expect(bounds!.endAngle).toBe(270)
+			expect(bounds!.midAngle).toBe(210)
+		}
+	})
+
+	it('computes correct midAngle for wrap-around slices', () => {
+		const bounds = getCellBounds(EMOTIONS_MAP, CENTER, OUTER_RADIUS, 'future-events')
+		expect(bounds).not.toBeNull()
+		if (bounds!.type === 'sector') {
+			// future slice: 270° to 30° → sweep = 120°, mid = 270 + 60 = 330°
+			expect(bounds!.midAngle).toBe(330)
+		}
+	})
+
+	it('returns null for invalid cell ID', () => {
+		expect(getCellBounds(EMOTIONS_MAP, CENTER, OUTER_RADIUS, 'invalid')).toBeNull()
+	})
+
+	it('returns bounds for all valid cells', () => {
+		for (const cellId of getAllCellIds(EMOTIONS_MAP)) {
+			const bounds = getCellBounds(EMOTIONS_MAP, CENTER, OUTER_RADIUS, cellId)
+			expect(bounds).not.toBeNull()
+		}
+	})
+
+	it('sector bounds have positive radial depth', () => {
+		for (const cellId of getAllCellIds(EMOTIONS_MAP)) {
+			const bounds = getCellBounds(EMOTIONS_MAP, CENTER, OUTER_RADIUS, cellId)
+			if (bounds?.type === 'sector') {
+				expect(bounds.outerRadius).toBeGreaterThan(bounds.innerRadius)
+			}
+		}
+	})
+})
+
+// ─── isPointInCell ──────────────────────────────────────────────────────────
+
+describe('isPointInCell', () => {
+	it('returns true for cell center point', () => {
+		for (const cellId of getAllCellIds(EMOTIONS_MAP)) {
+			const center = getCellCenter(EMOTIONS_MAP, CENTER, OUTER_RADIUS, cellId)
+			expect(center).not.toBeNull()
+			expect(isPointInCell(EMOTIONS_MAP, CENTER, OUTER_RADIUS, cellId, center!)).toBe(true)
+		}
+	})
+
+	it('returns false for point in a different cell', () => {
+		const pastCenter = getCellCenter(EMOTIONS_MAP, CENTER, OUTER_RADIUS, 'past-events')!
+		expect(isPointInCell(EMOTIONS_MAP, CENTER, OUTER_RADIUS, 'future-events', pastCenter)).toBe(
+			false,
+		)
+	})
+
+	it('returns false for point outside the mandala', () => {
+		expect(
+			isPointInCell(EMOTIONS_MAP, CENTER, OUTER_RADIUS, 'evidence', {
+				x: OUTER_RADIUS + 100,
+				y: 0,
+			}),
+		).toBe(false)
 	})
 })

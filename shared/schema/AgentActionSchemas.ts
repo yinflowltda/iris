@@ -380,12 +380,16 @@ export const FillCellAction = z
 		intent: z.string(),
 		mandalaId: SimpleShapeIdSchema,
 		cellId: z.string(),
-		content: z.string(),
+		content: z
+			.string()
+			.describe(
+				'A short, concise label (a few words) for a SINGLE new item. Do NOT accumulate previous entries. Do NOT repeat context implied by the cell (time period, category). No trailing period. Example: "Acidente de paraquedas".',
+			),
 	})
 	.meta({
 		title: 'Fill Cell',
 		description:
-			'The AI fills a mandala cell with content. The cellId uses the format "sliceId-ringId", e.g. "present-emotions". The content is the text to place inside the cell.',
+			'The AI fills a mandala cell with a single new content node. Each call creates one node — never combine multiple items. The cellId uses the format "sliceId-ringId", e.g. "present-emotions". The content must be a concise label for the single new item only.',
 		_systemPromptCategory: 'edit',
 	})
 
