@@ -484,7 +484,13 @@ function MandalaInteractive({ shape }: { shape: MandalaShape }) {
 				h: box.h,
 			})
 
-			editor.zoomToBounds(pageBox.expandBy(50), { animation: { duration: 300 } })
+			const shrunk = Box.From({
+				x: pageBox.x + pageBox.w * 0.125,
+				y: pageBox.y + pageBox.h * 0.125,
+				w: pageBox.w * 0.75,
+				h: pageBox.h * 0.75,
+			})
+			editor.zoomToBounds(shrunk, { animation: { duration: 300 } })
 		},
 		[editor, shape.id],
 	)
