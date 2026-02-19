@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
+	DefaultColorThemePalette,
 	DefaultSizeStyle,
 	defaultShapeUtils,
 	ErrorBoundary,
@@ -24,6 +25,7 @@ import { AllContextHighlights } from './components/highlights/ContextHighlights'
 import { TemplateChooser } from './components/TemplateChooser'
 import { EMOTIONS_MAP } from './lib/frameworks/emotions-map'
 import { getAllCellIds, makeEmptyState } from './lib/mandala-geometry'
+import { applyNodulePaletteToThemes } from './lib/nodule-color-palette'
 import { CircularNoteShapeUtil } from './shapes/CircularNoteShapeUtil'
 import { MandalaShapeTool } from './shapes/MandalaShapeTool'
 import { type MandalaShape, MandalaShapeUtil } from './shapes/MandalaShapeUtil'
@@ -31,6 +33,7 @@ import { TargetAreaTool } from './tools/TargetAreaTool'
 import { TargetShapeTool } from './tools/TargetShapeTool'
 
 DefaultSizeStyle.setDefaultValue('s')
+applyNodulePaletteToThemes(DefaultColorThemePalette.lightMode, DefaultColorThemePalette.darkMode)
 
 const shapeUtils = [
 	...defaultShapeUtils.map((shapeUtil) =>
@@ -136,6 +139,7 @@ function App() {
 				type: 'mandala',
 				x: viewport.x + viewport.w / 2 - size / 2,
 				y: viewport.y + viewport.h / 2 - size / 2,
+				isLocked: true,
 				props: { w: size, h: size, state: makeEmptyState(EMOTIONS_MAP) },
 			})
 

@@ -7,6 +7,7 @@ import type { AgentHelpers } from '../AgentHelpers'
 import { computeCellContentLayout } from '../lib/cell-layout'
 import { EMOTIONS_MAP } from '../lib/frameworks/emotions-map'
 import { computeMandalaOuterRadius, getCellBounds, isValidCellId } from '../lib/mandala-geometry'
+import { NODULE_COLOR_SEQUENCE } from '../lib/nodule-color-palette'
 import type { MandalaShape } from '../shapes/MandalaShapeUtil'
 import { AgentActionUtil, registerActionUtil } from './AgentActionUtil'
 import { resolveMandalaId } from './mandala-action-utils'
@@ -65,6 +66,12 @@ export const FillCellActionUtil = registerActionUtil(
 			const layout = computeCellContentLayout(bounds, allSimpleIds.length)
 			if (layout.length === 0) return
 
+			const totalExistingNodules = Object.values(currentState).reduce((acc, cellState) => {
+				return acc + (cellState?.contentShapeIds?.length ?? 0)
+			}, 0)
+			const nodulePaletteEntry =
+				NODULE_COLOR_SEQUENCE[totalExistingNodules % NODULE_COLOR_SEQUENCE.length]
+
 			const newLayout = layout[layout.length - 1]
 			const scale = newLayout.diameter / NOTE_BASE_SIZE
 
@@ -75,13 +82,13 @@ export const FillCellActionUtil = registerActionUtil(
 				y: newLayout.center.y - newLayout.diameter / 2,
 				props: {
 					richText: toRichText(action.content),
-					color: 'black',
+					color: nodulePaletteEntry.style,
 					size: 's',
 					font: 'draw',
 					scale,
 					align: 'middle',
 					verticalAlign: 'middle',
-					labelColor: 'black',
+					labelColor: nodulePaletteEntry.labelColor,
 					fontSizeAdjustment: 0,
 					growY: 0,
 					url: '',

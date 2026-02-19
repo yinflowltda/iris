@@ -228,9 +228,9 @@ describe('getCellBounds', () => {
 		if (bounds!.type === 'sector') {
 			expect(bounds!.innerRadius).toBe(0.467 * OUTER_RADIUS)
 			expect(bounds!.outerRadius).toBe(1.0 * OUTER_RADIUS)
-			expect(bounds!.startAngle).toBe(150)
+			expect(bounds!.startAngle).toBe(130)
 			expect(bounds!.endAngle).toBe(270)
-			expect(bounds!.midAngle).toBe(210)
+			expect(bounds!.midAngle).toBe(200)
 		}
 	})
 
@@ -238,8 +238,8 @@ describe('getCellBounds', () => {
 		const bounds = getCellBounds(EMOTIONS_MAP, CENTER, OUTER_RADIUS, 'future-events')
 		expect(bounds).not.toBeNull()
 		if (bounds!.type === 'sector') {
-			// future slice: 270° to 30° → sweep = 120°, mid = 270 + 60 = 330°
-			expect(bounds!.midAngle).toBe(330)
+			// future slice: 270° to 50° → sweep = 140°, mid = 270 + 70 = 340°
+			expect(bounds!.midAngle).toBe(340)
 		}
 	})
 

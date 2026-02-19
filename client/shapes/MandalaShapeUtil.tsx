@@ -35,14 +35,9 @@ export type MandalaShape = TLBaseShape<'mandala', MandalaShapeProps>
 
 const STROKE_COLOR = '#114559'
 const TEXT_COLOR = '#114559'
-
-const SLICE_COLORS: Record<string, { fill: string; hover: string }> = {
-	past: { fill: '#e8d5f5', hover: '#d9bce8' },
-	present: { fill: '#d5e8f5', hover: '#bcd9e8' },
-	future: { fill: '#d5f5e0', hover: '#bce8c8' },
-}
-
-const DEFAULT_SLICE_COLOR = { fill: '#e0e0e0', hover: '#d0d0d0' }
+const CELL_FILL_COLOR = '#FFFFFF'
+const CELL_HOVER_FILL_COLOR = '#E8EDF1'
+const MANDALA_LABEL_FONT = 'Quicksand, sans-serif'
 
 const STATUS_OPACITY: Record<CellStatus, number> = {
 	empty: 0.35,
@@ -183,7 +178,6 @@ function MandalaSvg({
 	const cellLabels: ReactElement[] = []
 
 	for (const slice of map.slices) {
-		const colors = SLICE_COLORS[slice.id] ?? DEFAULT_SLICE_COLOR
 		const shouldFlip = sliceFlip[slice.id]
 
 		for (const cell of slice.cells) {
@@ -200,7 +194,7 @@ function MandalaSvg({
 				<path
 					key={cell.id}
 					d={path}
-					fill={isHovered ? colors.hover : colors.fill}
+					fill={isHovered ? CELL_HOVER_FILL_COLOR : CELL_FILL_COLOR}
 					fillOpacity={opacity}
 					stroke={STROKE_COLOR}
 					strokeWidth={1}
@@ -229,7 +223,7 @@ function MandalaSvg({
 					fontSize={cellFontSize}
 					fill={TEXT_COLOR}
 					pointerEvents="none"
-					style={{ userSelect: 'none', fontFamily: 'system-ui, sans-serif' }}
+					style={{ userSelect: 'none', fontFamily: MANDALA_LABEL_FONT }}
 				>
 					<textPath
 						href={`#${pathId}`}
@@ -307,7 +301,7 @@ function MandalaSvg({
 				fontWeight="bold"
 				fill="#999"
 				pointerEvents="none"
-				style={{ userSelect: 'none', fontFamily: 'system-ui, sans-serif' }}
+				style={{ userSelect: 'none', fontFamily: MANDALA_LABEL_FONT }}
 			>
 				{map.center.label}
 			</text>
@@ -342,7 +336,7 @@ function MandalaSvg({
 				pointerEvents="none"
 				style={{
 					userSelect: 'none',
-					fontFamily: 'system-ui, sans-serif',
+					fontFamily: MANDALA_LABEL_FONT,
 					textTransform: 'uppercase',
 					letterSpacing: '0.08em',
 				}}
@@ -429,9 +423,8 @@ export class MandalaShapeUtil extends ShapeUtil<MandalaShape> {
 		return <MandalaSvg w={shape.props.w} h={shape.props.h} mandalaState={shape.props.state} />
 	}
 
-	indicator(shape: MandalaShape) {
-		const r = Math.min(shape.props.w, shape.props.h) / 2
-		return <circle cx={shape.props.w / 2} cy={shape.props.h / 2} r={r} fill="none" />
+	indicator(_shape: MandalaShape) {
+		return null
 	}
 
 	override onResize(shape: MandalaShape, info: TLResizeInfo<MandalaShape>) {
@@ -450,10 +443,26 @@ export class MandalaShapeUtil extends ShapeUtil<MandalaShape> {
 	}
 
 	override canResize() {
-		return true
+		return false
 	}
 
 	override isAspectRatioLocked() {
+		return true
+	}
+
+	override hideSelectionBoundsBg() {
+		return true
+	}
+
+	override hideSelectionBoundsFg() {
+		return true
+	}
+
+	override hideResizeHandles() {
+		return true
+	}
+
+	override hideRotateHandle() {
 		return true
 	}
 }

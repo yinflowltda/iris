@@ -22,7 +22,7 @@ export const EMOTIONS_MAP: MapDefinition = {
 		{
 			id: 'past',
 			label: 'Past',
-			startAngle: 150,
+			startAngle: 130,
 			endAngle: 270,
 			cells: [
 				{
@@ -59,7 +59,7 @@ export const EMOTIONS_MAP: MapDefinition = {
 			id: 'future',
 			label: 'Future',
 			startAngle: 270,
-			endAngle: 30,
+			endAngle: 50,
 			cells: [
 				{
 					id: 'future-events',
@@ -92,8 +92,8 @@ export const EMOTIONS_MAP: MapDefinition = {
 		{
 			id: 'present',
 			label: 'Present',
-			startAngle: 30,
-			endAngle: 150,
+			startAngle: 50,
+			endAngle: 130,
 			cells: [
 				{
 					id: 'present-behaviors',
