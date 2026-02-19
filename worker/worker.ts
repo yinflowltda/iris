@@ -3,6 +3,7 @@ import type { ExecutionContext } from '@cloudflare/workers-types'
 import { AutoRouter, cors, error, type IRequest } from 'itty-router'
 import type { Environment } from './environment'
 import { stream } from './routes/stream'
+import { voice } from './routes/voice'
 
 const { preflight, corsify } = cors({ origin: '*' })
 
@@ -13,7 +14,9 @@ const router = AutoRouter<IRequest, [env: Environment, ctx: ExecutionContext]>({
 		console.error(e)
 		return error(e)
 	},
-}).post('/stream', stream)
+})
+	.post('/stream', stream)
+	.get('/voice', voice)
 
 export default class extends WorkerEntrypoint<Environment> {
 	override fetch(request: Request): Promise<Response> {
@@ -21,5 +24,5 @@ export default class extends WorkerEntrypoint<Environment> {
 	}
 }
 
-// Make the durable object available to the cloudflare worker
 export { AgentDurableObject } from './do/AgentDurableObject'
+export { VoiceAgentDurableObject } from './do/VoiceAgentDurableObject'

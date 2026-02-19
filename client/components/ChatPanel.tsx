@@ -4,6 +4,7 @@ import { ChatInput } from './ChatInput'
 import { ChatHistory } from './chat-history/ChatHistory'
 import { ProgressIndicator } from './ProgressIndicator'
 import { TodoList } from './TodoList'
+import { VoiceControl } from './VoiceControl'
 
 export function ChatPanel({
 	filledCells,
@@ -24,16 +25,13 @@ export function ChatPanel({
 			const formData = new FormData(e.currentTarget)
 			const value = formData.get('input') as string
 
-			// If the user's message is empty, just cancel the current request (if there is one)
 			if (value === '') {
 				agent.cancel()
 				return
 			}
 
-			// Clear the chat input (context is cleared after it's captured in requestAgentActions)
 			inputRef.current.value = ''
 
-			// Sending a new message to the agent should interrupt the current request
 			agent.interrupt({
 				input: {
 					agentMessages: [value],
@@ -61,7 +59,10 @@ export function ChatPanel({
 			<ChatHistory agent={agent} />
 			<div className="chat-input-container">
 				<TodoList agent={agent} />
-				<ChatInput handleSubmit={handleSubmit} inputRef={inputRef} />
+				<div className="chat-input-row">
+					<ChatInput handleSubmit={handleSubmit} inputRef={inputRef} />
+					<VoiceControl />
+				</div>
 			</div>
 		</div>
 	)

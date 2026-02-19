@@ -234,31 +234,9 @@ function App() {
 	const [app, setApp] = useState<TldrawAgentApp | null>(null)
 	const [showTemplate, setShowTemplate] = useState(true)
 	const [filledCells, setFilledCells] = useState(0)
-	const [isChatOpen, setIsChatOpen] = useState(false)
-
 	const handleUnmount = useCallback(() => {
 		setApp(null)
 	}, [])
-
-	const toggleChatOpen = useCallback(() => {
-		setIsChatOpen((s) => !s)
-	}, [])
-
-	const closeChat = useCallback(() => {
-		setIsChatOpen(false)
-	}, [])
-
-	useEffect(() => {
-		if (!isChatOpen) return
-		const handleKeyDown = (e: KeyboardEvent) => {
-			if (e.key === 'Escape') {
-				e.preventDefault()
-				closeChat()
-			}
-		}
-		window.addEventListener('keydown', handleKeyDown)
-		return () => window.removeEventListener('keydown', handleKeyDown)
-	}, [closeChat, isChatOpen])
 
 	// Session resume + reactive progress tracking
 	useEffect(() => {
@@ -415,7 +393,7 @@ function App() {
 
 	return (
 		<TldrawUiToastsProvider>
-			<div className={`tldraw-agent-container ${isChatOpen ? 'chat-open' : 'chat-closed'}`}>
+			<div className="tldraw-agent-container">
 				<div className="tldraw-canvas">
 					<Tldraw
 						persistenceKey="tldraw-agent-demo"
@@ -427,7 +405,7 @@ function App() {
 						<TldrawAgentAppProvider onMount={setApp} onUnmount={handleUnmount} />
 					</Tldraw>
 				</div>
-				<div className={`agent-chat-slot ${isChatOpen ? 'open' : ''}`} aria-hidden={!isChatOpen}>
+				<div className="agent-chat-slot">
 					<ErrorBoundary fallback={ChatPanelFallback}>
 						{app && (
 							<TldrawAgentAppContextProvider app={app}>
@@ -440,54 +418,7 @@ function App() {
 						)}
 					</ErrorBoundary>
 				</div>
-				<button
-					type="button"
-					className="agent-chat-fab"
-					onClick={toggleChatOpen}
-					aria-label={isChatOpen ? 'Close AI assistant' : 'Open AI assistant'}
-					aria-expanded={isChatOpen}
-				>
-					<svg
-						className="agent-chat-fab-icon"
-						width="20"
-						height="20"
-						viewBox="0 0 24 24"
-						fill="none"
-						xmlns="http://www.w3.org/2000/svg"
-						aria-hidden="true"
-					>
-						{isChatOpen ? (
-							<path
-								d="M6 6L18 18M18 6L6 18"
-								stroke="currentColor"
-								strokeWidth="2"
-								strokeLinecap="round"
-							/>
-						) : (
-							<>
-								<path
-									d="M12 2L13.4 8.6L20 10L13.4 11.4L12 18L10.6 11.4L4 10L10.6 8.6L12 2Z"
-									fill="currentColor"
-									opacity="0.9"
-								/>
-								<path
-									d="M19 13L19.7 15.7L22 16.4L19.7 17.1L19 20L18.3 17.1L16 16.4L18.3 15.7L19 13Z"
-									fill="currentColor"
-									opacity="0.65"
-								/>
-							</>
-						)}
-					</svg>
-				</button>
 				<TemplateChooser visible={showTemplate} onSelectTemplate={handleSelectTemplate} />
-				<button
-					type="button"
-					className={`agent-chat-backdrop ${isChatOpen ? 'open' : ''}`}
-					onClick={closeChat}
-					aria-label="Close AI assistant"
-					aria-hidden={!isChatOpen}
-					disabled={!isChatOpen}
-				/>
 			</div>
 		</TldrawUiToastsProvider>
 	)

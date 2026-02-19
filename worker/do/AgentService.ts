@@ -180,6 +180,9 @@ function isInferenceUpstreamError(error: unknown): boolean {
 }
 
 function toReadableError(error: unknown): Error {
+	if (isInferenceUpstreamError(error)) {
+		return new Error('AI models are temporarily unavailable. Please try again in a moment.')
+	}
 	const text = getErrorText(error)
 	if (text.trim().length > 0 && text !== 'Unknown stream error') {
 		return new Error(text)
