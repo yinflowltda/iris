@@ -21,7 +21,6 @@ import { ChatPanelFallback } from './components/ChatPanelFallback'
 import { CustomHelperButtons } from './components/CustomHelperButtons'
 import { AgentViewportBoundsHighlights } from './components/highlights/AgentViewportBoundsHighlights'
 import { AllContextHighlights } from './components/highlights/ContextHighlights'
-import { ProgressIndicator } from './components/ProgressIndicator'
 import { TemplateChooser } from './components/TemplateChooser'
 import { MandalaShapeTool } from './shapes/MandalaShapeTool'
 import { type MandalaShape, MandalaShapeUtil } from './shapes/MandalaShapeUtil'
@@ -224,18 +223,15 @@ function App() {
 				<ErrorBoundary fallback={ChatPanelFallback}>
 					{app && (
 						<TldrawAgentAppContextProvider app={app}>
-							<ChatPanel />
+							<ChatPanel
+								filledCells={filledCells}
+								totalCells={TOTAL_CELLS}
+								onExport={handleExport}
+							/>
 						</TldrawAgentAppContextProvider>
 					)}
 				</ErrorBoundary>
 				<TemplateChooser visible={showTemplate} onSelectTemplate={handleSelectTemplate} />
-				{!showTemplate && (
-					<ProgressIndicator
-						filledCells={filledCells}
-						totalCells={TOTAL_CELLS}
-						onExport={handleExport}
-					/>
-				)}
 			</div>
 		</TldrawUiToastsProvider>
 	)

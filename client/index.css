@@ -76,20 +76,22 @@ body {
 
 .chat-header {
 	display: flex;
-	justify-content: flex-end;
+	align-items: center;
+	gap: 8px;
+	padding: 6px 8px;
 }
 
 .new-chat-button {
 	width: 32px;
 	height: 32px;
 	font-size: 16px;
-	align-self: flex-end;
+	flex-shrink: 0;
+	margin-left: auto;
 	appearance: none;
 	border: 0;
 	border-radius: 4px;
 	cursor: pointer;
 	background: none;
-	margin: 2px;
 	color: var(--tl-color-text);
 }
 

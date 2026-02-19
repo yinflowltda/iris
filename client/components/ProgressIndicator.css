@@ -1,37 +1,21 @@
 .progress-indicator {
-	position: fixed;
-	top: 12px;
-	right: 362px;
-	z-index: 1000;
 	display: flex;
 	align-items: center;
 	gap: 10px;
-	padding: 8px 14px;
-	background: rgba(255, 255, 255, 0.82);
-	backdrop-filter: blur(12px);
-	-webkit-backdrop-filter: blur(12px);
-	border: 1px solid rgba(0, 0, 0, 0.08);
-	border-radius: 10px;
-	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-	font-family: inherit;
+	flex: 1;
+	min-width: 0;
 	font-size: 13px;
-	color: #333;
+	color: var(--tl-color-text-2, rgba(255, 255, 255, 0.55));
 	user-select: none;
-	pointer-events: auto;
-	transition: opacity 0.2s ease;
-}
-
-.progress-indicator[data-visible="false"] {
-	opacity: 0;
-	pointer-events: none;
 }
 
 .progress-bar-track {
 	width: 80px;
 	height: 6px;
-	background: rgba(0, 0, 0, 0.08);
+	background: rgba(255, 255, 255, 0.08);
 	border-radius: 3px;
 	overflow: hidden;
+	flex-shrink: 0;
 }
 
 .progress-bar-fill {
@@ -57,9 +41,9 @@
 
 .progress-export-btn {
 	appearance: none;
-	border: 1px solid rgba(0, 0, 0, 0.12);
-	background: rgba(255, 255, 255, 0.6);
-	color: #555;
+	border: 1px solid rgba(255, 255, 255, 0.12);
+	background: rgba(255, 255, 255, 0.06);
+	color: rgba(255, 255, 255, 0.6);
 	font-size: 12px;
 	padding: 3px 10px;
 	border-radius: 6px;
@@ -71,14 +55,6 @@
 }
 
 .progress-export-btn:hover {
-	background: rgba(0, 0, 0, 0.06);
-	color: #222;
-}
-
-@media (max-width: 768px) {
-	.progress-indicator {
-		right: 12px;
-		top: auto;
-		bottom: 12px;
-	}
+	background: rgba(255, 255, 255, 0.12);
+	color: #fff;
 }
