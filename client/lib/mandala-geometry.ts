@@ -170,3 +170,63 @@ export function isPointInCell(
 ): boolean {
 	return getCellAtPoint(map, center, outerRadius, point) === cellId
 }
+
+export function getCellBoundingBox(
+	map: MapDefinition,
+	center: Point2d,
+	outerRadius: number,
+	cellId: string,
+): { x: number; y: number; w: number; h: number } | null {
+	const bounds = getCellBounds(map, center, outerRadius, cellId)
+	if (!bounds) return null
+
+	if (bounds.type === 'circle') {
+		return {
+			x: bounds.center.x - bounds.radius,
+			y: bounds.center.y - bounds.radius,
+			w: bounds.radius * 2,
+			h: bounds.radius * 2,
+		}
+	}
+
+	const { center: c, innerRadius, outerRadius: outerR, startAngle, endAngle } = bounds
+
+	let sweep = endAngle - startAngle
+	if (sweep <= 0) sweep += 360
+	const startRad = startAngle * DEG_TO_RAD
+	const endRad = (startAngle + sweep) * DEG_TO_RAD
+
+	const points: Point2d[] = [
+		{ x: c.x + outerR * Math.cos(startRad), y: c.y - outerR * Math.sin(startRad) },
+		{ x: c.x + outerR * Math.cos(endRad), y: c.y - outerR * Math.sin(endRad) },
+	]
+
+	if (innerRadius > 0) {
+		points.push(
+			{ x: c.x + innerRadius * Math.cos(startRad), y: c.y - innerRadius * Math.sin(startRad) },
+			{ x: c.x + innerRadius * Math.cos(endRad), y: c.y - innerRadius * Math.sin(endRad) },
+		)
+	} else {
+		points.push({ ...c })
+	}
+
+	for (const cardinal of [0, 90, 180, 270]) {
+		if (isAngleInRange(cardinal, startAngle, endAngle)) {
+			const rad = cardinal * DEG_TO_RAD
+			points.push({ x: c.x + outerR * Math.cos(rad), y: c.y - outerR * Math.sin(rad) })
+		}
+	}
+
+	let minX = Infinity
+	let minY = Infinity
+	let maxX = -Infinity
+	let maxY = -Infinity
+	for (const p of points) {
+		if (p.x < minX) minX = p.x
+		if (p.y < minY) minY = p.y
+		if (p.x > maxX) maxX = p.x
+		if (p.y > maxY) maxY = p.y
+	}
+
+	return { x: minX, y: minY, w: maxX - minX, h: maxY - minY }
+}

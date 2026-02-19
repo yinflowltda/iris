@@ -1,5 +1,6 @@
 import { type ReactElement, useCallback, useMemo, useState } from 'react'
 import {
+	Box,
 	Circle2d,
 	type RecordProps,
 	resizeBox,
@@ -8,10 +9,15 @@ import {
 	T,
 	type TLBaseShape,
 	type TLResizeInfo,
+	useEditor,
 } from 'tldraw'
 import type { CellStatus, MandalaState } from '../../shared/types/MandalaTypes'
 import { EMOTIONS_MAP } from '../lib/frameworks/emotions-map'
-import { makeEmptyState } from '../lib/mandala-geometry'
+import {
+	computeMandalaOuterRadius,
+	getCellBoundingBox,
+	makeEmptyState,
+} from '../lib/mandala-geometry'
 
 const DEG_TO_RAD = Math.PI / 180
 
@@ -36,7 +42,7 @@ export type MandalaShape = TLBaseShape<'mandala', MandalaShapeProps>
 const STROKE_COLOR = '#114559'
 const TEXT_COLOR = '#114559'
 const CELL_FILL_COLOR = '#FFFFFF'
-const CELL_HOVER_FILL_COLOR = '#E8EDF1'
+const CELL_HOVER_FILL_COLOR = '#D9E2EA'
 const MANDALA_LABEL_FONT = 'Quicksand, sans-serif'
 
 const STATUS_OPACITY: Record<CellStatus, number> = {
@@ -133,11 +139,13 @@ function MandalaSvg({
 	h,
 	mandalaState,
 	isExport,
+	onCellClick,
 }: {
 	w: number
 	h: number
 	mandalaState: MandalaState
 	isExport?: boolean
+	onCellClick?: (cellId: string) => void
 }) {
 	const map = EMOTIONS_MAP
 	const size = Math.min(w, h)
@@ -193,6 +201,7 @@ function MandalaSvg({
 			const path = describeCellPath(cx, cy, innerR, outerR, slice.startAngle, slice.endAngle)
 
 			cellPaths.push(
+				// biome-ignore lint/a11y/noStaticElementInteractions: SVG path used as interactive cell in canvas
 				<path
 					key={cell.id}
 					d={path}
@@ -200,9 +209,17 @@ function MandalaSvg({
 					fillOpacity={opacity}
 					stroke={STROKE_COLOR}
 					strokeWidth={1}
-					onPointerEnter={() => handleCellEnter(cell.id)}
-					onPointerLeave={handleCellLeave}
-					style={{ cursor: 'pointer', transition: 'fill 0.15s ease' }}
+					onPointerEnter={(e) => {
+						e.stopPropagation()
+						handleCellEnter(cell.id)
+					}}
+					onPointerLeave={(e) => {
+						e.stopPropagation()
+						handleCellLeave()
+					}}
+					onPointerDown={(e) => e.stopPropagation()}
+					onClick={onCellClick ? () => onCellClick(cell.id) : undefined}
+					style={{ cursor: 'pointer', pointerEvents: 'all', transition: 'fill 0.15s ease' }}
 				/>,
 			)
 
@@ -284,16 +301,28 @@ function MandalaSvg({
 	))
 
 	// ── 4. Center circle ─────────────────────────────────────────────────
+	const isCenterHovered = hoveredCell === map.center.id
 	const centerCircle = (
 		<g key="center">
+			{/* biome-ignore lint/a11y/noStaticElementInteractions: SVG circle used as interactive cell in canvas */}
 			<circle
 				cx={cx}
 				cy={cy}
 				r={centerRadius}
-				fill="white"
+				fill={isCenterHovered ? CELL_HOVER_FILL_COLOR : 'white'}
 				stroke={STROKE_COLOR}
 				strokeWidth={1.5}
-				pointerEvents="none"
+				onPointerEnter={(e) => {
+					e.stopPropagation()
+					handleCellEnter(map.center.id)
+				}}
+				onPointerLeave={(e) => {
+					e.stopPropagation()
+					handleCellLeave()
+				}}
+				onPointerDown={(e) => e.stopPropagation()}
+				onClick={onCellClick ? () => onCellClick(map.center.id) : undefined}
+				style={{ cursor: 'pointer', pointerEvents: 'all', transition: 'fill 0.15s ease' }}
 			/>
 			<text
 				x={cx}
@@ -394,6 +423,43 @@ function MandalaSvg({
 	)
 }
 
+// ─── Interactive wrapper (needs useEditor) ───────────────────────────────────
+
+function MandalaInteractive({ shape }: { shape: MandalaShape }) {
+	const editor = useEditor()
+
+	const handleCellClick = useCallback(
+		(cellId: string) => {
+			const mandala = editor.getShape<MandalaShape>(shape.id)
+			if (!mandala) return
+
+			const outerR = computeMandalaOuterRadius(mandala.props.w, mandala.props.h)
+			const localCenter = { x: mandala.props.w / 2, y: mandala.props.h / 2 }
+			const box = getCellBoundingBox(EMOTIONS_MAP, localCenter, outerR, cellId)
+			if (!box) return
+
+			const pageBox = Box.From({
+				x: box.x + mandala.x,
+				y: box.y + mandala.y,
+				w: box.w,
+				h: box.h,
+			})
+
+			editor.zoomToBounds(pageBox.expandBy(50), { animation: { duration: 300 } })
+		},
+		[editor, shape.id],
+	)
+
+	return (
+		<MandalaSvg
+			w={shape.props.w}
+			h={shape.props.h}
+			mandalaState={shape.props.state}
+			onCellClick={handleCellClick}
+		/>
+	)
+}
+
 // ─── ShapeUtil ───────────────────────────────────────────────────────────────
 
 export class MandalaShapeUtil extends ShapeUtil<MandalaShape> {
@@ -423,7 +489,7 @@ export class MandalaShapeUtil extends ShapeUtil<MandalaShape> {
 	}
 
 	component(shape: MandalaShape) {
-		return <MandalaSvg w={shape.props.w} h={shape.props.h} mandalaState={shape.props.state} />
+		return <MandalaInteractive shape={shape} />
 	}
 
 	indicator(_shape: MandalaShape) {

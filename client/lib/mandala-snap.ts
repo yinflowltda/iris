@@ -14,16 +14,25 @@ const SNAP_DEBOUNCE_MS = 150
 export function registerMandalaSnapEffect(editor: Editor): () => void {
 	let pendingShapeIds = new Set<TLShapeId>()
 	let debounceTimer: ReturnType<typeof setTimeout> | null = null
+	let isProcessing = false
 
 	migrateExistingNodules(editor)
 
 	function schedulSnap(shapeId: TLShapeId) {
+		if (isProcessing) return
 		pendingShapeIds.add(shapeId)
 		if (debounceTimer) clearTimeout(debounceTimer)
 		debounceTimer = setTimeout(() => {
 			const ids = pendingShapeIds
 			pendingShapeIds = new Set()
-			processPendingSnaps(editor, ids)
+			isProcessing = true
+			try {
+				processPendingSnaps(editor, ids)
+			} finally {
+				setTimeout(() => {
+					isProcessing = false
+				}, 350)
+			}
 		}, SNAP_DEBOUNCE_MS)
 	}
 
@@ -102,9 +111,9 @@ function processPendingSnaps(editor: Editor, shapeIds: Set<TLShapeId>) {
 
 		const pageBounds = editor.getShapePageBounds(shape)
 		if (!pageBounds) continue
-		const dropPoint = { x: pageBounds.midX, y: pageBounds.midY }
-
-		const targetCellId = getCellAtPoint(EMOTIONS_MAP, pageCenter, outerRadius, dropPoint)
+		const hit = getBestCellHitForPageBounds(pageBounds, pageCenter, outerRadius)
+		const targetCellId = hit?.cellId ?? null
+		const hitPoint = hit?.point ?? { x: pageBounds.midX, y: pageBounds.midY }
 
 		let sourceCellId: string | null = null
 		for (const [cellId, cellState] of Object.entries(currentState)) {
@@ -120,7 +129,7 @@ function processPendingSnaps(editor: Editor, shapeIds: Set<TLShapeId>) {
 			const existingIds = currentState[targetCellId]?.contentShapeIds ?? []
 			if (existingIds.length === 0) continue
 
-			const localDropPoint = { x: dropPoint.x - mandala.x, y: dropPoint.y - mandala.y }
+			const localDropPoint = { x: hitPoint.x - mandala.x, y: hitPoint.y - mandala.y }
 			const bounds = getCellBounds(EMOTIONS_MAP, localCenter, outerRadius, targetCellId)
 			if (!bounds) {
 				cellsToRelayout.add(targetCellId)
@@ -165,7 +174,7 @@ function processPendingSnaps(editor: Editor, shapeIds: Set<TLShapeId>) {
 
 		if (targetCellId && currentState[targetCellId]) {
 			const existingIds = currentState[targetCellId].contentShapeIds
-			const localDropPoint = { x: dropPoint.x - mandala.x, y: dropPoint.y - mandala.y }
+			const localDropPoint = { x: hitPoint.x - mandala.x, y: hitPoint.y - mandala.y }
 			const bounds = getCellBounds(EMOTIONS_MAP, localCenter, outerRadius, targetCellId)
 			const insertIdx = bounds
 				? findClosestSlot(computeCellContentLayout(bounds, existingIds.length + 1), localDropPoint)
@@ -230,6 +239,93 @@ function processPendingSnaps(editor: Editor, shapeIds: Set<TLShapeId>) {
 			props: { state: currentState },
 		})
 	}
+}
+
+function getBestCellHitForPageBounds(
+	pageBounds: {
+		minX: number
+		minY: number
+		maxX: number
+		maxY: number
+		midX: number
+		midY: number
+		width: number
+		height: number
+	},
+	pageCenter: Point2d,
+	outerRadius: number,
+): { cellId: string; point: Point2d } | null {
+	const boundsCenter = { x: pageBounds.midX, y: pageBounds.midY }
+	const centerHit = getCellAtPoint(EMOTIONS_MAP, pageCenter, outerRadius, boundsCenter)
+	if (centerHit) return { cellId: centerHit, point: boundsCenter }
+
+	// Notes are circular; sampling along the circle at multiple radii is much more reliable
+	// for small cells (e.g. evidence + inner ring) than a coarse bounding-box grid.
+	const r = Math.max(1, Math.min(pageBounds.width, pageBounds.height) / 2)
+	const radii = [r * 0.25, r * 0.55, r * 0.85]
+	const steps = 24
+
+	const samplePoints: Point2d[] = [
+		boundsCenter,
+		{ x: pageBounds.minX, y: pageBounds.minY },
+		{ x: pageBounds.maxX, y: pageBounds.minY },
+		{ x: pageBounds.minX, y: pageBounds.maxY },
+		{ x: pageBounds.maxX, y: pageBounds.maxY },
+		{ x: pageBounds.midX, y: pageBounds.minY },
+		{ x: pageBounds.midX, y: pageBounds.maxY },
+		{ x: pageBounds.minX, y: pageBounds.midY },
+		{ x: pageBounds.maxX, y: pageBounds.midY },
+	]
+
+	for (const rr of radii) {
+		for (let i = 0; i < steps; i++) {
+			const a = (i / steps) * Math.PI * 2
+			samplePoints.push({
+				x: boundsCenter.x + rr * Math.cos(a),
+				y: boundsCenter.y + rr * Math.sin(a),
+			})
+		}
+	}
+
+	const buckets = new Map<string, Point2d[]>()
+	for (const point of samplePoints) {
+		const cellId = getCellAtPoint(EMOTIONS_MAP, pageCenter, outerRadius, point)
+		if (!cellId) continue
+		const arr = buckets.get(cellId) ?? []
+		arr.push(point)
+		buckets.set(cellId, arr)
+	}
+
+	if (buckets.size === 0) return null
+
+	let bestCellId: string | null = null
+	let bestCount = -1
+	let bestDist = Number.POSITIVE_INFINITY
+	let bestPoint: Point2d = boundsCenter
+
+	for (const [cellId, points] of buckets.entries()) {
+		const count = points.length
+		let minDist = Number.POSITIVE_INFINITY
+		let nearest = points[0]
+		for (const p of points) {
+			const dx = p.x - boundsCenter.x
+			const dy = p.y - boundsCenter.y
+			const d = dx * dx + dy * dy
+			if (d < minDist) {
+				minDist = d
+				nearest = p
+			}
+		}
+
+		if (count > bestCount || (count === bestCount && minDist < bestDist)) {
+			bestCellId = cellId
+			bestCount = count
+			bestDist = minDist
+			bestPoint = nearest
+		}
+	}
+
+	return bestCellId ? { cellId: bestCellId, point: bestPoint } : null
 }
 
 function findClosestSlot(layout: LayoutItem[], dropPoint: Point2d): number {
