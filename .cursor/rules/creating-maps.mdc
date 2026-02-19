@@ -1,0 +1,117 @@
+# Creating New Maps from SVG Designs
+
+## Learnings from the Emotions Map Implementation
+
+This documents the process and pitfalls discovered while translating the Emotions Map SVG design into an interactive TLDraw shape. Apply these learnings when creating any new map.
+
+## Critical Principle: Maps Are Not Uniform Grids
+
+The biggest mistake in the initial implementation was assuming all slices share the same rings (like a polar chart). In Yinflow maps:
+
+- Each slice can have a **different number of cells**
+- Each slice can have **different types of cells** (e.g., Past has "Thoughts & Emotions" while Present has "Behaviors")
+- The center area is **shared** across all slices
+- Cell names can be compound (e.g., "Thoughts & Emotions" is ONE cell, not two)
+
+Always analyze the SVG design before assuming structure. Count the actual cells — do not infer from ring/slice counts.
+
+## SVG-to-MapDefinition Workflow
+
+### Step 1: Identify Structural Elements
+
+From the SVG, extract:
+
+1. **Center point** — usually the geometric center of the outermost circle
+2. **Concentric circles** — these define radial boundaries between cell zones
+3. **Radial divider lines** — these define slice boundaries (angular divisions)
+4. **Labels** — may be vectorized as paths (not `<text>` elements), read from the design tool instead
+
+### Step 2: Compute Ratios
+
+All radial measurements should be expressed as **ratios of the outer radius** (0.0 to 1.0):
+
+```
+ratio = measured_radius / outer_radius
+```
+
+For the Emotions Map SVG (viewbox 909×898):
+- Outer circle: r = 433.63 → ratio = 1.0
+- Middle circle: r = 202.43 → ratio = 0.467
+- Center circle: r = 86.7 → ratio = 0.2
+
+### Step 3: Identify Slice Angles
+
+Radial divider lines from center define slice boundaries. Measure the angle of each line in standard math convention (0° = right, counterclockwise positive):
+
+- Convert line endpoints to angles: `angle = atan2(cy - lineEndY, lineEndX - cx)` (note the y-flip for SVG coords)
+- Each pair of consecutive angles defines a slice
+
+### Step 4: Map Cells to Zones
+
+For each slice, determine which radial zones contain cells. Each cell gets:
+- `innerRatio` — inner boundary as ratio of outer radius
+- `outerRatio` — outer boundary as ratio of outer radius
+- The cell IDs should follow the pattern: `{sliceId}-{cellName}` (e.g., `past-events`)
+- Center cell ID has no slice prefix (e.g., `evidence`)
+
+### Step 5: Build the MapDefinition
+
+```typescript
+const MY_MAP: MapDefinition = {
+  id: 'my-map',
+  name: 'My Map',
+  description: '...',
+  center: {
+    id: 'center-cell-id',
+    label: 'Center Label',
+    radiusRatio: 0.2,  // from SVG
+    question: '...',
+    guidance: '...',
+    examples: ['...'],
+  },
+  slices: [
+    {
+      id: 'slice-a',
+      label: 'Slice A',
+      startAngle: 150,  // from SVG
+      endAngle: 270,
+      cells: [
+        { id: 'slice-a-outer', label: 'Outer', outerRatio: 1.0, innerRatio: 0.467, ... },
+        { id: 'slice-a-inner', label: 'Inner', outerRatio: 0.467, innerRatio: 0.2, ... },
+      ],
+    },
+    // ... more slices
+  ],
+}
+```
+
+### Step 6: Validate
+
+- Total cells should match the design: `center(1) + sum(slice.cells.length)`
+- All cell centers should map back to themselves via `getCellAtPoint(getCellCenter(...))`
+- Slice angles should sum to 360°
+- Innermost cell `innerRatio` should equal center `radiusRatio`
+
+## Common Pitfalls
+
+1. **Assuming uniform structure** — Don't assume all slices have the same cells
+2. **Counting cells wrong** — Compound names like "Thoughts & Emotions" are ONE cell
+3. **Slice ordering** — The spatial order (left-to-right or clockwise) may differ from the semantic order (past-present-future). Use the angular positions from the SVG, not assumptions
+4. **Vectorized text** — SVG text exported from design tools is often converted to bezier paths. Read labels from the design tool, not from SVG path data
+5. **Y-axis flip** — SVG y-axis is inverted (down = positive). Math angles use y-up. The geometry functions handle this with `cy - r * sin(angle)`
+
+## Geometry API Reference
+
+All functions take `MapDefinition` as first parameter:
+
+- `getAllCellIds(map)` → `string[]` — all cell IDs including center
+- `isValidCellId(map, cellId)` → `boolean`
+- `getCellAtPoint(map, center, outerRadius, point)` → `string | null`
+- `getCellCenter(map, center, outerRadius, cellId)` → `Point2d | null`
+- `makeEmptyState(map)` → `MandalaState`
+
+## Verification
+
+Run `bun run verify` before delivering any changes.
+
+Consider these rules if they affect your changes.
