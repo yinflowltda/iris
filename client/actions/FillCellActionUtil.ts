@@ -4,6 +4,7 @@ import type { SimpleShapeId } from '../../shared/types/ids-schema'
 import type { MandalaState } from '../../shared/types/MandalaTypes'
 import type { Streaming } from '../../shared/types/Streaming'
 import type { AgentHelpers } from '../AgentHelpers'
+import { animateNotesToLayout } from '../lib/animate-note-layout'
 import { computeCellContentLayout } from '../lib/cell-layout'
 import { EMOTIONS_MAP } from '../lib/frameworks/emotions-map'
 import { computeMandalaOuterRadius, getCellBounds, isValidCellId } from '../lib/mandala-geometry'
@@ -95,20 +96,21 @@ export const FillCellActionUtil = registerActionUtil(
 				},
 			})
 
-			for (let i = 0; i < existingIds.length; i++) {
-				const existingShapeId = `shape:${existingIds[i]}` as TLShapeId
-				const existingShape = editor.getShape(existingShapeId)
-				if (!existingShape || !layout[i]) continue
-
-				const itemScale = layout[i].diameter / NOTE_BASE_SIZE
-				editor.updateShape({
-					id: existingShapeId,
-					type: 'note',
-					x: layout[i].center.x - layout[i].diameter / 2,
-					y: layout[i].center.y - layout[i].diameter / 2,
-					props: { scale: itemScale },
+			const targets = allSimpleIds
+				.map((simpleId, i) => {
+					const fullId = `shape:${simpleId}` as TLShapeId
+					const item = layout[i]
+					if (!item || !editor.getShape(fullId)) return null
+					return {
+						id: fullId,
+						x: item.center.x - item.diameter / 2,
+						y: item.center.y - item.diameter / 2,
+						scale: item.diameter / NOTE_BASE_SIZE,
+					}
 				})
-			}
+				.filter(Boolean) as Array<{ id: TLShapeId; x: number; y: number; scale: number }>
+
+			animateNotesToLayout(editor, targets, { durationMs: 300 })
 
 			currentState[cellId] = {
 				status: 'filled',

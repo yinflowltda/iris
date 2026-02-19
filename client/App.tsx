@@ -25,6 +25,7 @@ import { AllContextHighlights } from './components/highlights/ContextHighlights'
 import { TemplateChooser } from './components/TemplateChooser'
 import { EMOTIONS_MAP } from './lib/frameworks/emotions-map'
 import { getAllCellIds, makeEmptyState } from './lib/mandala-geometry'
+import { registerMandalaSnapEffect } from './lib/mandala-snap'
 import { applyNodulePaletteToThemes } from './lib/nodule-color-palette'
 import { CircularNoteShapeUtil } from './shapes/CircularNoteShapeUtil'
 import { MandalaShapeTool } from './shapes/MandalaShapeTool'
@@ -43,6 +44,37 @@ const shapeUtils = [
 ]
 const tools = [MandalaShapeTool, TargetShapeTool, TargetAreaTool]
 const overrides: TLUiOverrides = {
+	actions: (editor, actions) => {
+		const original = actions.duplicate
+		if (!original) return actions
+
+		return {
+			...actions,
+			duplicate: {
+				...original,
+				onSelect(source) {
+					const mandala = editor.getCurrentPageShapes().find((s) => s.type === 'mandala') as
+						| MandalaShape
+						| undefined
+					if (!mandala) return original.onSelect?.(source)
+
+					const selectedIds = editor.getSelectedShapeIds()
+					const allContentIds = new Set(
+						Object.values(mandala.props.state).flatMap((cell) => cell.contentShapeIds),
+					)
+
+					const hasMandalaNodule = selectedIds.some((id) =>
+						allContentIds.has(id.replace('shape:', '') as any),
+					)
+
+					if (!hasMandalaNodule) return original.onSelect?.(source)
+
+					editor.markHistoryStoppingPoint('duplicate shapes')
+					editor.duplicateShapes(selectedIds, { x: 0, y: 0 })
+				},
+			},
+		}
+	},
 	tools: (editor, tools) => {
 		return {
 			...tools,
@@ -108,7 +140,7 @@ function App() {
 		}
 
 		// Reactive tracking: re-runs when shapes change on the page
-		const cleanup = react('mandala-progress', () => {
+		const cleanupProgress = react('mandala-progress', () => {
 			const shapes = app.editor.getCurrentPageShapes()
 			const mandalaRef = shapes.find((s) => s.type === 'mandala')
 
@@ -124,7 +156,12 @@ function App() {
 			setFilledCells(0)
 		})
 
-		return cleanup
+		const cleanupSnap = registerMandalaSnapEffect(app.editor)
+
+		return () => {
+			cleanupProgress()
+			cleanupSnap()
+		}
 	}, [app])
 
 	const handleSelectTemplate = useCallback(
