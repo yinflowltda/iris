@@ -48,12 +48,12 @@ export const FillCellActionUtil = registerActionUtil(
 
 			const cellId = action.cellId as string
 			const outerRadius = computeMandalaOuterRadius(mandala.props.w, mandala.props.h)
-			const shapeCenter = {
-				x: mandala.x + mandala.props.w / 2,
-				y: mandala.y + mandala.props.h / 2,
+			const localCenter = {
+				x: mandala.props.w / 2,
+				y: mandala.props.h / 2,
 			}
 
-			const bounds = getCellBounds(EMOTIONS_MAP, shapeCenter, outerRadius, cellId)
+			const bounds = getCellBounds(EMOTIONS_MAP, localCenter, outerRadius, cellId)
 			if (!bounds) return
 
 			const currentState: MandalaState = { ...mandala.props.state }
@@ -79,6 +79,7 @@ export const FillCellActionUtil = registerActionUtil(
 			editor.createShape({
 				id: newShapeId,
 				type: 'note',
+				parentId: mandalaShapeId,
 				x: newLayout.center.x - newLayout.diameter / 2,
 				y: newLayout.center.y - newLayout.diameter / 2,
 				props: {

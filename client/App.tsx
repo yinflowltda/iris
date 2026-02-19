@@ -176,7 +176,6 @@ function App() {
 				type: 'mandala',
 				x: viewport.x + viewport.w / 2 - size / 2,
 				y: viewport.y + viewport.h / 2 - size / 2,
-				isLocked: true,
 				props: { w: size, h: size, state: makeEmptyState(EMOTIONS_MAP) },
 			})
 

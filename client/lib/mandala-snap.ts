@@ -15,6 +15,8 @@ export function registerMandalaSnapEffect(editor: Editor): () => void {
 	let pendingShapeIds = new Set<TLShapeId>()
 	let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
+	migrateExistingNodules(editor)
+
 	function schedulSnap(shapeId: TLShapeId) {
 		pendingShapeIds.add(shapeId)
 		if (debounceTimer) clearTimeout(debounceTimer)
@@ -48,19 +50,49 @@ export function registerMandalaSnapEffect(editor: Editor): () => void {
 	}
 }
 
+/**
+ * One-time migration: reparent existing nodules that are tracked in mandala
+ * state but are still children of the page (pre-parentId sessions).
+ */
+function migrateExistingNodules(editor: Editor) {
+	const mandala = editor.getCurrentPageShapes().find((s): s is MandalaShape => s.type === 'mandala')
+	if (!mandala) return
+
+	const shapesToReparent: TLShapeId[] = []
+	for (const cellState of Object.values(mandala.props.state)) {
+		for (const simpleId of cellState.contentShapeIds) {
+			const fullId = `shape:${simpleId}` as TLShapeId
+			const shape = editor.getShape(fullId)
+			if (shape && shape.parentId !== mandala.id) {
+				shapesToReparent.push(fullId)
+			}
+		}
+	}
+
+	if (shapesToReparent.length > 0) {
+		editor.reparentShapes(shapesToReparent, mandala.id)
+	}
+}
+
 function processPendingSnaps(editor: Editor, shapeIds: Set<TLShapeId>) {
 	const mandala = editor.getCurrentPageShapes().find((s): s is MandalaShape => s.type === 'mandala')
 	if (!mandala) return
 
 	const outerRadius = computeMandalaOuterRadius(mandala.props.w, mandala.props.h)
-	const mandalaCenter = {
+	const pageCenter = {
 		x: mandala.x + mandala.props.w / 2,
 		y: mandala.y + mandala.props.h / 2,
+	}
+	const localCenter = {
+		x: mandala.props.w / 2,
+		y: mandala.props.h / 2,
 	}
 
 	let stateChanged = false
 	const currentState: MandalaState = JSON.parse(JSON.stringify(mandala.props.state))
 	const cellsToRelayout = new Set<string>()
+	const shapesToReparentToMandala: TLShapeId[] = []
+	const shapesToReparentToPage: TLShapeId[] = []
 
 	for (const shapeId of shapeIds) {
 		const shape = editor.getShape(shapeId) as TLNoteShape | undefined
@@ -72,7 +104,7 @@ function processPendingSnaps(editor: Editor, shapeIds: Set<TLShapeId>) {
 		if (!pageBounds) continue
 		const dropPoint = { x: pageBounds.midX, y: pageBounds.midY }
 
-		const targetCellId = getCellAtPoint(EMOTIONS_MAP, mandalaCenter, outerRadius, dropPoint)
+		const targetCellId = getCellAtPoint(EMOTIONS_MAP, pageCenter, outerRadius, dropPoint)
 
 		let sourceCellId: string | null = null
 		for (const [cellId, cellState] of Object.entries(currentState)) {
@@ -101,9 +133,10 @@ function processPendingSnaps(editor: Editor, shapeIds: Set<TLShapeId>) {
 
 		if (targetCellId && currentState[targetCellId]) {
 			const existingIds = currentState[targetCellId].contentShapeIds
-			const bounds = getCellBounds(EMOTIONS_MAP, mandalaCenter, outerRadius, targetCellId)
+			const localDropPoint = { x: dropPoint.x - mandala.x, y: dropPoint.y - mandala.y }
+			const bounds = getCellBounds(EMOTIONS_MAP, localCenter, outerRadius, targetCellId)
 			const insertIdx = bounds
-				? findClosestSlot(computeCellContentLayout(bounds, existingIds.length + 1), dropPoint)
+				? findClosestSlot(computeCellContentLayout(bounds, existingIds.length + 1), localDropPoint)
 				: existingIds.length
 			const orderedIds = [...existingIds]
 			orderedIds.splice(insertIdx, 0, simpleId)
@@ -115,16 +148,29 @@ function processPendingSnaps(editor: Editor, shapeIds: Set<TLShapeId>) {
 			}
 			cellsToRelayout.add(targetCellId)
 			stateChanged = true
+
+			if (shape.parentId !== mandala.id) {
+				shapesToReparentToMandala.push(shapeId)
+			}
+		} else if (!targetCellId && shape.parentId === mandala.id) {
+			shapesToReparentToPage.push(shapeId)
 		}
 	}
 
-	if (cellsToRelayout.size === 0) return
+	if (shapesToReparentToMandala.length > 0) {
+		editor.reparentShapes(shapesToReparentToMandala, mandala.id)
+	}
+	if (shapesToReparentToPage.length > 0) {
+		editor.reparentShapes(shapesToReparentToPage, editor.getCurrentPageId())
+	}
+
+	if (cellsToRelayout.size === 0 && !stateChanged) return
 
 	for (const cellId of cellsToRelayout) {
 		const cellState = currentState[cellId]
 		if (!cellState || cellState.contentShapeIds.length === 0) continue
 
-		const bounds = getCellBounds(EMOTIONS_MAP, mandalaCenter, outerRadius, cellId)
+		const bounds = getCellBounds(EMOTIONS_MAP, localCenter, outerRadius, cellId)
 		if (!bounds) continue
 
 		const layout = computeCellContentLayout(bounds, cellState.contentShapeIds.length)
