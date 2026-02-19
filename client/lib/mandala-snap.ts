@@ -9,53 +9,71 @@ import { EMOTIONS_MAP } from './frameworks/emotions-map'
 import { computeMandalaOuterRadius, getCellAtPoint, getCellBounds } from './mandala-geometry'
 
 const NOTE_BASE_SIZE = 200
-const SNAP_DEBOUNCE_MS = 150
+const CREATE_DEBOUNCE_MS = 150
 
 export function registerMandalaSnapEffect(editor: Editor): () => void {
-	let pendingShapeIds = new Set<TLShapeId>()
-	let debounceTimer: ReturnType<typeof setTimeout> | null = null
-	let isProcessing = false
+	const recentlySnapped = new Set<TLShapeId>()
+	let createDebounceTimer: ReturnType<typeof setTimeout> | null = null
+	let pendingCreateIds = new Set<TLShapeId>()
 
 	migrateExistingNodules(editor)
 
-	function schedulSnap(shapeId: TLShapeId) {
-		if (isProcessing) return
-		pendingShapeIds.add(shapeId)
-		if (debounceTimer) clearTimeout(debounceTimer)
-		debounceTimer = setTimeout(() => {
-			const ids = pendingShapeIds
-			pendingShapeIds = new Set()
-			isProcessing = true
-			try {
-				processPendingSnaps(editor, ids)
-			} finally {
-				setTimeout(() => {
-					isProcessing = false
-				}, 350)
+	// --- Drag detection via tool-state transition (primary) ---
+	let prevPath = ''
+	function onTick() {
+		const currentPath = editor.getPath()
+		if (prevPath.includes('translat') && !currentPath.includes('translat')) {
+			const noteIds = editor
+				.getSelectedShapes()
+				.filter((s) => s.type === 'note')
+				.map((s) => s.id)
+			if (noteIds.length > 0) {
+				processPendingSnaps(editor, new Set(noteIds), recentlySnapped)
 			}
-		}, SNAP_DEBOUNCE_MS)
+		}
+		prevPath = currentPath
 	}
+	editor.on('tick', onTick)
 
+	// --- Fallback: afterChangeHandler for position changes not caught by tick ---
 	const cleanupChange = editor.sideEffects.registerAfterChangeHandler(
 		'shape',
 		(prev, next, source) => {
 			if (source !== 'user') return
 			if (next.type !== 'note') return
 			if (prev.x === next.x && prev.y === next.y) return
-			schedulSnap(next.id)
+			if (recentlySnapped.has(next.id)) return
+
+			pendingCreateIds.add(next.id)
+			if (createDebounceTimer) clearTimeout(createDebounceTimer)
+			createDebounceTimer = setTimeout(() => {
+				const ids = pendingCreateIds
+				pendingCreateIds = new Set()
+				processPendingSnaps(editor, ids, recentlySnapped)
+			}, CREATE_DEBOUNCE_MS)
 		},
 	)
 
+	// --- Create/duplicate detection ---
 	const cleanupCreate = editor.sideEffects.registerAfterCreateHandler('shape', (shape, source) => {
 		if (source !== 'user') return
 		if (shape.type !== 'note') return
-		schedulSnap(shape.id)
+		if (recentlySnapped.has(shape.id)) return
+
+		pendingCreateIds.add(shape.id)
+		if (createDebounceTimer) clearTimeout(createDebounceTimer)
+		createDebounceTimer = setTimeout(() => {
+			const ids = pendingCreateIds
+			pendingCreateIds = new Set()
+			processPendingSnaps(editor, ids, recentlySnapped)
+		}, CREATE_DEBOUNCE_MS)
 	})
 
 	return () => {
+		editor.off('tick', onTick)
 		cleanupChange()
 		cleanupCreate()
-		if (debounceTimer) clearTimeout(debounceTimer)
+		if (createDebounceTimer) clearTimeout(createDebounceTimer)
 	}
 }
 
@@ -83,7 +101,11 @@ function migrateExistingNodules(editor: Editor) {
 	}
 }
 
-function processPendingSnaps(editor: Editor, shapeIds: Set<TLShapeId>) {
+function processPendingSnaps(
+	editor: Editor,
+	shapeIds: Set<TLShapeId>,
+	recentlySnapped: Set<TLShapeId>,
+) {
 	const mandala = editor.getCurrentPageShapes().find((s): s is MandalaShape => s.type === 'mandala')
 	if (!mandala) return
 
@@ -126,7 +148,10 @@ function processPendingSnaps(editor: Editor, shapeIds: Set<TLShapeId>) {
 		if (targetCellId === sourceCellId) {
 			if (!targetCellId) continue
 
-			const existingIds = currentState[targetCellId]?.contentShapeIds ?? []
+			if (!currentState[targetCellId]) {
+				currentState[targetCellId] = { status: 'empty', contentShapeIds: [] }
+			}
+			const existingIds = currentState[targetCellId].contentShapeIds
 			if (existingIds.length === 0) continue
 
 			const localDropPoint = { x: hitPoint.x - mandala.x, y: hitPoint.y - mandala.y }
@@ -172,7 +197,10 @@ function processPendingSnaps(editor: Editor, shapeIds: Set<TLShapeId>) {
 			stateChanged = true
 		}
 
-		if (targetCellId && currentState[targetCellId]) {
+		if (targetCellId) {
+			if (!currentState[targetCellId]) {
+				currentState[targetCellId] = { status: 'empty', contentShapeIds: [] }
+			}
 			const existingIds = currentState[targetCellId].contentShapeIds
 			const localDropPoint = { x: hitPoint.x - mandala.x, y: hitPoint.y - mandala.y }
 			const bounds = getCellBounds(EMOTIONS_MAP, localCenter, outerRadius, targetCellId)
@@ -230,6 +258,14 @@ function processPendingSnaps(editor: Editor, shapeIds: Set<TLShapeId>) {
 			.filter(Boolean) as Array<{ id: TLShapeId; x: number; y: number; scale: number }>
 
 		animateNotesToLayout(editor, targets, { durationMs: 300 })
+
+		for (const t of targets) recentlySnapped.add(t.id)
+	}
+
+	if (recentlySnapped.size > 0) {
+		setTimeout(() => {
+			for (const id of shapeIds) recentlySnapped.delete(id)
+		}, 400)
 	}
 
 	if (stateChanged) {
