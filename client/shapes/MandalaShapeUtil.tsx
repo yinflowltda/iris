@@ -185,7 +185,7 @@ function MandalaSvg({
 	const arcDefs: ReactElement[] = []
 	const cellLabels: ReactElement[] = []
 
-	const internalLabelOffset = Math.max(6, outerRadius * 0.03)
+	const internalLabelOffset = Math.max(4.8, outerRadius * 0.024)
 
 	for (const slice of map.slices) {
 		const shouldFlip = sliceFlip[slice.id]
@@ -236,7 +236,7 @@ function MandalaSvg({
 				/>,
 			)
 
-			const cellFontSize = Math.max(7, Math.min(12, (outerR - innerR) * 0.22))
+			const cellFontSize = Math.max(4.93, Math.min(8.45, (outerR - innerR) * 0.155))
 			cellLabels.push(
 				<text
 					key={`label-${cell.id}`}
