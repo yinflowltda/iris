@@ -44,22 +44,47 @@ export class VoiceService {
 	}
 
 	async transcribe(audio: Uint8Array): Promise<string> {
-		const audioArray = Array.from(audio)
+		let result: any
+		let attempts = 0
+		const maxAttempts = 2
 
-		const result = (await this.env.AI.run(
-			STT_MODEL as any,
-			{
-				audio: {
-					body: audioArray,
-					contentType: 'audio/webm',
+		while (attempts < maxAttempts) {
+			attempts++
+			const bodyStream = new ReadableStream({
+				start(controller) {
+					controller.enqueue(audio)
+					controller.close()
 				},
-				detect_language: true,
-				punctuate: true,
-				smart_format: true,
-			} as any,
-		)) as DeepgramResult
+			})
 
-		const alt = result?.results?.channels?.[0]?.alternatives?.[0]
+			try {
+				const rawResp = await this.env.AI.run(
+					STT_MODEL as any,
+					{
+						audio: {
+							body: bodyStream,
+							contentType: 'audio/webm',
+						},
+						detect_language: true,
+						punctuate: true,
+						smart_format: true,
+					} as any,
+					{ returnRawResponse: true } as any,
+				)
+
+				if (rawResp instanceof Response) {
+					result = await rawResp.json()
+				} else {
+					result = rawResp
+				}
+				break
+			} catch (sttErr: any) {
+				if (attempts >= maxAttempts) throw sttErr
+			}
+		}
+
+		const deepgramResult = result as DeepgramResult
+		const alt = deepgramResult?.results?.channels?.[0]?.alternatives?.[0]
 		return alt?.transcript ?? ''
 	}
 

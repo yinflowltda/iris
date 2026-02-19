@@ -20,9 +20,8 @@ export const PeripheralShapesPartUtil = registerPromptPartUtil(
 			// Get all shapes that are outside the context bounds (these are what we want to peripheralize)
 			const shapesOutsideViewport = shapes.filter((shape) => {
 				const bounds = editor.getShapeMaskedPageBounds(shape)
-				if (!bounds) return
-				if (contextBoundsBox.includes(bounds)) return
-				return true
+				if (!bounds) return false
+				return !contextBoundsBox.includes(bounds)
 			})
 
 			// Convert the shapes to peripheral shape cluster format

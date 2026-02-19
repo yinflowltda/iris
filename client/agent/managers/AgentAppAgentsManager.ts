@@ -34,6 +34,13 @@ export class AgentAppAgentsManager extends BaseAgentAppManager {
 	}
 
 	/**
+	 * Get all agents.
+	 */
+	getAgents(): TldrawAgent[] {
+		return AgentAppAgentsManager.$agents.get(this.app.editor)
+	}
+
+	/**
 	 * Get an agent by ID for an editor.
 	 * If no ID is provided, returns the first agent.
 	 * Use this static method from tools that only have access to the editor.
@@ -44,13 +51,6 @@ export class AgentAppAgentsManager extends BaseAgentAppManager {
 			return agents.find((agent) => agent.id === id)
 		}
 		return agents[0]
-	}
-
-	/**
-	 * Get all agents.
-	 */
-	getAgents(): TldrawAgent[] {
-		return AgentAppAgentsManager.$agents.get(this.app.editor)
 	}
 
 	/**
@@ -133,7 +133,9 @@ export class AgentAppAgentsManager extends BaseAgentAppManager {
 	 */
 	resetAllAgents() {
 		const agents = AgentAppAgentsManager.$agents.get(this.app.editor)
-		agents.forEach((agent) => agent.reset())
+		agents.forEach((agent) => {
+			agent.reset()
+		})
 	}
 
 	/**
@@ -141,7 +143,9 @@ export class AgentAppAgentsManager extends BaseAgentAppManager {
 	 */
 	disposeAllAgents() {
 		const agents = AgentAppAgentsManager.$agents.get(this.app.editor)
-		agents.forEach((agent) => agent.dispose())
+		agents.forEach((agent) => {
+			agent.dispose()
+		})
 		AgentAppAgentsManager.$agents.set(this.app.editor, [])
 	}
 

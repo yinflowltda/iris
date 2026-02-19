@@ -161,7 +161,7 @@ function MandalaSvg({
 	const centerRadius = outerRadius * map.center.radiusRatio
 
 	const sliceLabelFontSize = Math.max(10, Math.min(16, outerRadius * 0.045))
-	const centerFontSize = Math.max(8, Math.min(13, centerRadius * 0.18))
+	const centerFontSize = sliceLabelFontSize
 
 	const [hoveredCell, setHoveredCell] = useState<string | null>(null)
 	const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -368,11 +368,16 @@ function MandalaSvg({
 				dominantBaseline="central"
 				fontSize={centerFontSize}
 				fontWeight="bold"
-				fill="#999"
+				fill="#808080"
+				fillOpacity={0.7}
 				pointerEvents="none"
-				style={{ userSelect: 'none', fontFamily: MANDALA_LABEL_FONT }}
+				style={{
+					userSelect: 'none',
+					fontFamily: MANDALA_LABEL_FONT,
+					textTransform: 'uppercase',
+				}}
 			>
-				{map.center.label}
+				{map.center.label.toUpperCase()}
 			</text>
 		</g>
 	)
