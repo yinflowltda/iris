@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
+	createShapeId,
 	DefaultColorThemePalette,
 	DefaultSizeStyle,
 	defaultShapeUtils,
@@ -100,6 +101,15 @@ const overrides: TLUiOverrides = {
 	},
 }
 
+const NOTE_HALF_SIZE = 100
+
+function hasNoTextContent(richText: unknown): boolean {
+	if (!richText || typeof richText !== 'object') return true
+	const doc = richText as { content?: Array<{ content?: unknown[] }> }
+	if (!doc.content) return true
+	return doc.content.every((block) => !block.content || block.content.length === 0)
+}
+
 const TOTAL_CELLS = getAllCellIds(EMOTIONS_MAP).length
 
 function countFilledCells(state: MandalaState): number {
@@ -158,9 +168,35 @@ function App() {
 
 		const cleanupSnap = registerMandalaSnapEffect(app.editor)
 
+		const cleanupDoubleClickNote = app.editor.sideEffects.registerAfterCreateHandler(
+			'shape',
+			(shape) => {
+				if (shape.type !== 'text') return
+				if (app.editor.getCurrentToolId() !== 'select') return
+
+				const textProps = shape.props as { richText?: unknown }
+				if (!hasNoTextContent(textProps.richText)) return
+
+				queueMicrotask(() => {
+					if (!app.editor.getShape(shape.id)) return
+					const noteId = createShapeId()
+					app.editor.deleteShape(shape.id)
+					app.editor.createShape({
+						id: noteId,
+						type: 'note',
+						x: shape.x - NOTE_HALF_SIZE,
+						y: shape.y - NOTE_HALF_SIZE,
+					})
+					app.editor.setSelectedShapes([noteId])
+					app.editor.setEditingShape(noteId)
+				})
+			},
+		)
+
 		return () => {
 			cleanupProgress()
 			cleanupSnap()
+			cleanupDoubleClickNote()
 		}
 	}, [app])
 
