@@ -17,7 +17,6 @@ import { EMOTIONS_MAP } from '../lib/frameworks/emotions-map'
 import {
 	computeMandalaOuterRadius,
 	getCellBoundingBox,
-	getCellCenter,
 	makeEmptyState,
 } from '../lib/mandala-geometry'
 
@@ -151,7 +150,7 @@ function MandalaSvg({
 	mandalaState: MandalaState
 	isExport?: boolean
 	onCellClick?: (cellId: string) => void
-	onCellDoubleClick?: (cellId: string) => void
+	onCellDoubleClick?: (cellId: string, screenX: number, screenY: number) => void
 }) {
 	const map = EMOTIONS_MAP
 	const size = Math.min(w, h)
@@ -197,12 +196,12 @@ function MandalaSvg({
 	)
 
 	const handleDoubleClick = useCallback(
-		(cellId: string) => {
+		(cellId: string, e: React.MouseEvent) => {
 			if (clickTimerRef.current) {
 				clearTimeout(clickTimerRef.current)
 				clickTimerRef.current = null
 			}
-			onCellDoubleClick?.(cellId)
+			onCellDoubleClick?.(cellId, e.clientX, e.clientY)
 		},
 		[onCellDoubleClick],
 	)
@@ -255,7 +254,7 @@ function MandalaSvg({
 					}}
 					onPointerDown={(e) => e.stopPropagation()}
 					onClick={() => handleDelayedClick(cell.id)}
-					onDoubleClick={() => handleDoubleClick(cell.id)}
+					onDoubleClick={(e) => handleDoubleClick(cell.id, e)}
 					style={{ cursor: 'pointer', pointerEvents: 'all', transition: 'fill 0.15s ease' }}
 				/>,
 			)
@@ -359,7 +358,7 @@ function MandalaSvg({
 				}}
 				onPointerDown={(e) => e.stopPropagation()}
 				onClick={() => handleDelayedClick(map.center.id)}
-				onDoubleClick={() => handleDoubleClick(map.center.id)}
+				onDoubleClick={(e) => handleDoubleClick(map.center.id, e)}
 				style={{ cursor: 'pointer', pointerEvents: 'all', transition: 'fill 0.15s ease' }}
 			/>
 			<text
@@ -491,26 +490,23 @@ function MandalaInteractive({ shape }: { shape: MandalaShape }) {
 	)
 
 	const handleCellDoubleClick = useCallback(
-		(cellId: string) => {
-			const mandala = editor.getShape<MandalaShape>(shape.id)
-			if (!mandala) return
-
-			const outerR = computeMandalaOuterRadius(mandala.props.w, mandala.props.h)
-			const localCenter = { x: mandala.props.w / 2, y: mandala.props.h / 2 }
-			const cellCenter = getCellCenter(EMOTIONS_MAP, localCenter, outerR, cellId)
-			if (!cellCenter) return
+		(_cellId: string, screenX: number, screenY: number) => {
+			const viewport = editor.getViewportScreenBounds()
+			const camera = editor.getCamera()
+			const pageX = (screenX - viewport.x) / camera.z - camera.x
+			const pageY = (screenY - viewport.y) / camera.z - camera.y
 
 			const noteId = createShapeId()
 			editor.createShape({
 				id: noteId,
 				type: 'note',
-				x: mandala.x + cellCenter.x - NOTE_HALF_SIZE,
-				y: mandala.y + cellCenter.y - NOTE_HALF_SIZE,
+				x: pageX - NOTE_HALF_SIZE,
+				y: pageY - NOTE_HALF_SIZE,
 			})
 			editor.setSelectedShapes([noteId])
 			editor.setEditingShape(noteId)
 		},
-		[editor, shape.id],
+		[editor],
 	)
 
 	return (
