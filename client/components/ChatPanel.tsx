@@ -44,7 +44,7 @@ export function ChatPanel() {
 	return (
 		<div className="chat-panel tl-theme__dark">
 			<div className="chat-header">
-				<button className="new-chat-button" onClick={handleNewChat}>
+				<button type="button" className="new-chat-button" onClick={handleNewChat}>
 					+
 				</button>
 			</div>

@@ -74,6 +74,7 @@ export function GoToAgentButton({ agent }: { agent: TldrawAgent }) {
 				<TldrawUiButtonIcon
 					icon={
 						<svg
+							aria-label="Go to agent"
 							width="16"
 							height="16"
 							viewBox="0 0 24 24"

@@ -43,7 +43,7 @@ function TodoListItem({ item, agent }: { item: TodoItem; agent: TldrawAgent }) {
 		<div className={`todo-item todo-item-${item.status}`}>
 			<span className="todo-item-icon">{icon}</span>
 			<span className="todo-item-text">{item.text}</span>
-			<button className="todo-item-delete" onClick={deleteTodo}>
+			<button type="button" className="todo-item-delete" onClick={deleteTodo}>
 				×
 			</button>
 		</div>
