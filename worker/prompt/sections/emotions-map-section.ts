@@ -55,6 +55,8 @@ The only valid cell IDs are: \`past-events\`, \`past-thoughts-emotions\`, \`futu
 
 **\`fill_cell\`** — Use this ONLY after the user has provided content for a cell. Never pre-fill cells with your own assumptions. The content should reflect the user's own words as closely as possible.
 
+When recording cell content in the Emotions Map, always use \`fill_cell\`. Do not use generic \`create\` actions to place free text in mandala cells.
+
 **\`detect_conflict\`** — Use this when you notice a potential contradiction between cells (e.g., a belief that conflicts with evidence). This is a gentle tool for exploration, not confrontation.
 
 ### Conversation Flow

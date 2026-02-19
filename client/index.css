@@ -10,6 +10,11 @@ body {
 	font-family: "Inter", sans-serif;
 }
 
+.tl-note__container {
+	border-radius: 9999px;
+	overflow: hidden;
+}
+
 .tldraw-agent-container {
 	position: fixed;
 	inset: 0;

@@ -9,6 +9,8 @@ import { getCellCenter, isValidCellId } from '../lib/mandala-geometry'
 import type { MandalaShape } from '../shapes/MandalaShapeUtil'
 import { AgentActionUtil, registerActionUtil } from './AgentActionUtil'
 
+const NOTE_DIAMETER = 200
+
 export const FillCellActionUtil = registerActionUtil(
 	class FillCellActionUtil extends AgentActionUtil<FillCellAction> {
 		static override type = 'fill_cell' as const
@@ -52,28 +54,43 @@ export const FillCellActionUtil = registerActionUtil(
 
 			const contentShapeId = `shape:${action.mandalaId}-${cellId}` as TLShapeId
 			const existingShape = editor.getShape(contentShapeId)
+			const x = center.x - NOTE_DIAMETER / 2
+			const y = center.y - NOTE_DIAMETER / 2
 
-			if (existingShape) {
+			if (existingShape?.type === 'note') {
 				editor.updateShape({
 					id: contentShapeId,
-					type: 'text',
-					props: { richText: toRichText(action.content) },
+					type: 'note',
+					x,
+					y,
+					props: {
+						richText: toRichText(action.content),
+						align: 'middle',
+						verticalAlign: 'middle',
+					},
 				})
 			} else {
+				if (existingShape) {
+					editor.deleteShape(contentShapeId)
+				}
+
 				editor.createShape({
 					id: contentShapeId,
-					type: 'text',
-					x: center.x - 40,
-					y: center.y - 10,
+					type: 'note',
+					x,
+					y,
 					props: {
 						richText: toRichText(action.content),
 						color: 'black',
 						size: 's',
 						font: 'draw',
 						scale: 1,
-						textAlign: 'middle' as any,
-						autoSize: true,
-						w: 80,
+						align: 'middle',
+						verticalAlign: 'middle',
+						labelColor: 'black',
+						fontSizeAdjustment: 0,
+						growY: 0,
+						url: '',
 					},
 				})
 			}

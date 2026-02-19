@@ -12,6 +12,7 @@ import {
 	TldrawUiContextProvider,
 	tipTapDefaultExtensions,
 } from 'tldraw'
+import { CircularNoteShapeUtil } from '../../shapes/CircularNoteShapeUtil'
 import { MandalaShapeUtil } from '../../shapes/MandalaShapeUtil'
 
 export function TldrawViewer({
@@ -86,7 +87,12 @@ class InspectTool extends StateNode {
 	static override id = 'inspect'
 }
 
-const shapeUtils = [...defaultShapeUtils, MandalaShapeUtil]
+const shapeUtils = [
+	...defaultShapeUtils.map((shapeUtil) =>
+		shapeUtil.type === 'note' ? CircularNoteShapeUtil : shapeUtil,
+	),
+	MandalaShapeUtil,
+]
 const tools = [InspectTool]
 
 const defaultTextOptions = {

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
 	DefaultSizeStyle,
+	defaultShapeUtils,
 	ErrorBoundary,
 	react,
 	type TLComponents,
@@ -23,6 +24,7 @@ import { AllContextHighlights } from './components/highlights/ContextHighlights'
 import { TemplateChooser } from './components/TemplateChooser'
 import { EMOTIONS_MAP } from './lib/frameworks/emotions-map'
 import { getAllCellIds, makeEmptyState } from './lib/mandala-geometry'
+import { CircularNoteShapeUtil } from './shapes/CircularNoteShapeUtil'
 import { MandalaShapeTool } from './shapes/MandalaShapeTool'
 import { type MandalaShape, MandalaShapeUtil } from './shapes/MandalaShapeUtil'
 import { TargetAreaTool } from './tools/TargetAreaTool'
@@ -30,7 +32,12 @@ import { TargetShapeTool } from './tools/TargetShapeTool'
 
 DefaultSizeStyle.setDefaultValue('s')
 
-const shapeUtils = [MandalaShapeUtil]
+const shapeUtils = [
+	...defaultShapeUtils.map((shapeUtil) =>
+		shapeUtil.type === 'note' ? CircularNoteShapeUtil : shapeUtil,
+	),
+	MandalaShapeUtil,
+]
 const tools = [MandalaShapeTool, TargetShapeTool, TargetAreaTool]
 const overrides: TLUiOverrides = {
 	tools: (editor, tools) => {
