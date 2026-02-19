@@ -1,5 +1,14 @@
 import { ReadonlySharedStyleMap } from '@tldraw/editor'
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+	createContext,
+	memo,
+	useCallback,
+	useContext,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from 'react'
 import {
 	createShapeId,
 	DefaultColorStyle,
@@ -20,6 +29,7 @@ import {
 	type TLUiStylePanelProps,
 	Tldraw,
 	TldrawOverlays,
+	TldrawUiButton,
 	TldrawUiMenuItem,
 	TldrawUiOrientationProvider,
 	TldrawUiToastsProvider,
@@ -55,6 +65,11 @@ import { MandalaShapeTool } from './shapes/MandalaShapeTool'
 import { type MandalaShape, MandalaShapeUtil } from './shapes/MandalaShapeUtil'
 import { TargetAreaTool } from './tools/TargetAreaTool'
 import { TargetShapeTool } from './tools/TargetShapeTool'
+
+const ChatPanelContext = createContext<{ chatOpen: boolean; toggleChat: () => void }>({
+	chatOpen: false,
+	toggleChat: () => {},
+})
 
 DefaultSizeStyle.setDefaultValue('s')
 applyNodulePaletteToThemes(DefaultColorThemePalette.lightMode, DefaultColorThemePalette.darkMode)
@@ -111,6 +126,21 @@ function PopoverOnlyStylePanel(props: TLUiStylePanelProps) {
 	return <DefaultStylePanel {...props} styles={styles} />
 }
 
+function ChatToggleButton() {
+	const { chatOpen, toggleChat } = useContext(ChatPanelContext)
+	return (
+		<TldrawUiButton type="tool" isActive={chatOpen} onClick={toggleChat} title="Toggle chat">
+			<svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+				<path
+					d="M9 2C5.134 2 2 4.91 2 8.5c0 1.48.528 2.845 1.41 3.94L2.5 15l3.02-1.04A7.13 7.13 0 0 0 9 15c3.866 0 7-2.91 7-6.5S12.866 2 9 2Z"
+					fill="currentColor"
+					fillOpacity="0.9"
+				/>
+			</svg>
+		</TldrawUiButton>
+	)
+}
+
 const ToolbarWithStylePanel = memo(function ToolbarWithStylePanel() {
 	const editor = useEditor()
 	const msg = useTranslation()
@@ -159,8 +189,9 @@ const ToolbarWithStylePanel = memo(function ToolbarWithStylePanel() {
 							minSizePx={310}
 							maxSizePx={470}
 						>
-							{tools.mandala && <TldrawUiMenuItem {...tools.mandala} isSelected={false} />}
 							<DefaultToolbarContent />
+							{tools.mandala && <TldrawUiMenuItem {...tools.mandala} isSelected={false} />}
+							<ChatToggleButton />
 						</OverflowingToolbar>
 					</div>
 					{!isReadonlyMode && (
@@ -197,6 +228,8 @@ function App() {
 	const [app, setApp] = useState<TldrawAgentApp | null>(null)
 	const [showTemplate, setShowTemplate] = useState(SHOW_TEMPLATE_CHOOSER)
 	const [filledCells, setFilledCells] = useState(0)
+	const [chatOpen, setChatOpen] = useState(false)
+	const toggleChat = useCallback(() => setChatOpen((v) => !v), [])
 	const handleUnmount = useCallback(() => {
 		setApp(null)
 	}, [])
@@ -464,39 +497,37 @@ function App() {
 	}, [app])
 
 	return (
-		<TldrawUiToastsProvider>
-			<div className="tldraw-agent-container">
-				<div className="tldraw-canvas">
-					<Tldraw
-						persistenceKey="tldraw-agent-demo"
-						shapeUtils={shapeUtils}
-						tools={tools}
-						overrides={overrides}
-						components={components}
-					>
-						<TldrawAgentAppProvider onMount={setApp} onUnmount={handleUnmount} />
-					</Tldraw>
+		<ChatPanelContext.Provider value={{ chatOpen, toggleChat }}>
+			<TldrawUiToastsProvider>
+				<div className="tldraw-agent-container">
+					<div className="tldraw-canvas">
+						<Tldraw
+							persistenceKey="tldraw-agent-demo"
+							shapeUtils={shapeUtils}
+							tools={tools}
+							overrides={overrides}
+							components={components}
+						>
+							<TldrawAgentAppProvider onMount={setApp} onUnmount={handleUnmount} />
+						</Tldraw>
+					</div>
+					<div className={`agent-chat-slot${chatOpen ? ' agent-chat-slot--open' : ''}`}>
+						<ErrorBoundary fallback={ChatPanelFallback}>
+							{app && (
+								<TldrawAgentAppContextProvider app={app}>
+									<ChatPanel filledCells={filledCells} totalCells={TOTAL_CELLS} />
+								</TldrawAgentAppContextProvider>
+							)}
+						</ErrorBoundary>
+					</div>
+					<TemplateChooser
+						visible={showTemplate}
+						onSelectTemplate={handleSelectTemplate}
+						onRequestClose={() => setShowTemplate(false)}
+					/>
 				</div>
-				<div className="agent-chat-slot">
-					<ErrorBoundary fallback={ChatPanelFallback}>
-						{app && (
-							<TldrawAgentAppContextProvider app={app}>
-								<ChatPanel
-									filledCells={filledCells}
-									totalCells={TOTAL_CELLS}
-									onExport={handleExport}
-								/>
-							</TldrawAgentAppContextProvider>
-						)}
-					</ErrorBoundary>
-				</div>
-				<TemplateChooser
-					visible={showTemplate}
-					onSelectTemplate={handleSelectTemplate}
-					onRequestClose={() => setShowTemplate(false)}
-				/>
-			</div>
-		</TldrawUiToastsProvider>
+			</TldrawUiToastsProvider>
+		</ChatPanelContext.Provider>
 	)
 }
 

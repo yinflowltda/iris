@@ -3,11 +3,9 @@ import './ProgressIndicator.css'
 export function ProgressIndicator({
 	filledCells,
 	totalCells,
-	onExport,
 }: {
 	filledCells: number
 	totalCells: number
-	onExport: () => void
 }) {
 	const pct = totalCells > 0 ? (filledCells / totalCells) * 100 : 0
 	const isComplete = filledCells >= totalCells && totalCells > 0
@@ -30,12 +28,6 @@ export function ProgressIndicator({
 				<span className="progress-label" data-testid="progress-label">
 					{filledCells} / {totalCells}
 				</span>
-			)}
-
-			{filledCells > 0 && (
-				<button type="button" className="progress-export-btn" onClick={onExport}>
-					Export
-				</button>
 			)}
 		</div>
 	)

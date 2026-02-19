@@ -9,11 +9,9 @@ import { useVoice } from './VoiceControl'
 export function ChatPanel({
 	filledCells,
 	totalCells,
-	onExport,
 }: {
 	filledCells: number
 	totalCells: number
-	onExport: () => void
 }) {
 	const agent = useAgent()
 	const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -52,7 +50,7 @@ export function ChatPanel({
 	return (
 		<div className="chat-panel tl-theme__dark">
 			<div className="chat-header">
-				<ProgressIndicator filledCells={filledCells} totalCells={totalCells} onExport={onExport} />
+				<ProgressIndicator filledCells={filledCells} totalCells={totalCells} />
 				<button type="button" className="new-chat-button" onClick={handleNewChat}>
 					+
 				</button>

@@ -27,11 +27,19 @@ body {
 
 .agent-chat-slot {
 	position: relative;
-	width: 350px;
-	min-width: 350px;
+	width: 0;
+	min-width: 0;
 	height: 100%;
 	overflow: hidden;
 	z-index: 50;
+	transition:
+		width 0.25s ease,
+		min-width 0.25s ease;
+}
+
+.agent-chat-slot--open {
+	width: 350px;
+	min-width: 350px;
 }
 
 .agent-chat-slot .chat-panel {
@@ -57,7 +65,7 @@ body {
 		flex-direction: column;
 	}
 
-	.agent-chat-slot {
+	.agent-chat-slot--open {
 		width: 100%;
 		min-width: 100%;
 		height: min(45vh, 420px);
@@ -68,6 +76,16 @@ body {
 		border-left: 0;
 		border-top: 1px solid var(--tl-color-low);
 	}
+}
+
+.tlui-main-toolbar__mobile-style-panel {
+	display: none;
+}
+
+/* Hide export options from menus */
+[data-testid="main-menu-sub.export-all-as-button"],
+[data-testid="context-menu-sub.export-as-button"] {
+	display: none;
 }
 
 .tldraw-canvas {
