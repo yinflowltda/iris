@@ -1,4 +1,5 @@
-import { useCallback } from 'react'
+import type { PointerEvent } from 'react'
+import { useCallback, useEffect } from 'react'
 import './TemplateChooser.css'
 
 interface Template {
@@ -18,17 +19,10 @@ const templates: Template[] = [
 		active: true,
 	},
 	{
-		id: 'life-wheel',
-		name: 'Life Wheel',
-		description: 'Assess balance across key areas of your life.',
+		id: 'life-map',
+		name: 'Life Map',
+		description: 'See how different areas of your life are doing at a glance.',
 		icon: '◐',
-		active: false,
-	},
-	{
-		id: 'goal-setting',
-		name: 'Goal Setting',
-		description: 'Define and track meaningful personal goals.',
-		icon: '◇',
 		active: false,
 	},
 ]
@@ -36,9 +30,11 @@ const templates: Template[] = [
 export function TemplateChooser({
 	visible,
 	onSelectTemplate,
+	onRequestClose,
 }: {
 	visible: boolean
 	onSelectTemplate: (frameworkId: string) => void
+	onRequestClose: () => void
 }) {
 	const handleStart = useCallback(
 		(id: string) => () => {
@@ -47,14 +43,39 @@ export function TemplateChooser({
 		[onSelectTemplate],
 	)
 
+	const handleOverlayPointerDown = useCallback(
+		(e: PointerEvent<HTMLDivElement>) => {
+			if (!visible) return
+			const target = e.target as HTMLElement | null
+			if (!target) return
+			if (target.closest('.template-card')) return
+			onRequestClose()
+		},
+		[onRequestClose, visible],
+	)
+
+	useEffect(() => {
+		if (!visible) return
+
+		const onKeyDown = (e: KeyboardEvent) => {
+			if (e.key !== 'Escape') return
+			onRequestClose()
+		}
+
+		window.addEventListener('keydown', onKeyDown)
+		return () => window.removeEventListener('keydown', onKeyDown)
+	}, [onRequestClose, visible])
+
 	return (
-		<div className="template-chooser-overlay" data-visible={visible}>
+		<div
+			className="template-chooser-overlay"
+			data-visible={visible}
+			onPointerDown={handleOverlayPointerDown}
+		>
 			<div className="template-chooser">
 				<header className="template-chooser-header">
-					<h1 className="template-chooser-title">Choose a Framework</h1>
-					<p className="template-chooser-subtitle">
-						Select a visual framework to begin your session.
-					</p>
+					<h1 className="template-chooser-title">Choose a Map</h1>
+					<p className="template-chooser-subtitle">Select a map to begin your session.</p>
 				</header>
 
 				<div className="template-chooser-grid">

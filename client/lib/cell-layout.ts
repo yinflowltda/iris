@@ -10,7 +10,7 @@ export interface LayoutItem {
 
 // Cell boundaries (mandala lines) already provide visual separation,
 // so edge padding can be minimal. Inter-item gap only prevents overlap.
-const EDGE_PAD = 1
+const EDGE_PAD = 14
 const ITEM_GAP = 2
 
 export function computeCellContentLayout(bounds: CellBounds, itemCount: number): LayoutItem[] {

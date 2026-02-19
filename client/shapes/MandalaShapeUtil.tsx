@@ -1,3 +1,4 @@
+import type { TLPointerEventInfo } from '@tldraw/editor'
 import { type ReactElement, useEffect, useMemo, useRef, useState } from 'react'
 import {
 	Box,
@@ -490,6 +491,14 @@ export class MandalaShapeUtil extends ShapeUtil<MandalaShape> {
 
 	indicator(_shape: MandalaShape) {
 		return null
+	}
+
+	onPointerDown(_info: TLPointerEventInfo) {
+		// Immediately deselect any selected shapes so TLDraw never treats
+		// the pointer-down as a drag-start for those shapes during a cell click.
+		if (this.editor.getSelectedShapeIds().length > 0) {
+			this.editor.selectNone()
+		}
 	}
 
 	override onClick(shape: MandalaShape) {

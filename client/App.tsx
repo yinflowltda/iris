@@ -490,7 +490,11 @@ function App() {
 						)}
 					</ErrorBoundary>
 				</div>
-				<TemplateChooser visible={showTemplate} onSelectTemplate={handleSelectTemplate} />
+				<TemplateChooser
+					visible={showTemplate}
+					onSelectTemplate={handleSelectTemplate}
+					onRequestClose={() => setShowTemplate(false)}
+				/>
 			</div>
 		</TldrawUiToastsProvider>
 	)

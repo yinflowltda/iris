@@ -14,7 +14,15 @@ test.describe('Emotions Map flow', () => {
 	test('shows template chooser on fresh load', async ({ page }) => {
 		const overlay = page.locator('.template-chooser-overlay')
 		await expect(overlay).toHaveAttribute('data-visible', 'true')
-		await expect(page.locator('.template-chooser-title')).toContainText('Choose a Framework')
+		await expect(page.locator('.template-chooser-title')).toContainText('Choose a Map')
+	})
+
+	test('clicking outside cards closes template chooser', async ({ page }) => {
+		const overlay = page.locator('.template-chooser-overlay')
+		await expect(overlay).toHaveAttribute('data-visible', 'true')
+
+		await page.locator('.template-chooser-header').click()
+		await expect(overlay).toHaveAttribute('data-visible', 'false')
 	})
 
 	test('clicking Start hides template and shows mandala on canvas', async ({ page }) => {
