@@ -1,7 +1,8 @@
-import { type ReactElement, useCallback, useMemo, useState } from 'react'
+import { type ReactElement, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
 	Box,
 	Circle2d,
+	createShapeId,
 	type RecordProps,
 	resizeBox,
 	ShapeUtil,
@@ -16,6 +17,7 @@ import { EMOTIONS_MAP } from '../lib/frameworks/emotions-map'
 import {
 	computeMandalaOuterRadius,
 	getCellBoundingBox,
+	getCellCenter,
 	makeEmptyState,
 } from '../lib/mandala-geometry'
 
@@ -134,18 +136,22 @@ function describeTextArc(
 
 // ─── SVG rendering component ────────────────────────────────────────────────
 
+const SINGLE_CLICK_DELAY_MS = 300
+
 function MandalaSvg({
 	w,
 	h,
 	mandalaState,
 	isExport,
 	onCellClick,
+	onCellDoubleClick,
 }: {
 	w: number
 	h: number
 	mandalaState: MandalaState
 	isExport?: boolean
 	onCellClick?: (cellId: string) => void
+	onCellDoubleClick?: (cellId: string) => void
 }) {
 	const map = EMOTIONS_MAP
 	const size = Math.min(w, h)
@@ -159,6 +165,13 @@ function MandalaSvg({
 	const centerFontSize = Math.max(8, Math.min(13, centerRadius * 0.18))
 
 	const [hoveredCell, setHoveredCell] = useState<string | null>(null)
+	const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+	useEffect(() => {
+		return () => {
+			if (clickTimerRef.current) clearTimeout(clickTimerRef.current)
+		}
+	}, [])
 
 	const handleCellEnter = useCallback(
 		(cellId: string) => {
@@ -170,6 +183,29 @@ function MandalaSvg({
 	const handleCellLeave = useCallback(() => {
 		if (!isExport) setHoveredCell(null)
 	}, [isExport])
+
+	const handleDelayedClick = useCallback(
+		(cellId: string) => {
+			if (!onCellClick) return
+			if (clickTimerRef.current) clearTimeout(clickTimerRef.current)
+			clickTimerRef.current = setTimeout(() => {
+				clickTimerRef.current = null
+				onCellClick(cellId)
+			}, SINGLE_CLICK_DELAY_MS)
+		},
+		[onCellClick],
+	)
+
+	const handleDoubleClick = useCallback(
+		(cellId: string) => {
+			if (clickTimerRef.current) {
+				clearTimeout(clickTimerRef.current)
+				clickTimerRef.current = null
+			}
+			onCellDoubleClick?.(cellId)
+		},
+		[onCellDoubleClick],
+	)
 
 	const sliceFlip = useMemo(() => {
 		const result: Record<string, boolean> = {}
@@ -218,7 +254,8 @@ function MandalaSvg({
 						handleCellLeave()
 					}}
 					onPointerDown={(e) => e.stopPropagation()}
-					onClick={onCellClick ? () => onCellClick(cell.id) : undefined}
+					onClick={() => handleDelayedClick(cell.id)}
+					onDoubleClick={() => handleDoubleClick(cell.id)}
 					style={{ cursor: 'pointer', pointerEvents: 'all', transition: 'fill 0.15s ease' }}
 				/>,
 			)
@@ -321,7 +358,8 @@ function MandalaSvg({
 					handleCellLeave()
 				}}
 				onPointerDown={(e) => e.stopPropagation()}
-				onClick={onCellClick ? () => onCellClick(map.center.id) : undefined}
+				onClick={() => handleDelayedClick(map.center.id)}
+				onDoubleClick={() => handleDoubleClick(map.center.id)}
 				style={{ cursor: 'pointer', pointerEvents: 'all', transition: 'fill 0.15s ease' }}
 			/>
 			<text
@@ -425,6 +463,8 @@ function MandalaSvg({
 
 // ─── Interactive wrapper (needs useEditor) ───────────────────────────────────
 
+const NOTE_HALF_SIZE = 100
+
 function MandalaInteractive({ shape }: { shape: MandalaShape }) {
 	const editor = useEditor()
 
@@ -450,12 +490,36 @@ function MandalaInteractive({ shape }: { shape: MandalaShape }) {
 		[editor, shape.id],
 	)
 
+	const handleCellDoubleClick = useCallback(
+		(cellId: string) => {
+			const mandala = editor.getShape<MandalaShape>(shape.id)
+			if (!mandala) return
+
+			const outerR = computeMandalaOuterRadius(mandala.props.w, mandala.props.h)
+			const localCenter = { x: mandala.props.w / 2, y: mandala.props.h / 2 }
+			const cellCenter = getCellCenter(EMOTIONS_MAP, localCenter, outerR, cellId)
+			if (!cellCenter) return
+
+			const noteId = createShapeId()
+			editor.createShape({
+				id: noteId,
+				type: 'note',
+				x: mandala.x + cellCenter.x - NOTE_HALF_SIZE,
+				y: mandala.y + cellCenter.y - NOTE_HALF_SIZE,
+			})
+			editor.setSelectedShapes([noteId])
+			editor.setEditingShape(noteId)
+		},
+		[editor, shape.id],
+	)
+
 	return (
 		<MandalaSvg
 			w={shape.props.w}
 			h={shape.props.h}
 			mandalaState={shape.props.state}
 			onCellClick={handleCellClick}
+			onCellDoubleClick={handleCellDoubleClick}
 		/>
 	)
 }
