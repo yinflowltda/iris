@@ -8,6 +8,7 @@ import { EMOTIONS_MAP } from '../lib/frameworks/emotions-map'
 import { getCellCenter, isValidCellId } from '../lib/mandala-geometry'
 import type { MandalaShape } from '../shapes/MandalaShapeUtil'
 import { AgentActionUtil, registerActionUtil } from './AgentActionUtil'
+import { resolveMandalaId } from './mandala-action-utils'
 
 const NOTE_DIAMETER = 200
 
@@ -25,7 +26,7 @@ export const FillCellActionUtil = registerActionUtil(
 		override sanitizeAction(action: Streaming<FillCellAction>, helpers: AgentHelpers) {
 			if (!action.complete) return action
 
-			const mandalaId = helpers.ensureShapeIdExists(action.mandalaId)
+			const mandalaId = resolveMandalaId(this.editor, helpers, action.mandalaId)
 			if (!mandalaId) return null
 			action.mandalaId = mandalaId
 

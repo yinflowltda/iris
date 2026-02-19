@@ -1,6 +1,10 @@
 import { type LanguageModel, type ModelMessage, streamText } from 'ai'
 import { createWorkersAI } from 'workers-ai-provider'
-import { type AgentModelName, getAgentModelDefinition } from '../../shared/models'
+import {
+	AGENT_MODEL_DEFINITIONS,
+	type AgentModelName,
+	getAgentModelDefinition,
+} from '../../shared/models'
 import type { DebugPart } from '../../shared/schema/PromptPartDefinitions'
 import type { AgentAction } from '../../shared/types/AgentAction'
 import type { AgentPrompt } from '../../shared/types/AgentPrompt'
@@ -37,13 +41,6 @@ export class AgentService {
 	}
 
 	private async *streamActions(prompt: AgentPrompt): AsyncGenerator<Streaming<AgentAction>> {
-		const modelName = getModelName(prompt)
-		const model = this.getModel(modelName)
-
-		if (typeof model === 'string') {
-			throw new Error('Model is a string, not a LanguageModel')
-		}
-
 		const systemPrompt = buildSystemPrompt(prompt)
 
 		const messages: ModelMessage[] = []
@@ -67,75 +64,142 @@ export class AgentService {
 			}
 		}
 
-		try {
-			const { textStream } = streamText({
-				model,
-				messages,
-				maxOutputTokens: 8192,
-				temperature: 0,
-				onAbort() {
-					console.warn('Stream actions aborted')
-				},
-				onError: (e) => {
-					console.error('Stream text error:', e)
-					throw e
-				},
-			})
+		const preferredModel = getModelName(prompt)
+		const fallbackModels = getFallbackModels(preferredModel)
+		const candidates = [preferredModel, ...fallbackModels]
 
-			let buffer = ''
-			let lastActionIndex = -1
-			let maybeIncompleteAction: AgentAction | null = null
+		let lastError: unknown = null
 
-			let startTime = Date.now()
-			for await (const text of textStream) {
-				buffer += text
-
-				const partialObject = tryParseStreamingJson(buffer)
-				if (!partialObject) continue
-
-				const actions = partialObject.actions
-				if (!Array.isArray(actions)) continue
-				if (actions.length === 0) continue
-
-				const latestIndex = actions.length - 1
-
-				// A new action was appended; finalize the previous one.
-				if (latestIndex !== lastActionIndex) {
-					if (maybeIncompleteAction) {
-						yield {
-							...maybeIncompleteAction,
-							complete: true,
-							time: Date.now() - startTime,
-						}
-						maybeIncompleteAction = null
-					}
-
-					lastActionIndex = latestIndex
-					startTime = Date.now()
+		for (const [index, modelName] of candidates.entries()) {
+			try {
+				yield* this.streamActionsWithModel(modelName, messages)
+				return
+			} catch (error: any) {
+				lastError = error
+				const canRetry = index < candidates.length - 1
+				if (!canRetry || !isInferenceUpstreamError(error)) {
+					console.error('streamActions error:', error)
+					throw toReadableError(error)
 				}
 
-				const latestAction = actions[latestIndex] as AgentAction | undefined
-				if (!latestAction || !latestAction._type) continue
-
-				maybeIncompleteAction = latestAction
-				yield {
-					...latestAction,
-					complete: false,
-					time: Date.now() - startTime,
-				}
+				const nextModel = candidates[index + 1]
+				console.warn(
+					`Upstream error on model ${modelName}. Retrying with fallback model ${nextModel}.`,
+				)
 			}
-
-			if (maybeIncompleteAction) {
-				yield {
-					...maybeIncompleteAction,
-					complete: true,
-					time: Date.now() - startTime,
-				}
-			}
-		} catch (error: any) {
-			console.error('streamActions error:', error)
-			throw error
 		}
+
+		throw toReadableError(lastError)
+	}
+
+	private async *streamActionsWithModel(
+		modelName: AgentModelName,
+		messages: ModelMessage[],
+	): AsyncGenerator<Streaming<AgentAction>> {
+		const model = this.getModel(modelName)
+
+		if (typeof model === 'string') {
+			throw new Error('Model is a string, not a LanguageModel')
+		}
+
+		const { textStream } = streamText({
+			model,
+			messages,
+			maxOutputTokens: 8192,
+			temperature: 0,
+			onAbort() {
+				console.warn('Stream actions aborted')
+			},
+			onError: (e) => {
+				console.error('Stream text error:', e)
+				throw e
+			},
+		})
+
+		let buffer = ''
+		let lastActionIndex = -1
+		let maybeIncompleteAction: AgentAction | null = null
+
+		let startTime = Date.now()
+		for await (const text of textStream) {
+			buffer += text
+
+			const partialObject = tryParseStreamingJson(buffer)
+			if (!partialObject) continue
+
+			const actions = partialObject.actions
+			if (!Array.isArray(actions)) continue
+			if (actions.length === 0) continue
+
+			const latestIndex = actions.length - 1
+
+			// A new action was appended; finalize the previous one.
+			if (latestIndex !== lastActionIndex) {
+				if (maybeIncompleteAction) {
+					yield {
+						...maybeIncompleteAction,
+						complete: true,
+						time: Date.now() - startTime,
+					}
+					maybeIncompleteAction = null
+				}
+
+				lastActionIndex = latestIndex
+				startTime = Date.now()
+			}
+
+			const latestAction = actions[latestIndex] as AgentAction | undefined
+			if (!latestAction || !latestAction._type) continue
+
+			maybeIncompleteAction = latestAction
+			yield {
+				...latestAction,
+				complete: false,
+				time: Date.now() - startTime,
+			}
+		}
+
+		if (maybeIncompleteAction) {
+			yield {
+				...maybeIncompleteAction,
+				complete: true,
+				time: Date.now() - startTime,
+			}
+		}
+	}
+}
+
+function getFallbackModels(preferred: AgentModelName): AgentModelName[] {
+	const allModels = Object.keys(AGENT_MODEL_DEFINITIONS) as AgentModelName[]
+	return allModels.filter((name) => name !== preferred)
+}
+
+function isInferenceUpstreamError(error: unknown): boolean {
+	const text = getErrorText(error).toLowerCase()
+	return text.includes('inferenceupstreamerror')
+}
+
+function toReadableError(error: unknown): Error {
+	const text = getErrorText(error)
+	if (text.trim().length > 0 && text !== 'Unknown stream error') {
+		return new Error(text)
+	}
+	return new Error('Model provider error. Please try again.')
+}
+
+function getErrorText(error: unknown): string {
+	if (error instanceof Error && typeof error.message === 'string' && error.message.length > 0) {
+		return error.message
+	}
+
+	if (typeof error === 'string' && error.length > 0) {
+		return error
+	}
+
+	try {
+		return JSON.stringify(error) || 'Unknown stream error'
+	} catch {
+		return 'Unknown stream error'
 	}
 }
 

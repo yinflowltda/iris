@@ -7,6 +7,7 @@ import { EMOTIONS_MAP } from '../lib/frameworks/emotions-map'
 import { isValidCellId } from '../lib/mandala-geometry'
 import type { MandalaShape } from '../shapes/MandalaShapeUtil'
 import { AgentActionUtil, registerActionUtil } from './AgentActionUtil'
+import { resolveMandalaId } from './mandala-action-utils'
 
 export const DetectConflictActionUtil = registerActionUtil(
 	class DetectConflictActionUtil extends AgentActionUtil<DetectConflictAction> {
@@ -22,7 +23,7 @@ export const DetectConflictActionUtil = registerActionUtil(
 		override sanitizeAction(action: Streaming<DetectConflictAction>, helpers: AgentHelpers) {
 			if (!action.complete) return action
 
-			const mandalaId = helpers.ensureShapeIdExists(action.mandalaId)
+			const mandalaId = resolveMandalaId(this.editor, helpers, action.mandalaId)
 			if (!mandalaId) return null
 			action.mandalaId = mandalaId
 
