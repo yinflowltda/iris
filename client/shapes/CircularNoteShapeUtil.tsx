@@ -1,4 +1,4 @@
-import { NoteShapeUtil, type TLNoteShape } from 'tldraw'
+import { Circle2d, Group2d, NoteShapeUtil, type TLNoteShape } from 'tldraw'
 
 const NOTE_BASE_SIZE = 200
 
@@ -10,6 +10,14 @@ const NOTE_BASE_SIZE = 200
 export class CircularNoteShapeUtil extends NoteShapeUtil {
 	override options = {
 		resizeMode: 'scale' as const,
+	}
+
+	override hideSelectionBoundsBg() {
+		return true
+	}
+
+	override hideSelectionBoundsFg() {
+		return true
 	}
 
 	override getDefaultProps(): TLNoteShape['props'] {
@@ -34,6 +42,21 @@ export class CircularNoteShapeUtil extends NoteShapeUtil {
 		const diameter = NOTE_BASE_SIZE * shape.props.scale
 		const radius = diameter / 2
 		return <circle cx={radius} cy={radius} r={radius} />
+	}
+
+	override getGeometry(shape: TLNoteShape) {
+		const diameter = NOTE_BASE_SIZE * shape.props.scale
+		const radius = diameter / 2
+		return new Group2d({
+			children: [
+				new Circle2d({
+					x: 0,
+					y: 0,
+					radius,
+					isFilled: true,
+				}),
+			],
+		})
 	}
 
 	private enforceCircularProps(shape: TLNoteShape): TLNoteShape {
