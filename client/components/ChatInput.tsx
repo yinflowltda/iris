@@ -109,7 +109,11 @@ export function ChatInput({
 							<ChevronDownIcon />
 						</div>
 					</div>
-					<button className="chat-input-submit" disabled={inputValue === '' && !isGenerating}>
+					<button
+						type="submit"
+						className="chat-input-submit"
+						disabled={inputValue === '' && !isGenerating}
+					>
 						{isGenerating && inputValue === '' ? '◼' : '⬆'}
 					</button>
 				</span>

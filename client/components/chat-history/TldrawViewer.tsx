@@ -12,6 +12,7 @@ import {
 	TldrawUiContextProvider,
 	tipTapDefaultExtensions,
 } from 'tldraw'
+import { MandalaShapeUtil } from '../../shapes/MandalaShapeUtil'
 
 export function TldrawViewer({
 	shapes,
@@ -69,7 +70,7 @@ export function TldrawViewer({
 					components={components ?? {}}
 					inferDarkMode={false}
 					onMount={setEditor}
-					shapeUtils={defaultShapeUtils}
+					shapeUtils={shapeUtils}
 					bindingUtils={defaultBindingUtils}
 					tools={tools}
 					textOptions={defaultTextOptions}
@@ -85,6 +86,7 @@ class InspectTool extends StateNode {
 	static override id = 'inspect'
 }
 
+const shapeUtils = [...defaultShapeUtils, MandalaShapeUtil]
 const tools = [InspectTool]
 
 const defaultTextOptions = {

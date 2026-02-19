@@ -53,7 +53,7 @@ export function ChatHistoryGroupWithoutDiff({ group }: { group: ChatHistoryGroup
 	return (
 		<div className="chat-history-group">
 			{complete && (
-				<button onClick={() => setCollapsed((v) => !v)}>
+				<button type="button" onClick={() => setCollapsed((v) => !v)}>
 					<span>{showContent ? <ChevronDownIcon /> : <ChevronRightIcon />}</span>
 					{summary}
 				</button>
@@ -81,7 +81,7 @@ function ChatHistoryItem({ item }: { item: ChatHistoryActionItem }) {
 	return (
 		<div className="agent-actions-container">
 			{action.complete && collapsible && (
-				<button onClick={() => setCollapsed((v) => !v)}>
+				<button type="button" onClick={() => setCollapsed((v) => !v)}>
 					<span>{collapsed ? <ChevronRightIcon /> : <ChevronDownIcon />}</span>
 					{summary}
 				</button>

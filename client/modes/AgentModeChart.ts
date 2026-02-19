@@ -25,10 +25,41 @@ export interface AgentModeNode {
  * 1. Add the mode to AGENT_MODE_DEFINITIONS in AgentModeDefinitions.ts
  * 2. Add an entry here with the lifecycle hooks you need
  */
+function hasMandalaOnCanvas(agent: TldrawAgent): boolean {
+	return agent.editor.getCurrentPageShapes().some((s) => s.type === 'mandala')
+}
+
+function commonOnPromptEnd(agent: TldrawAgent) {
+	const todoList = agent.todos.getTodos()
+	const incompleteTodos = todoList.filter((item) => item.status !== 'done')
+
+	if (incompleteTodos.length > 0) {
+		agent.schedule(
+			"Continue until all your todo items are marked as done. If you've completed the work, mark them as done, otherwise keep going.",
+		)
+		return
+	}
+
+	if (agent.lints.hasUnsurfacedLints(agent.lints.getCreatedShapes())) {
+		agent.schedule({
+			agentMessages: [
+				'The automated linter has detected potential visual problems in the canvas. Decide if they need to be addressed.',
+			],
+		})
+		return
+	}
+
+	agent.mode.setMode('idling')
+}
+
 const _AGENT_MODE_CHART: Record<AgentModeDefinition['type'], AgentModeNode> = {
 	idling: {
 		onPromptStart(agent) {
-			agent.mode.setMode('working')
+			if (hasMandalaOnCanvas(agent)) {
+				agent.mode.setMode('emotions-map')
+			} else {
+				agent.mode.setMode('working')
+			}
 		},
 		onEnter(agent, _fromMode) {
 			agent.todos.reset()
@@ -37,27 +68,19 @@ const _AGENT_MODE_CHART: Record<AgentModeDefinition['type'], AgentModeNode> = {
 	},
 	working: {
 		onEnter(agent, fromMode) {
-			// Reset state when entering working mode
 			agent.todos.reset()
-			// agent.userAction.clearHistory()
 			agent.context.clear()
 
-			// When entering working mode from idling, clear created shapes tracking
-			// This handles the case where a user prompt starts while in idling mode,
-			// which transitions to working before working.onPromptStart is called
 			if (fromMode === 'idling') {
 				agent.lints.clearCreatedShapes()
 			}
 		},
 
 		onExit(agent, _toMode) {
-			// Unlock all shapes created during the prompt when exiting working mode
 			agent.lints.unlockCreatedShapes()
 		},
 
 		onPromptStart(agent, request) {
-			// Clear created shapes tracking and flush todos when a new user prompt starts
-			// This handles cases where a prompt starts while already in working mode (e.g., continuation, interrupt)
 			if (request.source === 'user') {
 				agent.todos.flush()
 				agent.lints.clearCreatedShapes()
@@ -65,43 +88,49 @@ const _AGENT_MODE_CHART: Record<AgentModeDefinition['type'], AgentModeNode> = {
 		},
 
 		onPromptEnd(agent, _request) {
-			// Check if there are incomplete todos
-			const todoList = agent.todos.getTodos()
-			const incompleteTodos = todoList.filter((item) => item.status !== 'done')
-
-			if (incompleteTodos.length > 0) {
-				// Schedule continuation to complete remaining work
-				agent.schedule(
-					"Continue until all your todo items are marked as done. If you've completed the work, mark them as done, otherwise keep going.",
-				)
-				return
-			}
-
-			// Check if there are unsurfaced lints on created shapes
-			if (agent.lints.hasUnsurfacedLints(agent.lints.getCreatedShapes())) {
-				agent.schedule({
-					agentMessages: [
-						'The automated linter has detected potential visual problems in the canvas. Decide if they need to be addressed.',
-					],
-				})
-				return
-			}
-
-			// All work complete - return to idling
-			agent.mode.setMode('idling')
+			commonOnPromptEnd(agent)
 		},
 
 		onPromptCancel(agent, _request) {
-			// Return to idling on cancel
+			agent.mode.setMode('idling')
+		},
+	},
+	'emotions-map': {
+		onEnter(agent, fromMode) {
+			agent.todos.reset()
+			agent.context.clear()
+			if (fromMode === 'idling') {
+				agent.lints.clearCreatedShapes()
+			}
+		},
+
+		onExit(agent, _toMode) {
+			agent.lints.unlockCreatedShapes()
+		},
+
+		onPromptStart(agent, request) {
+			if (request.source === 'user') {
+				agent.todos.flush()
+				agent.lints.clearCreatedShapes()
+			}
+		},
+
+		onPromptEnd(agent, _request) {
+			commonOnPromptEnd(agent)
+		},
+
+		onPromptCancel(agent, _request) {
 			agent.mode.setMode('idling')
 		},
 	},
 }
 
+const EMPTY_NODE: AgentModeNode = {}
+
 /**
- * Get the lifecycle node for a mode, if one exists.
- * This function helps TypeScript resolve types correctly with circular imports.
+ * Get the lifecycle node for a mode.
+ * Returns an empty node (no-op hooks) for modes without explicit chart entries.
  */
 export function getModeNode(mode: AgentModeType): AgentModeNode {
-	return _AGENT_MODE_CHART[mode]
+	return _AGENT_MODE_CHART[mode] ?? EMPTY_NODE
 }

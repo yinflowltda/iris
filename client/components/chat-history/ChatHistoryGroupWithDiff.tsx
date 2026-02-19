@@ -79,10 +79,10 @@ export function ChatHistoryGroupWithDiff({ group }: { group: ChatHistoryGroup })
 	return (
 		<div className="chat-history-change">
 			<div className="chat-history-change-acceptance">
-				<button onClick={handleReject} disabled={acceptance === 'rejected'}>
+				<button type="button" onClick={handleReject} disabled={acceptance === 'rejected'}>
 					{acceptance === 'rejected' ? 'Rejected' : 'Reject'}
 				</button>
-				<button onClick={handleAccept} disabled={acceptance === 'accepted'}>
+				<button type="button" onClick={handleAccept} disabled={acceptance === 'accepted'}>
 					{acceptance === 'accepted' ? 'Accepted' : 'Accept'}
 				</button>
 			</div>
