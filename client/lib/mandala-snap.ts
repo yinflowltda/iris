@@ -115,7 +115,39 @@ function processPendingSnaps(editor: Editor, shapeIds: Set<TLShapeId>) {
 		}
 
 		if (targetCellId === sourceCellId) {
-			if (targetCellId) cellsToRelayout.add(targetCellId)
+			if (!targetCellId) continue
+
+			const existingIds = currentState[targetCellId]?.contentShapeIds ?? []
+			if (existingIds.length === 0) continue
+
+			const localDropPoint = { x: dropPoint.x - mandala.x, y: dropPoint.y - mandala.y }
+			const bounds = getCellBounds(EMOTIONS_MAP, localCenter, outerRadius, targetCellId)
+			if (!bounds) {
+				cellsToRelayout.add(targetCellId)
+				continue
+			}
+
+			// Reorder within the same cell so the dragged nodule snaps to the nearest slot
+			const slotIdx = findClosestSlot(
+				computeCellContentLayout(bounds, existingIds.length),
+				localDropPoint,
+			)
+			const reordered = existingIds.filter((id) => id !== simpleId)
+			reordered.splice(slotIdx, 0, simpleId)
+
+			const changed =
+				reordered.length === existingIds.length && reordered.some((id, i) => id !== existingIds[i])
+
+			if (changed) {
+				currentState[targetCellId] = {
+					...currentState[targetCellId],
+					status: 'filled',
+					contentShapeIds: reordered,
+				}
+				stateChanged = true
+			}
+
+			cellsToRelayout.add(targetCellId)
 			continue
 		}
 

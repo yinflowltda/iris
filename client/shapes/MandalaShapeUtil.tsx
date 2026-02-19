@@ -177,6 +177,8 @@ function MandalaSvg({
 	const arcDefs: ReactElement[] = []
 	const cellLabels: ReactElement[] = []
 
+	const internalLabelOffset = Math.max(6, outerRadius * 0.03)
+
 	for (const slice of map.slices) {
 		const shouldFlip = sliceFlip[slice.id]
 
@@ -204,8 +206,8 @@ function MandalaSvg({
 				/>,
 			)
 
-			const labelPad = Math.max(4, (outerR - innerR) * 0.12)
-			const labelR = outerR - labelPad
+			const maxSafeOffset = Math.max(2, outerR - innerR - 2)
+			const labelR = outerR - Math.min(internalLabelOffset, maxSafeOffset)
 			const pathId = `arc-${cell.id}`
 			arcDefs.push(
 				<path
