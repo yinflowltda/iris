@@ -40,8 +40,8 @@ const CELL_HOVER_FILL_COLOR = '#E8EDF1'
 const MANDALA_LABEL_FONT = 'Quicksand, sans-serif'
 
 const STATUS_OPACITY: Record<CellStatus, number> = {
-	empty: 0.35,
-	active: 0.65,
+	empty: 1.0,
+	active: 1.0,
 	filled: 1.0,
 }
 
@@ -204,13 +204,14 @@ function MandalaSvg({
 				/>,
 			)
 
-			const midR = (innerR + outerR) / 2
+			const labelPad = Math.max(4, (outerR - innerR) * 0.12)
+			const labelR = outerR - labelPad
 			const pathId = `arc-${cell.id}`
 			arcDefs.push(
 				<path
 					key={pathId}
 					id={pathId}
-					d={describeTextArc(cx, cy, midR, slice.startAngle, slice.endAngle, shouldFlip)}
+					d={describeTextArc(cx, cy, labelR, slice.startAngle, slice.endAngle, shouldFlip)}
 					fill="none"
 					stroke="none"
 				/>,

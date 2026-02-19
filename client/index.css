@@ -33,12 +33,17 @@ body {
 	width: 100%;
 	height: 100%;
 	background-color: #f4f6f8;
-	--tl-font-draw: "Quicksand", sans-serif;
-	--tl-font-sans: "Quicksand", sans-serif;
 }
 
 .tldraw-canvas .tl-theme__light {
 	--tl-color-background: #f4f6f8;
+	--tl-font-draw: "Quicksand", sans-serif;
+	--tl-font-sans: "Quicksand", sans-serif;
+}
+
+.tldraw-canvas .tl-theme__dark {
+	--tl-font-draw: "Quicksand", sans-serif;
+	--tl-font-sans: "Quicksand", sans-serif;
 }
 
 /* Chat Panel */
