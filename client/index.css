@@ -113,7 +113,7 @@ body {
 	flex-direction: column;
 	height: 100%;
 	position: relative;
-	background-color: rgba(20, 20, 24, 0.5);
+	background-color: transparent;
 	backdrop-filter: blur(24px);
 	-webkit-backdrop-filter: blur(24px);
 	color: var(--tl-color-text-1);
