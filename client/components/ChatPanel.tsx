@@ -2,17 +2,10 @@ import { type FormEventHandler, useCallback, useRef } from 'react'
 import { useAgent } from '../agent/TldrawAgentAppProvider'
 import { ChatInput } from './ChatInput'
 import { ChatHistory } from './chat-history/ChatHistory'
-import { ProgressIndicator } from './ProgressIndicator'
 import { TodoList } from './TodoList'
 import { useVoice } from './VoiceControl'
 
-export function ChatPanel({
-	filledCells,
-	totalCells,
-}: {
-	filledCells: number
-	totalCells: number
-}) {
+export function ChatPanel() {
 	const agent = useAgent()
 	const inputRef = useRef<HTMLTextAreaElement>(null)
 	const { voiceState, isListening, errorMsg, toggleListening } = useVoice(agent)
@@ -50,7 +43,6 @@ export function ChatPanel({
 	return (
 		<div className="chat-panel tl-theme__dark">
 			<div className="chat-header">
-				<ProgressIndicator filledCells={filledCells} totalCells={totalCells} />
 				<button type="button" className="new-chat-button" onClick={handleNewChat}>
 					+
 				</button>

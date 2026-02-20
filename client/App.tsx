@@ -44,7 +44,6 @@ import {
 	useTranslation,
 	useValue,
 } from 'tldraw'
-import type { MandalaState } from '../shared/types/MandalaTypes'
 import type { TldrawAgentApp } from './agent/TldrawAgentApp'
 import {
 	TldrawAgentAppContextProvider,
@@ -57,7 +56,7 @@ import { AgentViewportBoundsHighlights } from './components/highlights/AgentView
 import { AllContextHighlights } from './components/highlights/ContextHighlights'
 import { TemplateChooser } from './components/TemplateChooser'
 import { EMOTIONS_MAP } from './lib/frameworks/emotions-map'
-import { getAllCellIds, makeEmptyState } from './lib/mandala-geometry'
+import { makeEmptyState } from './lib/mandala-geometry'
 import { registerMandalaSnapEffect } from './lib/mandala-snap'
 import { applyNodulePaletteToThemes } from './lib/nodule-color-palette'
 import { CircularNoteShapeUtil } from './shapes/CircularNoteShapeUtil'
@@ -214,20 +213,9 @@ function hasNoTextContent(richText: unknown): boolean {
 	return doc.content.every((block) => !block.content || block.content.length === 0)
 }
 
-const TOTAL_CELLS = getAllCellIds(EMOTIONS_MAP).length
-
-function countFilledCells(state: MandalaState): number {
-	let count = 0
-	for (const key of Object.keys(state)) {
-		if (state[key]?.status === 'filled') count++
-	}
-	return count
-}
-
 function App() {
 	const [app, setApp] = useState<TldrawAgentApp | null>(null)
 	const [showTemplate, setShowTemplate] = useState(SHOW_TEMPLATE_CHOOSER)
-	const [filledCells, setFilledCells] = useState(0)
 	const [chatOpen, setChatOpen] = useState(false)
 	const toggleChat = useCallback(() => setChatOpen((v) => !v), [])
 	const handleUnmount = useCallback(() => {
@@ -258,17 +246,7 @@ function App() {
 		const cleanupProgress = react('mandala-progress', () => {
 			const shapes = app.editor.getCurrentPageShapes()
 			const mandalaRef = shapes.find((s) => s.type === 'mandala')
-
-			if (mandalaRef) {
-				const m = app.editor.getShape(mandalaRef.id) as MandalaShape | undefined
-				if (m) {
-					setShowTemplate(false)
-					setFilledCells(countFilledCells(m.props.state))
-					return
-				}
-			}
-
-			setFilledCells(0)
+			if (mandalaRef) setShowTemplate(false)
 		})
 
 		const cleanupSnap = registerMandalaSnapEffect(app.editor)
@@ -441,35 +419,6 @@ function App() {
 		[app],
 	)
 
-	const handleExport = useCallback(async () => {
-		if (!app) return
-
-		const editor = app.editor
-		const mandala = editor.getCurrentPageShapes().find((s) => s.type === 'mandala') as
-			| MandalaShape
-			| undefined
-		if (!mandala) return
-
-		try {
-			const result = await editor.toImage([mandala], {
-				format: 'png',
-				background: true,
-				padding: 32,
-			})
-
-			const url = URL.createObjectURL(result.blob)
-			const a = document.createElement('a')
-			a.href = url
-			a.download = 'emotions-map.png'
-			document.body.appendChild(a)
-			a.click()
-			document.body.removeChild(a)
-			URL.revokeObjectURL(url)
-		} catch (e) {
-			console.error('Export failed:', e)
-		}
-	}, [app])
-
 	const components: TLComponents = useMemo(() => {
 		return {
 			StylePanel: PopoverOnlyStylePanel,
@@ -515,7 +464,7 @@ function App() {
 						<ErrorBoundary fallback={ChatPanelFallback}>
 							{app && (
 								<TldrawAgentAppContextProvider app={app}>
-									<ChatPanel filledCells={filledCells} totalCells={TOTAL_CELLS} />
+									<ChatPanel />
 								</TldrawAgentAppContextProvider>
 							)}
 						</ErrorBoundary>
