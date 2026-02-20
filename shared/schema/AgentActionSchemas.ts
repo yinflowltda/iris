@@ -429,6 +429,58 @@ export const ZoomToCellAction = z
 
 export type ZoomToCellAction = z.infer<typeof ZoomToCellAction>
 
+// Create Arrow Action (mandala-specific)
+export const CreateArrowAction = z
+	.object({
+		_type: z.literal('create_arrow'),
+		intent: z.string(),
+		mandalaId: SimpleShapeIdSchema,
+		sourceElementId: SimpleShapeIdSchema,
+		targetElementId: SimpleShapeIdSchema,
+		color: z.enum(['black', 'green', 'red']),
+		label: z.string().max(30).optional(),
+	})
+	.meta({
+		title: 'Create Arrow',
+		description:
+			'Creates a directional color-coded arrow between two mandala elements. Color semantics: black = factual link, green = supports/sustains, red = contradicts. Both source and target must be existing elements created via fill_cell.',
+		_systemPromptCategory: 'edit',
+	})
+
+export type CreateArrowAction = z.infer<typeof CreateArrowAction>
+
+// Set Metadata Action (mandala-specific)
+export const SetMetadataAction = z
+	.object({
+		_type: z.literal('set_metadata'),
+		intent: z.string(),
+		mandalaId: SimpleShapeIdSchema,
+		elementId: SimpleShapeIdSchema,
+		metadata: z.record(z.string(), z.unknown()),
+	})
+	.meta({
+		title: 'Set Metadata',
+		description:
+			'Attaches or updates structured metadata on a mandala element (note shape). Metadata keys are validated per-cell type. Fields ending in _before are write-once. Partial updates are merged into existing metadata.',
+	})
+
+export type SetMetadataAction = z.infer<typeof SetMetadataAction>
+
+// Get Metadata Action (mandala-specific)
+export const GetMetadataAction = z
+	.object({
+		_type: z.literal('get_metadata'),
+		intent: z.string(),
+		mandalaId: SimpleShapeIdSchema,
+		elementId: SimpleShapeIdSchema,
+	})
+	.meta({
+		title: 'Get Metadata',
+		description: 'Reads metadata from a mandala element. Data is returned in a follow-up request.',
+	})
+
+export type GetMetadataAction = z.infer<typeof GetMetadataAction>
+
 // Detect Conflict Action (mandala-specific)
 export const DetectConflictAction = z
 	.object({

@@ -29,15 +29,27 @@ function hasMandalaOnCanvas(agent: TldrawAgent): boolean {
 	return agent.editor.getCurrentPageShapes().some((s) => s.type === 'mandala')
 }
 
-function commonOnPromptEnd(agent: TldrawAgent) {
-	const todoList = agent.todos.getTodos()
-	const incompleteTodos = todoList.filter((item) => item.status !== 'done')
+function lastResponseHadMessage(agent: TldrawAgent): boolean {
+	const history = agent.chat.getHistory()
+	for (let i = history.length - 1; i >= 0; i--) {
+		const item = history[i]
+		if (item.type === 'action' && item.action._type === 'message') return true
+		if (item.type === 'prompt') break
+	}
+	return false
+}
 
-	if (incompleteTodos.length > 0) {
-		agent.schedule(
-			"Continue until all your todo items are marked as done. If you've completed the work, mark them as done, otherwise keep going.",
-		)
-		return
+function commonOnPromptEnd(agent: TldrawAgent, { allowTodoContinuation = true } = {}) {
+	if (allowTodoContinuation) {
+		const todoList = agent.todos.getTodos()
+		const incompleteTodos = todoList.filter((item) => item.status !== 'done')
+
+		if (incompleteTodos.length > 0) {
+			agent.schedule(
+				"Continue until all your todo items are marked as done. If you've completed the work, mark them as done, otherwise keep going.",
+			)
+			return
+		}
 	}
 
 	if (agent.lints.hasUnsurfacedLints(agent.lints.getCreatedShapes())) {
@@ -116,7 +128,8 @@ const _AGENT_MODE_CHART: Record<AgentModeDefinition['type'], AgentModeNode> = {
 		},
 
 		onPromptEnd(agent, _request) {
-			commonOnPromptEnd(agent)
+			const waitingForUser = lastResponseHadMessage(agent)
+			commonOnPromptEnd(agent, { allowTodoContinuation: !waitingForUser })
 		},
 
 		onPromptCancel(agent, _request) {

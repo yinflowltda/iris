@@ -8,9 +8,12 @@ import {
 	getAgentModeDefinition,
 } from '../../client/modes/AgentModeDefinitions'
 import {
+	CreateArrowAction,
 	DetectConflictAction,
 	FillCellAction,
+	GetMetadataAction,
 	HighlightCellAction,
+	SetMetadataAction,
 	ZoomToCellAction,
 } from '../../shared/schema/AgentActionSchemas'
 import { getActionSchema, hasActionSchema } from '../../shared/types/AgentAction'
@@ -173,6 +176,124 @@ describe('DetectConflictAction schema', () => {
 	})
 })
 
+describe('CreateArrowAction schema', () => {
+	it('accepts a valid create_arrow action', () => {
+		const result = CreateArrowAction.safeParse({
+			_type: 'create_arrow',
+			intent: 'Connecting event to thought',
+			mandalaId: 'mandala',
+			sourceElementId: 'mandala-past-events-0',
+			targetElementId: 'mandala-past-thoughts-emotions-0',
+			color: 'black',
+		})
+		expect(result.success).toBe(true)
+	})
+
+	it('accepts with optional label', () => {
+		const result = CreateArrowAction.safeParse({
+			_type: 'create_arrow',
+			intent: 'Linking evidence to belief',
+			mandalaId: 'mandala',
+			sourceElementId: 'mandala-evidence-0',
+			targetElementId: 'mandala-present-beliefs-0',
+			color: 'red',
+			label: 'contradicts',
+		})
+		expect(result.success).toBe(true)
+	})
+
+	it('rejects invalid color', () => {
+		const result = CreateArrowAction.safeParse({
+			_type: 'create_arrow',
+			intent: 'test',
+			mandalaId: 'mandala',
+			sourceElementId: 'a',
+			targetElementId: 'b',
+			color: 'purple',
+		})
+		expect(result.success).toBe(false)
+	})
+
+	it('rejects missing sourceElementId', () => {
+		const result = CreateArrowAction.safeParse({
+			_type: 'create_arrow',
+			intent: 'test',
+			mandalaId: 'mandala',
+			targetElementId: 'b',
+			color: 'black',
+		})
+		expect(result.success).toBe(false)
+	})
+
+	it('rejects label longer than 30 chars', () => {
+		const result = CreateArrowAction.safeParse({
+			_type: 'create_arrow',
+			intent: 'test',
+			mandalaId: 'mandala',
+			sourceElementId: 'a',
+			targetElementId: 'b',
+			color: 'green',
+			label: 'a'.repeat(31),
+		})
+		expect(result.success).toBe(false)
+	})
+})
+
+describe('SetMetadataAction schema', () => {
+	it('accepts a valid set_metadata action', () => {
+		const result = SetMetadataAction.safeParse({
+			_type: 'set_metadata',
+			intent: 'Setting trigger type',
+			mandalaId: 'mandala',
+			elementId: 'mandala-past-events-0',
+			metadata: { trigger_type: 'external', is_primary: true },
+		})
+		expect(result.success).toBe(true)
+	})
+
+	it('accepts with empty metadata', () => {
+		const result = SetMetadataAction.safeParse({
+			_type: 'set_metadata',
+			intent: 'test',
+			mandalaId: 'mandala',
+			elementId: 'mandala-past-events-0',
+			metadata: {},
+		})
+		expect(result.success).toBe(true)
+	})
+
+	it('rejects when metadata is missing', () => {
+		const result = SetMetadataAction.safeParse({
+			_type: 'set_metadata',
+			intent: 'test',
+			mandalaId: 'mandala',
+			elementId: 'mandala-past-events-0',
+		})
+		expect(result.success).toBe(false)
+	})
+})
+
+describe('GetMetadataAction schema', () => {
+	it('accepts a valid get_metadata action', () => {
+		const result = GetMetadataAction.safeParse({
+			_type: 'get_metadata',
+			intent: 'Reading metadata from element',
+			mandalaId: 'mandala',
+			elementId: 'mandala-past-events-0',
+		})
+		expect(result.success).toBe(true)
+	})
+
+	it('rejects when elementId is missing', () => {
+		const result = GetMetadataAction.safeParse({
+			_type: 'get_metadata',
+			intent: 'test',
+			mandalaId: 'mandala',
+		})
+		expect(result.success).toBe(false)
+	})
+})
+
 // ─── Schema Registration ─────────────────────────────────────────────────────
 
 describe('action schema registration', () => {
@@ -190,6 +311,18 @@ describe('action schema registration', () => {
 
 	it('has a registered schema for detect_conflict', () => {
 		expect(hasActionSchema('detect_conflict')).toBe(true)
+	})
+
+	it('has a registered schema for create_arrow', () => {
+		expect(hasActionSchema('create_arrow')).toBe(true)
+	})
+
+	it('has a registered schema for set_metadata', () => {
+		expect(hasActionSchema('set_metadata')).toBe(true)
+	})
+
+	it('has a registered schema for get_metadata', () => {
+		expect(hasActionSchema('get_metadata')).toBe(true)
 	})
 
 	it('fill_cell schema parses valid input via registry', () => {
@@ -227,6 +360,18 @@ describe('action util registration', () => {
 	it('has a registered util for detect_conflict', () => {
 		expect(allTypes).toContain('detect_conflict')
 	})
+
+	it('has a registered util for create_arrow', () => {
+		expect(allTypes).toContain('create_arrow')
+	})
+
+	it('has a registered util for set_metadata', () => {
+		expect(allTypes).toContain('set_metadata')
+	})
+
+	it('has a registered util for get_metadata', () => {
+		expect(allTypes).toContain('get_metadata')
+	})
 })
 
 // ─── Emotions Map Mode Definition ────────────────────────────────────────────
@@ -248,6 +393,9 @@ describe('emotions-map mode definition', () => {
 		expect(mode.actions).toContain('fill_cell')
 		expect(mode.actions).toContain('highlight_cell')
 		expect(mode.actions).toContain('detect_conflict')
+		expect(mode.actions).toContain('create_arrow')
+		expect(mode.actions).toContain('set_metadata')
+		expect(mode.actions).toContain('get_metadata')
 	})
 
 	it('includes communication actions', () => {

@@ -14,7 +14,7 @@ import {
 	useEditor,
 	type VecLike,
 } from 'tldraw'
-import type { CellStatus, MandalaState } from '../../shared/types/MandalaTypes'
+import type { CellStatus, MandalaArrowRecord, MandalaState } from '../../shared/types/MandalaTypes'
 import { EMOTIONS_MAP } from '../lib/frameworks/emotions-map'
 import {
 	computeMandalaOuterRadius,
@@ -31,6 +31,8 @@ export type MandalaShapeProps = {
 	w: number
 	h: number
 	state: MandalaState
+	arrows: MandalaArrowRecord[]
+	arrowsVisible: boolean
 }
 
 declare module 'tldraw' {
@@ -465,6 +467,8 @@ export class MandalaShapeUtil extends ShapeUtil<MandalaShape> {
 		w: T.number,
 		h: T.number,
 		state: T.jsonValue as any,
+		arrows: T.jsonValue as any,
+		arrowsVisible: T.boolean,
 	}
 
 	getDefaultProps(): MandalaShapeProps {
@@ -472,6 +476,8 @@ export class MandalaShapeUtil extends ShapeUtil<MandalaShape> {
 			w: 800,
 			h: 800,
 			state: makeEmptyState(EMOTIONS_MAP),
+			arrows: [],
+			arrowsVisible: true,
 		}
 	}
 

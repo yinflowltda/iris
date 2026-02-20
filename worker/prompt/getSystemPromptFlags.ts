@@ -62,6 +62,11 @@ export function getSystemPromptFlags(actions: AgentAction['_type'][], parts: Pro
 		// Metadata
 		hasTimePart: parts.includes('time'),
 
+		// Mandala-specific
+		hasCreateArrow: actions.includes('create_arrow'),
+		hasSetMetadata: actions.includes('set_metadata'),
+		hasGetMetadata: actions.includes('get_metadata'),
+
 		// Derived flags for convenience
 		canEdit: actions.some(isEditAction),
 	}
