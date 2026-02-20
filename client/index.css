@@ -26,20 +26,26 @@ body {
 }
 
 .agent-chat-slot {
-	position: relative;
-	width: 0;
-	min-width: 0;
+	position: absolute;
+	top: 0;
+	right: 0;
+	width: 350px;
+	max-width: 100vw;
 	height: 100%;
 	overflow: hidden;
 	z-index: 50;
 	transition:
-		width 0.25s ease,
-		min-width 0.25s ease;
+		transform 0.25s ease,
+		opacity 0.2s ease;
+	transform: translateX(100%);
+	opacity: 0;
+	pointer-events: none;
 }
 
 .agent-chat-slot--open {
-	width: 350px;
-	min-width: 350px;
+	transform: translateX(0);
+	opacity: 1;
+	pointer-events: auto;
 }
 
 .agent-chat-slot .chat-panel {
@@ -51,11 +57,18 @@ body {
 		flex-direction: column;
 	}
 
-	.agent-chat-slot--open {
+	.agent-chat-slot {
+		top: auto;
+		right: 0;
+		left: 0;
+		bottom: 0;
 		width: 100%;
-		min-width: 100%;
 		height: min(45vh, 420px);
-		order: 1;
+		transform: translateY(100%);
+	}
+
+	.agent-chat-slot--open {
+		transform: translateY(0);
 	}
 
 	.agent-chat-slot .chat-panel {
