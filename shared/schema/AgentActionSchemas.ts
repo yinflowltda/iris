@@ -413,6 +413,22 @@ export const HighlightCellAction = z
 
 export type HighlightCellAction = z.infer<typeof HighlightCellAction>
 
+// Zoom To Cell Action (mandala-specific)
+export const ZoomToCellAction = z
+	.object({
+		_type: z.literal('zoom_to_cell'),
+		intent: z.string(),
+		mandalaId: SimpleShapeIdSchema,
+		cellId: z.string(),
+	})
+	.meta({
+		title: 'Zoom to Cell',
+		description:
+			'The AI zooms the viewport to a specific mandala cell (equivalent to the user click-to-zoom behavior). The cellId uses the format "sliceId-ringId", e.g. "past-beliefs".',
+	})
+
+export type ZoomToCellAction = z.infer<typeof ZoomToCellAction>
+
 // Detect Conflict Action (mandala-specific)
 export const DetectConflictAction = z
 	.object({

@@ -21,7 +21,6 @@ import {
 	defaultShapeUtils,
 	ErrorBoundary,
 	MobileStylePanel,
-	OverflowingToolbar,
 	PORTRAIT_BREAKPOINT,
 	react,
 	type TLComponents,
@@ -30,7 +29,7 @@ import {
 	Tldraw,
 	TldrawOverlays,
 	TldrawUiButton,
-	TldrawUiMenuItem,
+	TldrawUiMenuContextProvider,
 	TldrawUiOrientationProvider,
 	TldrawUiToastsProvider,
 	TldrawUiToolbar,
@@ -40,7 +39,6 @@ import {
 	usePassThroughWheelEvents,
 	useReadonly,
 	useTldrawUiComponents,
-	useTools,
 	useTranslation,
 	useValue,
 } from 'tldraw'
@@ -145,55 +143,40 @@ const ToolbarWithStylePanel = memo(function ToolbarWithStylePanel() {
 	const msg = useTranslation()
 	const breakpoint = useBreakpoint()
 	const isReadonlyMode = useReadonly()
-	const tools = useTools()
 	const activeToolId = useValue('current tool id', () => editor.getCurrentToolId(), [editor])
 
 	const ref = useRef<HTMLDivElement>(null)
 	usePassThroughWheelEvents(ref)
 
-	const { ActionsMenu, QuickActions } = useTldrawUiComponents()
-
-	const showQuickActions =
-		editor.options.actionShortcutsLocation === 'menu'
-			? false
-			: editor.options.actionShortcutsLocation === 'toolbar'
-				? true
-				: breakpoint < PORTRAIT_BREAKPOINT.TABLET
-
 	return (
-		<TldrawUiOrientationProvider orientation="horizontal" tooltipSide="top">
-			<div ref={ref} className="tlui-main-toolbar tlui-main-toolbar--horizontal">
+		<TldrawUiOrientationProvider orientation="vertical" tooltipSide="right">
+			<div
+				ref={ref}
+				className={[
+					'tlui-main-toolbar',
+					'tlui-main-toolbar--vertical',
+					'iris-main-toolbar--dock-bottom-left',
+				].join(' ')}
+			>
 				<div className="tlui-main-toolbar__inner">
 					<div className="tlui-main-toolbar__left">
 						{!isReadonlyMode && (
 							<div className="tlui-main-toolbar__extras">
-								{showQuickActions && (
-									<TldrawUiToolbar
-										orientation="horizontal"
-										className="tlui-main-toolbar__extras__controls"
-										label={msg('actions-menu.title')}
-									>
-										{QuickActions && <QuickActions />}
-										{ActionsMenu && <ActionsMenu />}
-									</TldrawUiToolbar>
-								)}
 								<ToggleToolLockedButton activeToolId={activeToolId} />
 							</div>
 						)}
-						<OverflowingToolbar
-							orientation="horizontal"
-							sizingParentClassName="tlui-main-toolbar"
-							minItems={4}
-							maxItems={8}
-							minSizePx={310}
-							maxSizePx={470}
+						<TldrawUiToolbar
+							orientation="vertical"
+							className="tlui-main-toolbar__tools"
+							label={msg('navigation-zone.title')}
 						>
-							<DefaultToolbarContent />
-							{tools.mandala && <TldrawUiMenuItem {...tools.mandala} isSelected={false} />}
-							<ChatToggleButton />
-						</OverflowingToolbar>
+							<TldrawUiMenuContextProvider type="toolbar" sourceId="toolbar">
+								<DefaultToolbarContent />
+								<ChatToggleButton />
+							</TldrawUiMenuContextProvider>
+						</TldrawUiToolbar>
 					</div>
-					{!isReadonlyMode && (
+					{breakpoint < PORTRAIT_BREAKPOINT.TABLET_SM && !isReadonlyMode && (
 						<div className="tlui-main-toolbar__tools tlui-main-toolbar__mobile-style-panel">
 							<MobileStylePanel />
 						</div>
@@ -201,6 +184,40 @@ const ToolbarWithStylePanel = memo(function ToolbarWithStylePanel() {
 				</div>
 			</div>
 		</TldrawUiOrientationProvider>
+	)
+})
+
+const MenuPanelWithActions = memo(function MenuPanelWithActions() {
+	const editor = useEditor()
+	const msg = useTranslation()
+	const isReadonlyMode = useReadonly()
+	const ref = useRef<HTMLElement>(null)
+	usePassThroughWheelEvents(ref)
+
+	const { MainMenu, PageMenu, QuickActions, ActionsMenu } = useTldrawUiComponents()
+	const isSinglePageMode = useValue('isSinglePageMode', () => editor.options.maxPages <= 1, [
+		editor,
+	])
+
+	if (!MainMenu && !PageMenu && !QuickActions && !ActionsMenu) return null
+
+	return (
+		<nav ref={ref} className="tlui-menu-zone">
+			<div className="tlui-row">
+				{MainMenu && <MainMenu />}
+				{!isReadonlyMode && (QuickActions || ActionsMenu) && (
+					<TldrawUiToolbar
+						orientation="horizontal"
+						className="tlui-main-toolbar__extras__controls iris-menu-actions"
+						label={msg('actions-menu.title')}
+					>
+						{QuickActions && <QuickActions />}
+						{ActionsMenu && <ActionsMenu />}
+					</TldrawUiToolbar>
+				)}
+				{PageMenu && !isSinglePageMode && <PageMenu />}
+			</div>
+		</nav>
 	)
 })
 
@@ -220,6 +237,13 @@ function App() {
 	const toggleChat = useCallback(() => setChatOpen((v) => !v), [])
 	const handleUnmount = useCallback(() => {
 		setApp(null)
+	}, [])
+
+	const options = useMemo(() => {
+		return {
+			// Keep "Actions" next to the hamburger menu (top-left).
+			actionShortcutsLocation: 'menu' as const,
+		}
 	}, [])
 
 	// Session resume + reactive progress tracking
@@ -423,6 +447,7 @@ function App() {
 		return {
 			StylePanel: PopoverOnlyStylePanel,
 			Toolbar: ToolbarWithStylePanel,
+			MenuPanel: SHOW_FULL_TLDRAW_TOOLS ? undefined : MenuPanelWithActions,
 			NavigationPanel: SHOW_FULL_TLDRAW_TOOLS ? undefined : null,
 			PageMenu: SHOW_FULL_TLDRAW_TOOLS ? undefined : null,
 			HelperButtons: () =>
@@ -452,6 +477,7 @@ function App() {
 					<div className="tldraw-canvas">
 						<Tldraw
 							persistenceKey="tldraw-agent-demo"
+							options={options}
 							shapeUtils={shapeUtils}
 							tools={tools}
 							overrides={overrides}

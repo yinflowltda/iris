@@ -88,23 +88,29 @@ body {
 	display: none;
 }
 
-/* Dock the main toolbar to the left edge, centered (desktop). */
-@media (min-width: 769px) {
-	.iris-main-toolbar--dock-left {
-		position: fixed;
-		left: calc(env(safe-area-inset-left, 0px) + 12px);
-		top: 50%;
-		bottom: auto;
-		transform: translateY(-50%);
-		padding-left: 0;
-		z-index: 100;
-	}
+/* Dock the main toolbar to the bottom-left corner. */
+.tlui-main-toolbar.iris-main-toolbar--dock-bottom-left {
+	position: fixed;
+	left: calc(env(safe-area-inset-left, 0px) + 12px);
+	bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+	top: auto;
+	right: auto;
+	transform: none;
+	height: min(calc(100vh - 160px), 520px);
+	padding-left: 0;
+	z-index: 100;
 }
 
 /* Hide export options from menus */
 [data-testid="main-menu-sub.export-all-as-button"],
 [data-testid="context-menu-sub.export-as-button"] {
 	display: none;
+}
+
+/* Place "Actions" beside the hamburger menu (top-left). */
+.tlui-menu-zone .iris-menu-actions {
+	margin-left: 8px;
+	border-radius: var(--tl-radius-4);
 }
 
 .tldraw-canvas {
