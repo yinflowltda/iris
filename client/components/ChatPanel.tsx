@@ -37,7 +37,7 @@ export function ChatPanel() {
 	)
 
 	return (
-		<div className="chat-panel tl-theme__dark">
+		<div className="chat-panel tl-theme__light">
 			<ChatHistory agent={agent} />
 			<div className="chat-input-container">
 				<TodoList agent={agent} />

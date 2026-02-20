@@ -23,6 +23,14 @@ body {
 	position: fixed;
 	inset: 0;
 	display: flex;
+	/* Mirror TLDraw radius tokens for UI outside .tl-container (chat overlay). */
+	--tl-radius-0: 2px;
+	--tl-radius-1: 4px;
+	--tl-radius-2: 6px;
+	--tl-radius-3: 9px;
+	--tl-radius-4: 11px;
+	/* Matches .tlui-button__tool::after radius in TLDraw toolbar */
+	--iris-toolbar-radius: 8px;
 }
 
 .agent-chat-slot {
@@ -80,6 +88,19 @@ body {
 	display: none;
 }
 
+/* Dock the main toolbar to the left edge, centered (desktop). */
+@media (min-width: 769px) {
+	.iris-main-toolbar--dock-left {
+		position: fixed;
+		left: calc(env(safe-area-inset-left, 0px) + 12px);
+		top: 50%;
+		bottom: auto;
+		transform: translateY(-50%);
+		padding-left: 0;
+		z-index: 100;
+	}
+}
+
 /* Hide export options from menus */
 [data-testid="main-menu-sub.export-all-as-button"],
 [data-testid="context-menu-sub.export-as-button"] {
@@ -127,13 +148,21 @@ body {
 	height: 100%;
 	position: relative;
 	background-color: transparent;
-	backdrop-filter: blur(24px);
-	-webkit-backdrop-filter: blur(24px);
 	color: var(--tl-color-text-1);
 	font-family: "Inter", sans-serif;
 	font-weight: 400;
 	font-size: 12px;
 	line-height: 1.5;
+}
+
+.chat-input form,
+.chat-history-prompt,
+.chat-history-change,
+.agent-changes,
+.todo-list,
+.agent-action-type-message {
+	background: var(--tl-color-panel);
+	box-shadow: var(--tl-shadow-2);
 }
 
 .chat-panel * {
@@ -155,7 +184,7 @@ body {
 	flex-shrink: 0;
 	position: sticky;
 	bottom: 0;
-	border-radius: 12px;
+	border-radius: var(--iris-toolbar-radius);
 	margin: 0px 8px 8px 8px;
 	padding: 0px;
 	background-color: transparent;
@@ -167,10 +196,9 @@ body {
 	flex-direction: column;
 	gap: 8px;
 	padding: 8px;
-	border-radius: 12px;
+	border-radius: var(--iris-toolbar-radius);
 	color: var(--tl-color-text-2);
-	background-color: rgba(30, 30, 30, 0.9);
-	box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+	box-shadow: var(--tl-shadow-2);
 	font-size: 11px;
 }
 
@@ -411,15 +439,14 @@ body {
 }
 
 .chat-history-prompt {
-	background-color: rgba(40, 40, 40, 0.9);
-	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+	box-shadow: var(--tl-shadow-2);
 	color: var(--tl-color-text-1);
 	width: 100%;
 	font-family: "Inter", sans-serif;
 	font-weight: 400;
 	font-size: 12px;
 	padding: 8px;
-	border-radius: 8px;
+	border-radius: var(--iris-toolbar-radius);
 	display: flex;
 	flex-direction: column;
 	gap: 4px;
@@ -484,15 +511,22 @@ body {
 	gap: 2px;
 }
 
+.chat-history-change {
+	padding: 8px;
+	border-radius: var(--iris-toolbar-radius);
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
 .chat-history-change-acceptance button {
-	border: 0;
+	border: 1px solid var(--tl-color-low-border);
 	cursor: pointer;
-	background-color: rgba(40, 40, 40, 0.9);
-	color: var(--tl-color-text-2);
+	background: transparent;
+	color: var(--tl-color-text-1);
 	padding: 4px 8px;
 	font-size: 10px;
 	font-weight: 500;
-	cursor: pointer;
 	height: 20px;
 	user-select: none;
 	display: flex;
@@ -503,6 +537,7 @@ body {
 }
 
 .chat-history-change-acceptance button:hover {
+	background: var(--tl-color-muted-1);
 	color: var(--tl-color-text);
 }
 
@@ -512,11 +547,11 @@ body {
 }
 
 .chat-history-change-acceptance button:first-child {
-	border-radius: 4px 0px 0px 0px;
+	border-radius: var(--iris-toolbar-radius) 0px 0px var(--iris-toolbar-radius);
 }
 
 .chat-history-change-acceptance button:last-child {
-	border-radius: 0px 4px 0px 0px;
+	border-radius: 0px var(--iris-toolbar-radius) var(--iris-toolbar-radius) 0px;
 }
 
 /* Agent Actions */
@@ -571,10 +606,9 @@ body {
 }
 
 .agent-changes {
-	background-color: rgba(40, 40, 40, 0.9);
 	padding: 6px 8px;
 	margin: 0px 0px;
-	border-radius: 4px 0px 0px 0px;
+	border-radius: var(--iris-toolbar-radius);
 	color: var(--tl-color-text-2);
 	max-height: 70px;
 	overflow-y: auto;
@@ -587,7 +621,7 @@ body {
 }
 
 .agent-changes:last-child {
-	border-radius: 4px 0px 4px 4px;
+	border-radius: var(--iris-toolbar-radius);
 	max-height: 100%;
 }
 
@@ -771,11 +805,9 @@ button.prompt-tag span {
 
 .todo-list {
 	margin: 0px 16px -18px 16px;
-	background-color: rgba(30, 30, 30, 0.9);
-	border-radius: 12px 12px 0px 0px;
+	border-radius: var(--iris-toolbar-radius) var(--iris-toolbar-radius) 0px 0px;
 	padding: 8px 4px 0 4px;
-	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-	border: 1px solid rgba(255, 255, 255, 0.06);
+	box-shadow: var(--tl-shadow-2);
 	max-height: 120px;
 	overflow-y: auto;
 	flex-shrink: 0;
@@ -868,9 +900,8 @@ button.prompt-tag span {
 
 .agent-action-type-message {
 	color: var(--tl-color-text-1);
-	background-color: rgba(30, 30, 30, 0.85);
 	padding: 8px;
-	border-radius: 8px;
+	border-radius: var(--iris-toolbar-radius);
 }
 
 /* Voice mic button (inline in submit position) */
