@@ -598,6 +598,7 @@ export class TldrawAgent {
 			const prompt = await this.preparePrompt(request, helpers)
 			let incompleteDiff: RecordsDiff<TLRecord> | null = null
 			const actionPromises: Promise<void>[] = []
+			let hadUserFacingMessage = false
 			try {
 				for await (const action of this.streamAgentActions({ prompt, signal })) {
 					if (cancelled) break
@@ -611,8 +612,12 @@ export class TldrawAgent {
 								const actionUtilType = this.actions.getAgentActionUtilType(action._type)
 								const actionUtil = this.actions.getAgentActionUtil(action._type)
 
-								// If the action is not in the mode's available actions, skip it
 								if (!availableActions.includes(actionUtilType)) {
+									if (action.complete) {
+										console.warn(
+											`[Agent] Action dropped: "${action._type}" is not available in current mode`,
+										)
+									}
 									return
 								}
 
@@ -626,10 +631,19 @@ export class TldrawAgent {
 									incompleteDiff = null
 								}
 
-								// Sanitize the agent's action
 								const transformedAction = actionUtil.sanitizeAction(action, helpers)
 								if (!transformedAction) {
+									if (action.complete) {
+										console.warn(
+											`[Agent] Action dropped: "${action._type}" rejected by sanitizeAction`,
+											action,
+										)
+									}
 									return
+								}
+
+								if (transformedAction._type === 'message' && transformedAction.complete) {
+									hadUserFacingMessage = true
 								}
 
 								// Apply the action to the app and editor
@@ -660,6 +674,18 @@ export class TldrawAgent {
 					}
 				}
 				await Promise.all(actionPromises)
+
+				if (
+					!cancelled &&
+					!hadUserFacingMessage &&
+					availableActions.includes('message') &&
+					request.source !== 'self'
+				) {
+					console.warn(
+						'[Agent] Request completed without a user-facing message — scheduling continuation',
+					)
+					this.schedule({ data: ['No message was sent to the user. Please respond now.'] })
+				}
 			} catch (e) {
 				if (e === 'Cancelled by user' || (e instanceof Error && e.name === 'AbortError')) {
 					return
@@ -716,26 +742,33 @@ export class TldrawAgent {
 				buffer = actions.pop() || ''
 
 				for (const action of actions) {
-					const match = action.match(/^data: (.+)$/m)
-					if (match) {
-						try {
-							const data = JSON.parse(match[1])
-
-							// If the response contains an error, throw it
-							if ('error' in data) {
-								throw new Error(data.error)
-							}
-
-							const agentAction: Streaming<AgentAction> = data
-							yield agentAction
-						} catch (err: any) {
-							throw new Error(err.message)
-						}
-					}
+					yield* this.parseSSEChunk(action)
 				}
+			}
+
+			// Process any remaining data in the buffer after the stream ends
+			const remaining = buffer.trim()
+			if (remaining) {
+				yield* this.parseSSEChunk(remaining)
 			}
 		} finally {
 			reader.releaseLock()
 		}
+	}
+
+	/**
+	 * Parse a single SSE chunk and yield the action if valid.
+	 */
+	private *parseSSEChunk(chunk: string): Generator<Streaming<AgentAction>> {
+		const match = chunk.match(/^data: (.+)$/m)
+		if (!match) return
+
+		const data = JSON.parse(match[1])
+
+		if ('error' in data) {
+			throw new Error(data.error)
+		}
+
+		yield data as Streaming<AgentAction>
 	}
 }

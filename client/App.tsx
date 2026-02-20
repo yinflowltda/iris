@@ -15,6 +15,8 @@ import {
 	DefaultColorThemePalette,
 	DefaultDashStyle,
 	DefaultFillStyle,
+	DefaultMainMenu,
+	DefaultMainMenuContent,
 	DefaultSizeStyle,
 	DefaultStylePanel,
 	DefaultToolbarContent,
@@ -24,12 +26,16 @@ import {
 	PORTRAIT_BREAKPOINT,
 	react,
 	type TLComponents,
+	type TLShapeId,
 	type TLUiOverrides,
 	type TLUiStylePanelProps,
 	Tldraw,
 	TldrawOverlays,
 	TldrawUiButton,
+	TldrawUiMenuCheckboxItem,
 	TldrawUiMenuContextProvider,
+	TldrawUiMenuGroup,
+	TldrawUiMenuToolItem,
 	TldrawUiOrientationProvider,
 	TldrawUiToastsProvider,
 	TldrawUiToolbar,
@@ -172,6 +178,7 @@ const ToolbarWithStylePanel = memo(function ToolbarWithStylePanel() {
 						>
 							<TldrawUiMenuContextProvider type="toolbar" sourceId="toolbar">
 								<DefaultToolbarContent />
+								<TldrawUiMenuToolItem toolId="mandala" isSelected={activeToolId === 'mandala'} />
 								<ChatToggleButton />
 							</TldrawUiMenuContextProvider>
 						</TldrawUiToolbar>
@@ -186,6 +193,65 @@ const ToolbarWithStylePanel = memo(function ToolbarWithStylePanel() {
 		</TldrawUiOrientationProvider>
 	)
 })
+
+const ARROW_VISIBLE_OPACITY = 0.6
+
+function useArrowsVisible(): [boolean, () => void] {
+	const editor = useEditor()
+	const mandala = useValue(
+		'mandala',
+		() =>
+			editor.getCurrentPageShapes().find((s) => s.type === 'mandala') as MandalaShape | undefined,
+		[editor],
+	)
+
+	const visible = mandala?.props.arrowsVisible !== false
+
+	const toggle = useCallback(() => {
+		if (!mandala) return
+		const next = !visible
+		const mandalaId = mandala.id
+
+		editor.updateShape({
+			id: mandalaId,
+			type: 'mandala',
+			props: { arrowsVisible: next },
+		})
+
+		const arrowRecords = mandala.props.arrows ?? []
+		for (const rec of arrowRecords) {
+			const arrowId = `shape:${rec.arrowId}` as TLShapeId
+			if (editor.getShape(arrowId)) {
+				editor.updateShape({
+					id: arrowId,
+					type: 'arrow',
+					opacity: next ? ARROW_VISIBLE_OPACITY : 0,
+				})
+			}
+		}
+	}, [editor, mandala, visible])
+
+	return [visible, toggle]
+}
+
+function IrisMainMenu() {
+	const [arrowsVisible, toggleArrowsVisible] = useArrowsVisible()
+
+	return (
+		<DefaultMainMenu>
+			<TldrawUiMenuGroup id="iris-mandala">
+				<TldrawUiMenuCheckboxItem
+					id="toggle-arrows"
+					label="Show arrows"
+					checked={arrowsVisible}
+					onSelect={toggleArrowsVisible}
+					readonlyOk
+				/>
+			</TldrawUiMenuGroup>
+			<DefaultMainMenuContent />
+		</DefaultMainMenu>
+	)
+}
 
 const MenuPanelWithActions = memo(function MenuPanelWithActions() {
 	const editor = useEditor()
@@ -447,6 +513,7 @@ function App() {
 		return {
 			StylePanel: PopoverOnlyStylePanel,
 			Toolbar: ToolbarWithStylePanel,
+			MainMenu: IrisMainMenu,
 			MenuPanel: SHOW_FULL_TLDRAW_TOOLS ? undefined : MenuPanelWithActions,
 			NavigationPanel: SHOW_FULL_TLDRAW_TOOLS ? undefined : null,
 			PageMenu: SHOW_FULL_TLDRAW_TOOLS ? undefined : null,

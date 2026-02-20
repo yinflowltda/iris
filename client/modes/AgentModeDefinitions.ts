@@ -9,11 +9,13 @@ import { ClearActionUtil } from '../actions/ClearActionUtil'
 import { CountryInfoActionUtil } from '../actions/CountryInfoActionUtil'
 import { CountShapesActionUtil } from '../actions/CountShapesActionUtil'
 import { CreateActionUtil } from '../actions/CreateActionUtil'
+import { CreateArrowActionUtil } from '../actions/CreateArrowActionUtil'
 import { DeleteActionUtil } from '../actions/DeleteActionUtil'
 // Mandala-specific action utils
 import { DetectConflictActionUtil } from '../actions/DetectConflictActionUtil'
 import { DistributeActionUtil } from '../actions/DistributeActionUtil'
 import { FillCellActionUtil } from '../actions/FillCellActionUtil'
+import { GetMetadataActionUtil } from '../actions/GetMetadataActionUtil'
 import { HighlightCellActionUtil } from '../actions/HighlightCellActionUtil'
 import { LabelActionUtil } from '../actions/LabelActionUtil'
 import { MessageActionUtil } from '../actions/MessageActionUtil'
@@ -24,6 +26,7 @@ import { ResizeActionUtil } from '../actions/ResizeActionUtil'
 import { ReviewActionUtil } from '../actions/ReviewActionUtil'
 import { RotateActionUtil } from '../actions/RotateActionUtil'
 import { SendToBackActionUtil } from '../actions/SendToBackActionUtil'
+import { SetMetadataActionUtil } from '../actions/SetMetadataActionUtil'
 import { SetMyViewActionUtil } from '../actions/SetMyViewActionUtil'
 import { StackActionUtil } from '../actions/StackActionUtil'
 import { ThinkActionUtil } from '../actions/ThinkActionUtil'
@@ -178,6 +181,9 @@ export const AGENT_MODE_DEFINITIONS = [
 			HighlightCellActionUtil.type,
 			ZoomToCellActionUtil.type,
 			DetectConflictActionUtil.type,
+			CreateArrowActionUtil.type,
+			SetMetadataActionUtil.type,
+			GetMetadataActionUtil.type,
 
 			// Internal (required)
 			UnknownActionUtil.type,
@@ -223,6 +229,9 @@ export const AGENT_MODE_DEFINITIONS = [
 			HighlightCellActionUtil.type,
 			ZoomToCellActionUtil.type,
 			DetectConflictActionUtil.type,
+			CreateArrowActionUtil.type,
+			SetMetadataActionUtil.type,
+			GetMetadataActionUtil.type,
 
 			// Individual shapes
 			CreateActionUtil.type,
