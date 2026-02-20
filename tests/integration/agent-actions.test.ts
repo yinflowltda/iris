@@ -11,6 +11,7 @@ import {
 	DetectConflictAction,
 	FillCellAction,
 	HighlightCellAction,
+	ZoomToCellAction,
 } from '../../shared/schema/AgentActionSchemas'
 import { getActionSchema, hasActionSchema } from '../../shared/types/AgentAction'
 import { getResponseForInput } from '../mocks/mock-ai-provider'
@@ -114,6 +115,18 @@ describe('HighlightCellAction schema', () => {
 	})
 })
 
+describe('ZoomToCellAction schema', () => {
+	it('accepts a valid zoom_to_cell action', () => {
+		const result = ZoomToCellAction.safeParse({
+			_type: 'zoom_to_cell',
+			intent: 'Zooming to past events',
+			mandalaId: 'mandala',
+			cellId: 'past-events',
+		})
+		expect(result.success).toBe(true)
+	})
+})
+
 describe('DetectConflictAction schema', () => {
 	it('accepts a valid detect_conflict action', () => {
 		const result = DetectConflictAction.safeParse({
@@ -171,6 +184,10 @@ describe('action schema registration', () => {
 		expect(hasActionSchema('highlight_cell')).toBe(true)
 	})
 
+	it('has a registered schema for zoom_to_cell', () => {
+		expect(hasActionSchema('zoom_to_cell')).toBe(true)
+	})
+
 	it('has a registered schema for detect_conflict', () => {
 		expect(hasActionSchema('detect_conflict')).toBe(true)
 	})
@@ -201,6 +218,10 @@ describe('action util registration', () => {
 
 	it('has a registered util for highlight_cell', () => {
 		expect(allTypes).toContain('highlight_cell')
+	})
+
+	it('has a registered util for zoom_to_cell', () => {
+		expect(allTypes).toContain('zoom_to_cell')
 	})
 
 	it('has a registered util for detect_conflict', () => {

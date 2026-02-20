@@ -30,6 +30,7 @@ import { ThinkActionUtil } from '../actions/ThinkActionUtil'
 import { UnknownActionUtil } from '../actions/UnknownActionUtil'
 import { UpdateActionUtil } from '../actions/UpdateActionUtil'
 import { UpsertTodoListItemActionUtil } from '../actions/UpsertTodoListItemActionUtil'
+import { ZoomToCellActionUtil } from '../actions/ZoomToCellActionUtil'
 
 // Import prompt part utils to ensure they register themselves
 import { AgentViewportBoundsPartUtil } from '../parts/AgentViewportBoundsPartUtil'
@@ -175,6 +176,7 @@ export const AGENT_MODE_DEFINITIONS = [
 			// Mandala-specific actions
 			FillCellActionUtil.type,
 			HighlightCellActionUtil.type,
+			ZoomToCellActionUtil.type,
 			DetectConflictActionUtil.type,
 
 			// Internal (required)
@@ -219,6 +221,7 @@ export const AGENT_MODE_DEFINITIONS = [
 			// Mandala-specific actions
 			FillCellActionUtil.type,
 			HighlightCellActionUtil.type,
+			ZoomToCellActionUtil.type,
 			DetectConflictActionUtil.type,
 
 			// Individual shapes
