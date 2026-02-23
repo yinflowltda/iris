@@ -59,8 +59,12 @@ import { CustomHelperButtons } from './components/CustomHelperButtons'
 import { AgentViewportBoundsHighlights } from './components/highlights/AgentViewportBoundsHighlights'
 import { AllContextHighlights } from './components/highlights/ContextHighlights'
 import { TemplateChooser } from './components/TemplateChooser'
-import { EMOTIONS_MAP } from './lib/frameworks/emotions-map'
+import { setActiveMandalaId } from './lib/frameworks/active-framework'
+import './lib/frameworks/emotions-map'
+import './lib/frameworks/life-map'
+import { getFramework } from './lib/frameworks/framework-registry'
 import { makeEmptyState } from './lib/mandala-geometry'
+import { findNonOverlappingPosition } from './lib/mandala-placement'
 import { registerMandalaSnapEffect } from './lib/mandala-snap'
 import { applyNodulePaletteToThemes } from './lib/nodule-color-palette'
 import { CircularNoteShapeUtil } from './shapes/CircularNoteShapeUtil'
@@ -86,9 +90,12 @@ const SHOW_TEMPLATE_CHOOSER = false
 
 const MANDALA_TEMPLATE_DEFINITIONS = {
 	'emotions-map': {
-		mode: 'emotions-map',
-		framework: EMOTIONS_MAP,
-		size: 600,
+		mode: 'mandala',
+		frameworkId: 'emotions-map',
+	},
+	'life-map': {
+		mode: 'mandala',
+		frameworkId: 'life-map',
 	},
 } as const
 
@@ -316,16 +323,17 @@ function App() {
 	useEffect(() => {
 		if (!app) return
 
-		// Session resume: if mandala already exists, switch to emotions-map mode
+		// Session resume: if mandala already exists, switch to mandala mode
 		const existing = app.editor.getCurrentPageShapes().find((s) => s.type === 'mandala') as
 			| MandalaShape
 			| undefined
 		if (existing) {
+			setActiveMandalaId(existing.id)
 			setShowTemplate(false)
 			try {
 				const agent = app.agents.getAgent()
-				if (agent && agent.mode.getCurrentModeType() !== 'emotions-map') {
-					agent.mode.setMode('emotions-map')
+				if (agent && agent.mode.getCurrentModeType() !== 'mandala') {
+					agent.mode.setMode('mandala')
 				}
 			} catch {
 				// mode switch may fail if already in that mode
@@ -484,15 +492,33 @@ function App() {
 					: null
 			if (!template) return
 
+			const framework = getFramework(template.frameworkId)
 			const editor = app.editor
 			const viewport = editor.getViewportPageBounds()
-			const size = template.size
+			const size = framework.visual.defaultSize
+
+			const existingMandalas = editor
+				.getCurrentPageShapes()
+				.filter((s): s is MandalaShape => s.type === 'mandala')
+				.map((s) => ({ x: s.x, y: s.y, w: s.props.w, h: s.props.h }))
+
+			const position = findNonOverlappingPosition(
+				existingMandalas,
+				{ x: viewport.x, y: viewport.y, w: viewport.w, h: viewport.h },
+				size,
+			)
 
 			editor.createShape({
 				type: 'mandala',
-				x: viewport.x + viewport.w / 2 - size / 2,
-				y: viewport.y + viewport.h / 2 - size / 2,
-				props: { w: size, h: size, state: makeEmptyState(template.framework) },
+				x: position.x,
+				y: position.y,
+				isLocked: true,
+				props: {
+					frameworkId: template.frameworkId,
+					w: size,
+					h: size,
+					state: makeEmptyState(framework.definition),
+				},
 			})
 
 			try {
