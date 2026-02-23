@@ -1,4 +1,3 @@
-import type { TLPointerEventInfo } from '@tldraw/editor'
 import { type ReactElement, useEffect, useMemo, useRef, useState } from 'react'
 import {
 	Box,
@@ -15,7 +14,9 @@ import {
 	type VecLike,
 } from 'tldraw'
 import type { CellStatus, MandalaArrowRecord, MandalaState } from '../../shared/types/MandalaTypes'
+import { setActiveMandalaId } from '../lib/frameworks/active-framework'
 import { EMOTIONS_MAP } from '../lib/frameworks/emotions-map'
+import { getFramework } from '../lib/frameworks/framework-registry'
 import {
 	computeMandalaOuterRadius,
 	getCellAtPoint,
@@ -28,6 +29,7 @@ const DEG_TO_RAD = Math.PI / 180
 // ─── Shape type ──────────────────────────────────────────────────────────────
 
 export type MandalaShapeProps = {
+	frameworkId: string
 	w: number
 	h: number
 	state: MandalaState
@@ -42,14 +44,6 @@ declare module 'tldraw' {
 }
 
 export type MandalaShape = TLBaseShape<'mandala', MandalaShapeProps>
-
-// ─── Color palette ───────────────────────────────────────────────────────────
-
-const STROKE_COLOR = '#114559'
-const TEXT_COLOR = '#114559'
-const CELL_FILL_COLOR = '#FFFFFF'
-const CELL_HOVER_FILL_COLOR = '#D9E2EA'
-const MANDALA_LABEL_FONT = 'Quicksand, sans-serif'
 
 const STATUS_OPACITY: Record<CellStatus, number> = {
 	empty: 1.0,
@@ -143,16 +137,20 @@ function describeTextArc(
 function MandalaSvg({
 	w,
 	h,
+	frameworkId,
 	mandalaState,
 	hoveredCell,
 }: {
 	w: number
 	h: number
+	frameworkId: string
 	mandalaState: MandalaState
 	isExport?: boolean
 	hoveredCell?: string | null
 }) {
-	const map = EMOTIONS_MAP
+	const framework = getFramework(frameworkId)
+	const map = framework.definition
+	const { colors, labelFont } = framework.visual
 	const size = Math.min(w, h)
 	const labelPadding = Math.max(20, size * 0.05)
 	const outerRadius = (size - labelPadding * 2) / 2
@@ -170,7 +168,7 @@ function MandalaSvg({
 			result[slice.id] = mid > 0 && mid < 180
 		}
 		return result
-	}, [])
+	}, [map.slices])
 
 	// ── 1. Cell paths ─────────────────────────────────────────────────────
 	const cellPaths: ReactElement[] = []
@@ -196,9 +194,9 @@ function MandalaSvg({
 				<path
 					key={cell.id}
 					d={path}
-					fill={isHovered ? CELL_HOVER_FILL_COLOR : CELL_FILL_COLOR}
+					fill={isHovered ? colors.cellHoverFill : colors.cellFill}
 					fillOpacity={opacity}
-					stroke={STROKE_COLOR}
+					stroke={colors.stroke}
 					strokeWidth={1}
 					style={{ transition: 'fill 0.15s ease' }}
 				/>,
@@ -222,9 +220,9 @@ function MandalaSvg({
 				<text
 					key={`label-${cell.id}`}
 					fontSize={cellFontSize}
-					fill={TEXT_COLOR}
+					fill={colors.text}
 					pointerEvents="none"
-					style={{ userSelect: 'none', fontFamily: MANDALA_LABEL_FONT }}
+					style={{ userSelect: 'none', fontFamily: labelFont }}
 				>
 					<textPath
 						href={`#${pathId}`}
@@ -253,7 +251,7 @@ function MandalaSvg({
 				y1={y1}
 				x2={x2}
 				y2={y2}
-				stroke={STROKE_COLOR}
+				stroke={colors.stroke}
 				strokeWidth={1.5}
 				pointerEvents="none"
 			/>
@@ -275,7 +273,7 @@ function MandalaSvg({
 			cy={cy}
 			r={ratio * outerRadius}
 			fill="none"
-			stroke={STROKE_COLOR}
+			stroke={colors.stroke}
 			strokeWidth={0.75}
 			pointerEvents="none"
 		/>
@@ -289,8 +287,8 @@ function MandalaSvg({
 				cx={cx}
 				cy={cy}
 				r={centerRadius}
-				fill={isCenterHovered ? CELL_HOVER_FILL_COLOR : 'white'}
-				stroke={STROKE_COLOR}
+				fill={isCenterHovered ? colors.cellHoverFill : 'white'}
+				stroke={colors.stroke}
 				strokeWidth={1.5}
 				style={{ transition: 'fill 0.15s ease' }}
 			/>
@@ -306,7 +304,7 @@ function MandalaSvg({
 				pointerEvents="none"
 				style={{
 					userSelect: 'none',
-					fontFamily: MANDALA_LABEL_FONT,
+					fontFamily: labelFont,
 					textTransform: 'uppercase',
 				}}
 			>
@@ -339,11 +337,11 @@ function MandalaSvg({
 				key={`slabel-${slice.id}`}
 				fontSize={sliceLabelFontSize}
 				fontWeight="bold"
-				fill={STROKE_COLOR}
+				fill={colors.stroke}
 				pointerEvents="none"
 				style={{
 					userSelect: 'none',
-					fontFamily: MANDALA_LABEL_FONT,
+					fontFamily: labelFont,
 					textTransform: 'uppercase',
 					letterSpacing: '0.08em',
 				}}
@@ -368,7 +366,7 @@ function MandalaSvg({
 			cy={cy}
 			r={outerRadius}
 			fill="none"
-			stroke={STROKE_COLOR}
+			stroke={colors.stroke}
 			strokeWidth={1.5}
 			pointerEvents="none"
 		/>
@@ -381,7 +379,7 @@ function MandalaSvg({
 			viewBox={`0 0 ${w} ${h}`}
 			xmlns="http://www.w3.org/2000/svg"
 			role="img"
-			aria-label="Emotions Map Mandala"
+			aria-label={`${map.name} Mandala`}
 		>
 			<defs>
 				{arcDefs}
@@ -415,7 +413,8 @@ function getLocalCellFromPage(
 	const localPoint = editor.getPointInShapeSpace(shape, pagePoint)
 	const outerR = computeMandalaOuterRadius(shape.props.w, shape.props.h)
 	const localCenter = { x: shape.props.w / 2, y: shape.props.h / 2 }
-	return getCellAtPoint(EMOTIONS_MAP, localCenter, outerR, localPoint)
+	const { definition } = getFramework(shape.props.frameworkId)
+	return getCellAtPoint(definition, localCenter, outerR, localPoint)
 }
 
 function MandalaInteractive({ shape }: { shape: MandalaShape }) {
@@ -453,6 +452,7 @@ function MandalaInteractive({ shape }: { shape: MandalaShape }) {
 		<MandalaSvg
 			w={shape.props.w}
 			h={shape.props.h}
+			frameworkId={shape.props.frameworkId}
 			mandalaState={shape.props.state}
 			hoveredCell={hoveredCell}
 		/>
@@ -464,6 +464,7 @@ function MandalaInteractive({ shape }: { shape: MandalaShape }) {
 export class MandalaShapeUtil extends ShapeUtil<MandalaShape> {
 	static override type = 'mandala' as const
 	static override props: RecordProps<MandalaShape> = {
+		frameworkId: T.string,
 		w: T.number,
 		h: T.number,
 		state: T.jsonValue as any,
@@ -473,6 +474,7 @@ export class MandalaShapeUtil extends ShapeUtil<MandalaShape> {
 
 	getDefaultProps(): MandalaShapeProps {
 		return {
+			frameworkId: 'emotions-map',
 			w: 800,
 			h: 800,
 			state: makeEmptyState(EMOTIONS_MAP),
@@ -499,22 +501,20 @@ export class MandalaShapeUtil extends ShapeUtil<MandalaShape> {
 		return null
 	}
 
-	onPointerDown(_info: TLPointerEventInfo) {
-		// Immediately deselect any selected shapes so TLDraw never treats
-		// the pointer-down as a drag-start for those shapes during a cell click.
-		if (this.editor.getSelectedShapeIds().length > 0) {
-			this.editor.selectNone()
-		}
-	}
-
 	override onClick(shape: MandalaShape) {
+		// Deselect any shapes before zooming so the camera animation
+		// doesn't get interpreted as a drag on selected shapes.
+		this.editor.selectNone()
+
+		setActiveMandalaId(shape.id)
 		const pagePoint = this.editor.inputs.currentPagePoint
 		const cellId = getLocalCellFromPage(this.editor, shape, pagePoint)
 
 		if (cellId) {
 			const outerR = computeMandalaOuterRadius(shape.props.w, shape.props.h)
 			const localCenter = { x: shape.props.w / 2, y: shape.props.h / 2 }
-			const box = getCellBoundingBox(EMOTIONS_MAP, localCenter, outerR, cellId)
+			const { definition } = getFramework(shape.props.frameworkId)
+			const box = getCellBoundingBox(definition, localCenter, outerR, cellId)
 
 			if (box) {
 				const pageBox = Box.From({
@@ -538,6 +538,7 @@ export class MandalaShapeUtil extends ShapeUtil<MandalaShape> {
 	}
 
 	override onDoubleClick(shape: MandalaShape) {
+		setActiveMandalaId(shape.id)
 		const pagePoint = this.editor.inputs.currentPagePoint
 		const cellId = getLocalCellFromPage(this.editor, shape, pagePoint)
 		if (!cellId) return { id: shape.id, type: 'mandala' as const }
@@ -564,6 +565,7 @@ export class MandalaShapeUtil extends ShapeUtil<MandalaShape> {
 			<MandalaSvg
 				w={shape.props.w}
 				h={shape.props.h}
+				frameworkId={shape.props.frameworkId}
 				mandalaState={shape.props.state}
 				isExport={true}
 			/>
