@@ -580,6 +580,14 @@ export class MandalaShapeUtil extends ShapeUtil<MandalaShape> {
 		return true
 	}
 
+	override hideSelectionBoundsBg() {
+		return true
+	}
+
+	override hideSelectionBoundsFg() {
+		return true
+	}
+
 	override hideResizeHandles() {
 		return true
 	}

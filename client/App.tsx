@@ -352,10 +352,17 @@ function App() {
 		const cleanupMandalaSelection = app.editor.sideEffects.registerBeforeChangeHandler(
 			'instance_page_state',
 			(_prev, next) => {
-				const mandala = app.editor.getCurrentPageShapes().find((s) => s.type === 'mandala')
-				if (!mandala) return next
-				if (next.selectedShapeIds.includes(mandala.id)) {
-					const filtered = next.selectedShapeIds.filter((id) => id !== mandala.id)
+				const mandalaIds = new Set(
+					app.editor
+						.getCurrentPageShapes()
+						.filter((s) => s.type === 'mandala')
+						.map((s) => s.id),
+				)
+				if (mandalaIds.size === 0) return next
+				const filtered = next.selectedShapeIds.filter((id) => !mandalaIds.has(id))
+				// Only strip mandalas from selection when other shapes are also selected
+				// (box-select scenario). Allow sole mandala selection for right-click context menu.
+				if (filtered.length > 0 && filtered.length !== next.selectedShapeIds.length) {
 					return { ...next, selectedShapeIds: filtered }
 				}
 				return next
@@ -401,8 +408,17 @@ function App() {
 				const original = actions.duplicate
 				if (!original) return actions
 
+				const originalToggleLock = actions['toggle-lock']
 				return {
 					...actions,
+					'toggle-lock': {
+						...originalToggleLock,
+						onSelect(source) {
+							const selected = editor.getSelectedShapes()
+							if (selected.length > 0 && selected.every((s) => s.type === 'mandala')) return
+							originalToggleLock.onSelect?.(source)
+						},
+					},
 					duplicate: {
 						...original,
 						onSelect(source) {
@@ -512,7 +528,6 @@ function App() {
 				type: 'mandala',
 				x: position.x,
 				y: position.y,
-				isLocked: true,
 				props: {
 					frameworkId: template.frameworkId,
 					w: size,

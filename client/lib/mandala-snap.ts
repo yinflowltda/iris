@@ -1,11 +1,11 @@
 import type { Editor, TLNoteShape, TLShapeId } from 'tldraw'
 import type { SimpleShapeId } from '../../shared/types/ids-schema'
-import type { MandalaState, Point2d } from '../../shared/types/MandalaTypes'
+import type { MandalaState, MapDefinition, Point2d } from '../../shared/types/MandalaTypes'
 import type { MandalaShape } from '../shapes/MandalaShapeUtil'
 import { animateNotesToLayout } from './animate-note-layout'
 import type { LayoutItem } from './cell-layout'
 import { computeCellContentLayout } from './cell-layout'
-import { EMOTIONS_MAP } from './frameworks/emotions-map'
+import { getFramework } from './frameworks/framework-registry'
 import { computeMandalaOuterRadius, getCellAtPoint, getCellBounds } from './mandala-geometry'
 
 const NOTE_BASE_SIZE = 200
@@ -82,23 +82,49 @@ export function registerMandalaSnapEffect(editor: Editor): () => void {
  * state but are still children of the page (pre-parentId sessions).
  */
 function migrateExistingNodules(editor: Editor) {
-	const mandala = editor.getCurrentPageShapes().find((s): s is MandalaShape => s.type === 'mandala')
-	if (!mandala) return
+	const mandalas = editor
+		.getCurrentPageShapes()
+		.filter((s): s is MandalaShape => s.type === 'mandala')
 
-	const shapesToReparent: TLShapeId[] = []
-	for (const cellState of Object.values(mandala.props.state)) {
-		for (const simpleId of cellState.contentShapeIds) {
-			const fullId = `shape:${simpleId}` as TLShapeId
-			const shape = editor.getShape(fullId)
-			if (shape && shape.parentId !== mandala.id) {
-				shapesToReparent.push(fullId)
+	for (const mandala of mandalas) {
+		const shapesToReparent: TLShapeId[] = []
+		for (const cellState of Object.values(mandala.props.state)) {
+			for (const simpleId of cellState.contentShapeIds) {
+				const fullId = `shape:${simpleId}` as TLShapeId
+				const shape = editor.getShape(fullId)
+				if (shape && shape.parentId !== mandala.id) {
+					shapesToReparent.push(fullId)
+				}
 			}
 		}
-	}
 
-	if (shapesToReparent.length > 0) {
-		editor.reparentShapes(shapesToReparent, mandala.id)
+		if (shapesToReparent.length > 0) {
+			editor.reparentShapes(shapesToReparent, mandala.id)
+		}
 	}
+}
+
+function findClosestMandala(editor: Editor, point: { x: number; y: number }): MandalaShape | null {
+	const mandalas = editor
+		.getCurrentPageShapes()
+		.filter((s): s is MandalaShape => s.type === 'mandala')
+	if (mandalas.length === 0) return null
+	if (mandalas.length === 1) return mandalas[0]
+
+	let best: MandalaShape | null = null
+	let bestDist = Number.POSITIVE_INFINITY
+	for (const m of mandalas) {
+		const cx = m.x + m.props.w / 2
+		const cy = m.y + m.props.h / 2
+		const dx = point.x - cx
+		const dy = point.y - cy
+		const dist = dx * dx + dy * dy
+		if (dist < bestDist) {
+			bestDist = dist
+			best = m
+		}
+	}
+	return best
 }
 
 function processPendingSnaps(
@@ -106,159 +132,186 @@ function processPendingSnaps(
 	shapeIds: Set<TLShapeId>,
 	recentlySnapped: Set<TLShapeId>,
 ) {
-	const mandala = editor.getCurrentPageShapes().find((s): s is MandalaShape => s.type === 'mandala')
-	if (!mandala) return
+	const mandalas = editor
+		.getCurrentPageShapes()
+		.filter((s): s is MandalaShape => s.type === 'mandala')
+	if (mandalas.length === 0) return
 
-	const outerRadius = computeMandalaOuterRadius(mandala.props.w, mandala.props.h)
-	const pageCenter = {
-		x: mandala.x + mandala.props.w / 2,
-		y: mandala.y + mandala.props.h / 2,
-	}
-	const localCenter = {
-		x: mandala.props.w / 2,
-		y: mandala.props.h / 2,
-	}
-
-	let stateChanged = false
-	const currentState: MandalaState = JSON.parse(JSON.stringify(mandala.props.state))
-	const cellsToRelayout = new Set<string>()
-	const shapesToReparentToMandala: TLShapeId[] = []
-	const shapesToReparentToPage: TLShapeId[] = []
-
-	for (const shapeId of shapeIds) {
-		const shape = editor.getShape(shapeId) as TLNoteShape | undefined
-		if (!shape || shape.type !== 'note') continue
-
-		const simpleId = shapeId.replace('shape:', '') as SimpleShapeId
-
-		const pageBounds = editor.getShapePageBounds(shape)
-		if (!pageBounds) continue
-		const hit = getBestCellHitForPageBounds(pageBounds, pageCenter, outerRadius)
-		const targetCellId = hit?.cellId ?? null
-		const hitPoint = hit?.point ?? { x: pageBounds.midX, y: pageBounds.midY }
-
-		let sourceCellId: string | null = null
-		for (const [cellId, cellState] of Object.entries(currentState)) {
-			if (cellState.contentShapeIds.includes(simpleId)) {
-				sourceCellId = cellId
-				break
-			}
+	// Process each note against the closest mandala
+	for (const mandala of mandalas) {
+		const { definition: map } = getFramework(mandala.props.frameworkId)
+		const outerRadius = computeMandalaOuterRadius(mandala.props.w, mandala.props.h)
+		const pageCenter = {
+			x: mandala.x + mandala.props.w / 2,
+			y: mandala.y + mandala.props.h / 2,
+		}
+		const localCenter = {
+			x: mandala.props.w / 2,
+			y: mandala.props.h / 2,
 		}
 
-		if (targetCellId === sourceCellId) {
-			if (!targetCellId) continue
+		let stateChanged = false
+		const currentState: MandalaState = JSON.parse(JSON.stringify(mandala.props.state))
+		const cellsToRelayout = new Set<string>()
+		const shapesToReparentToMandala: TLShapeId[] = []
+		const shapesToReparentToPage: TLShapeId[] = []
 
-			if (!currentState[targetCellId]) {
-				currentState[targetCellId] = { status: 'empty', contentShapeIds: [] }
+		for (const shapeId of shapeIds) {
+			const shape = editor.getShape(shapeId) as TLNoteShape | undefined
+			if (!shape || shape.type !== 'note') continue
+
+			const simpleId = shapeId.replace('shape:', '') as SimpleShapeId
+
+			const pageBounds = editor.getShapePageBounds(shape)
+			if (!pageBounds) continue
+
+			// Only process this note if this mandala is the closest one
+			const closest = findClosestMandala(editor, {
+				x: pageBounds.midX,
+				y: pageBounds.midY,
+			})
+			if (!closest || closest.id !== mandala.id) continue
+
+			const hit = getBestCellHitForPageBounds(map, pageBounds, pageCenter, outerRadius)
+			const targetCellId = hit?.cellId ?? null
+			const hitPoint = hit?.point ?? { x: pageBounds.midX, y: pageBounds.midY }
+
+			let sourceCellId: string | null = null
+			for (const [cellId, cellState] of Object.entries(currentState)) {
+				if (cellState.contentShapeIds.includes(simpleId)) {
+					sourceCellId = cellId
+					break
+				}
 			}
-			const existingIds = currentState[targetCellId].contentShapeIds
-			if (existingIds.length === 0) continue
 
-			const localDropPoint = { x: hitPoint.x - mandala.x, y: hitPoint.y - mandala.y }
-			const bounds = getCellBounds(EMOTIONS_MAP, localCenter, outerRadius, targetCellId)
-			if (!bounds) {
+			if (targetCellId === sourceCellId) {
+				if (!targetCellId) continue
+
+				if (!currentState[targetCellId]) {
+					currentState[targetCellId] = { status: 'empty', contentShapeIds: [] }
+				}
+				const existingIds = currentState[targetCellId].contentShapeIds
+				if (existingIds.length === 0) continue
+
+				const localDropPoint = { x: hitPoint.x - mandala.x, y: hitPoint.y - mandala.y }
+				const bounds = getCellBounds(map, localCenter, outerRadius, targetCellId)
+				if (!bounds) {
+					cellsToRelayout.add(targetCellId)
+					continue
+				}
+
+				const slotIdx = findClosestSlot(
+					computeCellContentLayout(bounds, existingIds.length),
+					localDropPoint,
+				)
+				const reordered = existingIds.filter((id) => id !== simpleId)
+				reordered.splice(slotIdx, 0, simpleId)
+
+				const changed =
+					reordered.length === existingIds.length &&
+					reordered.some((id, i) => id !== existingIds[i])
+
+				if (changed) {
+					currentState[targetCellId] = {
+						...currentState[targetCellId],
+						status: 'filled',
+						contentShapeIds: reordered,
+					}
+					stateChanged = true
+				}
+
 				cellsToRelayout.add(targetCellId)
 				continue
 			}
 
-			// Reorder within the same cell so the dragged nodule snaps to the nearest slot
-			const slotIdx = findClosestSlot(
-				computeCellContentLayout(bounds, existingIds.length),
-				localDropPoint,
-			)
-			const reordered = existingIds.filter((id) => id !== simpleId)
-			reordered.splice(slotIdx, 0, simpleId)
-
-			const changed =
-				reordered.length === existingIds.length && reordered.some((id, i) => id !== existingIds[i])
-
-			if (changed) {
-				currentState[targetCellId] = {
-					...currentState[targetCellId],
-					status: 'filled',
-					contentShapeIds: reordered,
+			if (sourceCellId && currentState[sourceCellId]) {
+				currentState[sourceCellId] = {
+					...currentState[sourceCellId],
+					contentShapeIds: currentState[sourceCellId].contentShapeIds.filter(
+						(id) => id !== simpleId,
+					),
 				}
+				if (currentState[sourceCellId].contentShapeIds.length === 0) {
+					currentState[sourceCellId] = { ...currentState[sourceCellId], status: 'empty' }
+				}
+				cellsToRelayout.add(sourceCellId)
 				stateChanged = true
 			}
 
-			cellsToRelayout.add(targetCellId)
-			continue
-		}
-
-		if (sourceCellId && currentState[sourceCellId]) {
-			currentState[sourceCellId] = {
-				...currentState[sourceCellId],
-				contentShapeIds: currentState[sourceCellId].contentShapeIds.filter((id) => id !== simpleId),
-			}
-			if (currentState[sourceCellId].contentShapeIds.length === 0) {
-				currentState[sourceCellId] = { ...currentState[sourceCellId], status: 'empty' }
-			}
-			cellsToRelayout.add(sourceCellId)
-			stateChanged = true
-		}
-
-		if (targetCellId) {
-			if (!currentState[targetCellId]) {
-				currentState[targetCellId] = { status: 'empty', contentShapeIds: [] }
-			}
-			const existingIds = currentState[targetCellId].contentShapeIds
-			const localDropPoint = { x: hitPoint.x - mandala.x, y: hitPoint.y - mandala.y }
-			const bounds = getCellBounds(EMOTIONS_MAP, localCenter, outerRadius, targetCellId)
-			const insertIdx = bounds
-				? findClosestSlot(computeCellContentLayout(bounds, existingIds.length + 1), localDropPoint)
-				: existingIds.length
-			const orderedIds = [...existingIds]
-			orderedIds.splice(insertIdx, 0, simpleId)
-
-			currentState[targetCellId] = {
-				...currentState[targetCellId],
-				status: 'filled',
-				contentShapeIds: orderedIds,
-			}
-			cellsToRelayout.add(targetCellId)
-			stateChanged = true
-
-			if (shape.parentId !== mandala.id) {
-				shapesToReparentToMandala.push(shapeId)
-			}
-		} else if (!targetCellId && shape.parentId === mandala.id) {
-			shapesToReparentToPage.push(shapeId)
-		}
-	}
-
-	if (shapesToReparentToMandala.length > 0) {
-		editor.reparentShapes(shapesToReparentToMandala, mandala.id)
-	}
-	if (shapesToReparentToPage.length > 0) {
-		editor.reparentShapes(shapesToReparentToPage, editor.getCurrentPageId())
-	}
-
-	if (cellsToRelayout.size === 0 && !stateChanged) return
-
-	for (const cellId of cellsToRelayout) {
-		const cellState = currentState[cellId]
-		if (!cellState || cellState.contentShapeIds.length === 0) continue
-
-		const bounds = getCellBounds(EMOTIONS_MAP, localCenter, outerRadius, cellId)
-		if (!bounds) continue
-
-		const layout = computeCellContentLayout(bounds, cellState.contentShapeIds.length)
-		const targets = cellState.contentShapeIds
-			.map((simpleId, i) => {
-				const fullId = `shape:${simpleId}` as TLShapeId
-				const item = layout[i]
-				if (!item || !editor.getShape(fullId)) return null
-				return {
-					id: fullId,
-					x: item.center.x - item.diameter / 2,
-					y: item.center.y - item.diameter / 2,
-					scale: item.diameter / NOTE_BASE_SIZE,
+			if (targetCellId) {
+				if (!currentState[targetCellId]) {
+					currentState[targetCellId] = { status: 'empty', contentShapeIds: [] }
 				}
-			})
-			.filter(Boolean) as Array<{ id: TLShapeId; x: number; y: number; scale: number }>
-		animateNotesToLayout(editor, targets, { durationMs: 300 })
+				const existingIds = currentState[targetCellId].contentShapeIds
+				const localDropPoint = { x: hitPoint.x - mandala.x, y: hitPoint.y - mandala.y }
+				const bounds = getCellBounds(map, localCenter, outerRadius, targetCellId)
+				const insertIdx = bounds
+					? findClosestSlot(
+							computeCellContentLayout(bounds, existingIds.length + 1),
+							localDropPoint,
+						)
+					: existingIds.length
+				const orderedIds = [...existingIds]
+				orderedIds.splice(insertIdx, 0, simpleId)
 
-		for (const t of targets) recentlySnapped.add(t.id)
+				currentState[targetCellId] = {
+					...currentState[targetCellId],
+					status: 'filled',
+					contentShapeIds: orderedIds,
+				}
+				cellsToRelayout.add(targetCellId)
+				stateChanged = true
+
+				if (shape.parentId !== mandala.id) {
+					shapesToReparentToMandala.push(shapeId)
+				}
+			} else if (!targetCellId && shape.parentId === mandala.id) {
+				shapesToReparentToPage.push(shapeId)
+			}
+		}
+
+		if (shapesToReparentToMandala.length > 0) {
+			editor.reparentShapes(shapesToReparentToMandala, mandala.id)
+		}
+		if (shapesToReparentToPage.length > 0) {
+			editor.reparentShapes(shapesToReparentToPage, editor.getCurrentPageId())
+		}
+
+		if (cellsToRelayout.size === 0 && !stateChanged) continue
+
+		for (const cellId of cellsToRelayout) {
+			const cellState = currentState[cellId]
+			if (!cellState || cellState.contentShapeIds.length === 0) continue
+
+			const bounds = getCellBounds(map, localCenter, outerRadius, cellId)
+			if (!bounds) continue
+
+			const layout = computeCellContentLayout(bounds, cellState.contentShapeIds.length)
+			const targets = cellState.contentShapeIds
+				.map((simpleId, i) => {
+					const fullId = `shape:${simpleId}` as TLShapeId
+					const item = layout[i]
+					if (!item || !editor.getShape(fullId)) return null
+					return {
+						id: fullId,
+						x: item.center.x - item.diameter / 2,
+						y: item.center.y - item.diameter / 2,
+						scale: item.diameter / NOTE_BASE_SIZE,
+					}
+				})
+				.filter(Boolean) as Array<{ id: TLShapeId; x: number; y: number; scale: number }>
+			animateNotesToLayout(editor, targets, { durationMs: 300 })
+
+			for (const t of targets) recentlySnapped.add(t.id)
+		}
+
+		if (stateChanged) {
+			editor.updateShape({
+				id: mandala.id,
+				type: 'mandala',
+				props: { state: currentState },
+			})
+		}
 	}
 
 	if (recentlySnapped.size > 0) {
@@ -266,17 +319,10 @@ function processPendingSnaps(
 			for (const id of shapeIds) recentlySnapped.delete(id)
 		}, 400)
 	}
-
-	if (stateChanged) {
-		editor.updateShape({
-			id: mandala.id,
-			type: 'mandala',
-			props: { state: currentState },
-		})
-	}
 }
 
 function getBestCellHitForPageBounds(
+	map: MapDefinition,
 	pageBounds: {
 		minX: number
 		minY: number
@@ -291,7 +337,7 @@ function getBestCellHitForPageBounds(
 	outerRadius: number,
 ): { cellId: string; point: Point2d } | null {
 	const boundsCenter = { x: pageBounds.midX, y: pageBounds.midY }
-	const centerHit = getCellAtPoint(EMOTIONS_MAP, pageCenter, outerRadius, boundsCenter)
+	const centerHit = getCellAtPoint(map, pageCenter, outerRadius, boundsCenter)
 	if (centerHit) return { cellId: centerHit, point: boundsCenter }
 
 	// Notes are circular; sampling along the circle at multiple radii is much more reliable
@@ -324,7 +370,7 @@ function getBestCellHitForPageBounds(
 
 	const buckets = new Map<string, Point2d[]>()
 	for (const point of samplePoints) {
-		const cellId = getCellAtPoint(EMOTIONS_MAP, pageCenter, outerRadius, point)
+		const cellId = getCellAtPoint(map, pageCenter, outerRadius, point)
 		if (!cellId) continue
 		const arr = buckets.get(cellId) ?? []
 		arr.push(point)
