@@ -40,6 +40,29 @@ export interface MapDefinition {
 	slices: MapSliceDef[]
 }
 
+// ─── Tree-based map definition (sunburst renderer) ──────────────────────────
+
+export interface TreeNodeDef {
+	id: string
+	label: string
+	question: string
+	guidance: string
+	examples: string[]
+	weight?: number
+	metadataSchema?: Record<string, 'string' | 'number' | 'boolean'>
+	children?: TreeNodeDef[]
+	transparent?: boolean
+}
+
+export interface TreeMapDefinition {
+	id: string
+	name: string
+	description: string
+	root: TreeNodeDef
+}
+
+// ─── Shared state types ─────────────────────────────────────────────────────
+
 export type CellStatus = 'empty' | 'active' | 'filled'
 
 export interface CellState {
