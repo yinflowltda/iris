@@ -356,6 +356,40 @@ export function getCellBoundsFromTree(
 	}
 }
 
+export function getCellAtPointFromArcs(
+	arcs: Array<{ id: string; x0: number; x1: number; y0: number; y1: number; transparent?: boolean; depth?: number }>,
+	center: Point2d,
+	outerRadius: number,
+	point: Point2d,
+): string | null {
+	const dx = point.x - center.x
+	const dy = point.y - center.y
+	const distance = Math.sqrt(dx * dx + dy * dy)
+
+	if (distance > outerRadius) return null
+
+	const ratio = distance / outerRadius
+
+	// Check root first (depth 0)
+	const rootArc = arcs.find((a) => a.depth === 0)
+	if (rootArc && ratio <= rootArc.y1) return rootArc.id
+
+	// d3 convention: 0 = 12 o'clock (top), clockwise
+	let angle = Math.atan2(dx, -dy)
+	if (angle < 0) angle += 2 * Math.PI
+
+	for (const arc of arcs) {
+		if (arc.transparent || arc.depth === 0) continue
+		if (ratio >= arc.y0 && ratio <= arc.y1) {
+			if (isD3AngleInRange(angle, arc.x0, arc.x1)) {
+				return arc.id
+			}
+		}
+	}
+
+	return null
+}
+
 export function getCellBoundsFromArcs(
 	arcs: Array<{ id: string; x0: number; x1: number; y0: number; y1: number }>,
 	center: Point2d,

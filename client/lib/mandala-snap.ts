@@ -14,6 +14,7 @@ import { getFramework } from './frameworks/framework-registry'
 import {
 	computeMandalaOuterRadius,
 	getCellAtPoint,
+	getCellAtPointFromArcs,
 	getCellAtPointFromTree,
 	getCellBounds,
 	getCellBoundsFromArcs,
@@ -21,6 +22,7 @@ import {
 } from './mandala-geometry'
 import { computeSunburstLayout, isNodeInSubtree } from './sunburst-layout'
 import type { ArcAnimationState } from './sunburst-zoom'
+import { computeZoomTargets } from './sunburst-zoom'
 
 const NOTE_BASE_SIZE = 200
 const CREATE_DEBOUNCE_MS = 150
@@ -145,6 +147,46 @@ function findClosestMandala(editor: Editor, point: { x: number; y: number }): Ma
 	return best
 }
 
+/**
+ * Build a layout-safe zoomed arc array: applies zoom targets and clamps
+ * non-root cells' y0 to the base root y1 so the root circle's visual
+ * space is preserved (SunburstSvg always renders root at base size).
+ */
+function buildLayoutArcs(
+	baseArcs: ReturnType<typeof computeSunburstLayout>,
+	zoomTargets: Map<string, ArcAnimationState>,
+) {
+	const baseRootY1 = baseArcs.find((a) => a.depth === 0)?.y1 ?? 0
+	return baseArcs.map((arc) => {
+		const zoomed = zoomTargets.get(arc.id)
+		if (!zoomed) return arc
+		const merged = { ...arc, ...zoomed }
+		// Preserve root circle space: non-root cells shouldn't start inside it
+		if (arc.depth !== 0 && merged.y0 < baseRootY1) {
+			merged.y0 = baseRootY1
+		}
+		return merged
+	})
+}
+
+/**
+ * When mandala is in focus zoom mode, compute the zoomed arc array
+ * so hit-testing and layout use zoomed geometry instead of base.
+ */
+function getZoomedArcArray(
+	mandala: MandalaShape,
+	treeDef: TreeMapDefinition | undefined,
+): Array<{ id: string; x0: number; x1: number; y0: number; y1: number; transparent?: boolean; depth?: number }> | null {
+	if (!treeDef) return null
+	if (mandala.props.zoomMode !== 'focus' || !mandala.props.zoomedNodeId) return null
+
+	const baseArcs = computeSunburstLayout(treeDef)
+	const zoomTargets = computeZoomTargets(baseArcs, mandala.props.zoomedNodeId)
+	if (zoomTargets.size === 0) return null
+
+	return buildLayoutArcs(baseArcs, zoomTargets)
+}
+
 function processPendingSnaps(
 	editor: Editor,
 	shapeIds: Set<TLShapeId>,
@@ -168,6 +210,9 @@ function processPendingSnaps(
 			y: mandala.props.h / 2,
 		}
 
+		// When in focus zoom mode, compute zoomed arcs for hit-testing and layout
+		const zoomedArcArray = getZoomedArcArray(mandala, treeDef)
+
 		let stateChanged = false
 		const currentState: MandalaState = JSON.parse(JSON.stringify(mandala.props.state))
 		const cellsToRelayout = new Set<string>()
@@ -190,9 +235,11 @@ function processPendingSnaps(
 			})
 			if (!closest || closest.id !== mandala.id) continue
 
-			const hit = treeDef
-				? getBestCellHitForPageBoundsTree(treeDef, pageBounds, pageCenter, outerRadius)
-				: getBestCellHitForPageBounds(map, pageBounds, pageCenter, outerRadius)
+			const hit = zoomedArcArray
+				? getBestCellHitForArcs(zoomedArcArray, pageBounds, pageCenter, outerRadius)
+				: treeDef
+					? getBestCellHitForPageBoundsTree(treeDef, pageBounds, pageCenter, outerRadius)
+					: getBestCellHitForPageBounds(map, pageBounds, pageCenter, outerRadius)
 			const targetCellId = hit?.cellId ?? null
 			const hitPoint = hit?.point ?? { x: pageBounds.midX, y: pageBounds.midY }
 
@@ -214,9 +261,11 @@ function processPendingSnaps(
 				if (existingIds.length === 0) continue
 
 				const localDropPoint = { x: hitPoint.x - mandala.x, y: hitPoint.y - mandala.y }
-				const bounds = treeDef
-					? getCellBoundsFromTree(treeDef, localCenter, outerRadius, targetCellId)
-					: getCellBounds(map, localCenter, outerRadius, targetCellId)
+				const bounds = zoomedArcArray
+					? getCellBoundsFromArcs(zoomedArcArray, localCenter, outerRadius, targetCellId)
+					: treeDef
+						? getCellBoundsFromTree(treeDef, localCenter, outerRadius, targetCellId)
+						: getCellBounds(map, localCenter, outerRadius, targetCellId)
 				if (!bounds) {
 					cellsToRelayout.add(targetCellId)
 					continue
@@ -266,9 +315,11 @@ function processPendingSnaps(
 				}
 				const existingIds = currentState[targetCellId].contentShapeIds
 				const localDropPoint = { x: hitPoint.x - mandala.x, y: hitPoint.y - mandala.y }
-				const bounds = treeDef
-					? getCellBoundsFromTree(treeDef, localCenter, outerRadius, targetCellId)
-					: getCellBounds(map, localCenter, outerRadius, targetCellId)
+				const bounds = zoomedArcArray
+					? getCellBoundsFromArcs(zoomedArcArray, localCenter, outerRadius, targetCellId)
+					: treeDef
+						? getCellBoundsFromTree(treeDef, localCenter, outerRadius, targetCellId)
+						: getCellBounds(map, localCenter, outerRadius, targetCellId)
 				const insertIdx = bounds
 					? findClosestSlot(
 							computeCellContentLayout(bounds, existingIds.length + 1),
@@ -307,9 +358,11 @@ function processPendingSnaps(
 			const cellState = currentState[cellId]
 			if (!cellState || cellState.contentShapeIds.length === 0) continue
 
-			const bounds = treeDef
-				? getCellBoundsFromTree(treeDef, localCenter, outerRadius, cellId)
-				: getCellBounds(map, localCenter, outerRadius, cellId)
+			const bounds = zoomedArcArray
+				? getCellBoundsFromArcs(zoomedArcArray, localCenter, outerRadius, cellId)
+				: treeDef
+					? getCellBoundsFromTree(treeDef, localCenter, outerRadius, cellId)
+					: getCellBounds(map, localCenter, outerRadius, cellId)
 			if (!bounds) continue
 
 			const layout = computeCellContentLayout(bounds, cellState.contentShapeIds.length)
@@ -521,6 +574,92 @@ function getBestCellHitForPageBoundsTree(
 	return bestCellId ? { cellId: bestCellId, point: bestPoint } : null
 }
 
+function getBestCellHitForArcs(
+	arcArray: Array<{ id: string; x0: number; x1: number; y0: number; y1: number; transparent?: boolean; depth?: number }>,
+	pageBounds: {
+		minX: number
+		minY: number
+		maxX: number
+		maxY: number
+		midX: number
+		midY: number
+		width: number
+		height: number
+	},
+	pageCenter: Point2d,
+	outerRadius: number,
+): { cellId: string; point: Point2d } | null {
+	const boundsCenter = { x: pageBounds.midX, y: pageBounds.midY }
+	const centerHit = getCellAtPointFromArcs(arcArray, pageCenter, outerRadius, boundsCenter)
+	if (centerHit) return { cellId: centerHit, point: boundsCenter }
+
+	const r = Math.max(1, Math.min(pageBounds.width, pageBounds.height) / 2)
+	const radii = [r * 0.25, r * 0.55, r * 0.85]
+	const steps = 24
+
+	const samplePoints: Point2d[] = [
+		boundsCenter,
+		{ x: pageBounds.minX, y: pageBounds.minY },
+		{ x: pageBounds.maxX, y: pageBounds.minY },
+		{ x: pageBounds.minX, y: pageBounds.maxY },
+		{ x: pageBounds.maxX, y: pageBounds.maxY },
+		{ x: pageBounds.midX, y: pageBounds.minY },
+		{ x: pageBounds.midX, y: pageBounds.maxY },
+		{ x: pageBounds.minX, y: pageBounds.midY },
+		{ x: pageBounds.maxX, y: pageBounds.midY },
+	]
+
+	for (const rr of radii) {
+		for (let i = 0; i < steps; i++) {
+			const a = (i / steps) * Math.PI * 2
+			samplePoints.push({
+				x: boundsCenter.x + rr * Math.cos(a),
+				y: boundsCenter.y + rr * Math.sin(a),
+			})
+		}
+	}
+
+	const buckets = new Map<string, Point2d[]>()
+	for (const point of samplePoints) {
+		const cellId = getCellAtPointFromArcs(arcArray, pageCenter, outerRadius, point)
+		if (!cellId) continue
+		const arr = buckets.get(cellId) ?? []
+		arr.push(point)
+		buckets.set(cellId, arr)
+	}
+
+	if (buckets.size === 0) return null
+
+	let bestCellId: string | null = null
+	let bestCount = -1
+	let bestDist = Number.POSITIVE_INFINITY
+	let bestPoint: Point2d = boundsCenter
+
+	for (const [cellId, points] of buckets.entries()) {
+		const count = points.length
+		let minDist = Number.POSITIVE_INFINITY
+		let nearest = points[0]
+		for (const p of points) {
+			const dx = p.x - boundsCenter.x
+			const dy = p.y - boundsCenter.y
+			const d = dx * dx + dy * dy
+			if (d < minDist) {
+				minDist = d
+				nearest = p
+			}
+		}
+
+		if (count > bestCount || (count === bestCount && minDist < bestDist)) {
+			bestCellId = cellId
+			bestCount = count
+			bestDist = minDist
+			bestPoint = nearest
+		}
+	}
+
+	return bestCellId ? { cellId: bestCellId, point: bestPoint } : null
+}
+
 function findClosestSlot(layout: LayoutItem[], dropPoint: Point2d): number {
 	let best = layout.length - 1
 	let bestDist = Number.POSITIVE_INFINITY
@@ -555,12 +694,7 @@ export function repositionNotesForZoom(
 
 	// Build arc array from zoom targets or base layout
 	const baseArcs = computeSunburstLayout(treeDef)
-	const arcArray = zoomedArcs
-		? baseArcs.map((arc) => {
-				const zoomed = zoomedArcs.get(arc.id)
-				return zoomed ? { ...arc, ...zoomed } : arc
-			})
-		: baseArcs
+	const arcArray = zoomedArcs ? buildLayoutArcs(baseArcs, zoomedArcs) : baseArcs
 
 	const targets: Array<{ id: TLShapeId; x: number; y: number; scale: number }> = []
 
