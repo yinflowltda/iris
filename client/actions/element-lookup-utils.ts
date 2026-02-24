@@ -1,6 +1,7 @@
 import type { Editor, TLShape, TLShapeId } from 'tldraw'
 import type { SimpleShapeId } from '../../shared/types/ids-schema'
-import type { MandalaState } from '../../shared/types/MandalaTypes'
+import type { MandalaState, TreeMapDefinition } from '../../shared/types/MandalaTypes'
+import { findTreeNode } from '../lib/sunburst-layout'
 import type { MandalaShape } from '../shapes/MandalaShapeUtil'
 
 /**
@@ -88,12 +89,28 @@ const ENUM_VALUES: Record<string, string[]> = {
 }
 
 /**
+ * Get the metadata schema for a cell by looking it up in a tree definition.
+ * Returns the node's metadataSchema, or null if the node is not found.
+ */
+export function getMetadataSchemaFromTree(
+	treeDef: TreeMapDefinition,
+	cellId: string,
+): Record<string, 'string' | 'number' | 'boolean'> | null {
+	const node = findTreeNode(treeDef.root, cellId)
+	return node?.metadataSchema ?? null
+}
+
+/**
  * Get the allowed metadata schema for a given cell ID.
+ * If a tree definition is provided, looks up the schema from the tree.
+ * Otherwise falls back to the hardcoded ALLOWED_KEYS_BY_CELL map.
  * Returns a map of key → expected type, or null if the cell ID is unknown.
  */
 export function getMetadataSchemaForCell(
 	cellId: string,
+	treeDef?: TreeMapDefinition,
 ): Record<string, 'string' | 'number' | 'boolean'> | null {
+	if (treeDef) return getMetadataSchemaFromTree(treeDef, cellId)
 	return ALLOWED_KEYS_BY_CELL[cellId] ?? null
 }
 
@@ -107,8 +124,9 @@ export function getMetadataSchemaForCell(
 export function validateMetadataForCell(
 	cellId: string,
 	metadata: Record<string, unknown>,
+	treeDef?: TreeMapDefinition,
 ): Record<string, unknown> {
-	const schema = getMetadataSchemaForCell(cellId)
+	const schema = getMetadataSchemaForCell(cellId, treeDef)
 	if (!schema) return {}
 
 	const result: Record<string, unknown> = {}
