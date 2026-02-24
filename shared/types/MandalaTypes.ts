@@ -59,6 +59,8 @@ export interface TreeMapDefinition {
 	name: string
 	description: string
 	root: TreeNodeDef
+	/** Angular offset (radians) applied to all arcs to rotate the layout */
+	startAngle?: number
 }
 
 // ─── Shared state types ─────────────────────────────────────────────────────

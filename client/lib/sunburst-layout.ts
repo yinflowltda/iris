@@ -19,9 +19,9 @@ export interface SunburstArc {
 // ─── Main layout function ────────────────────────────────────────────────────
 
 export function computeSunburstLayout(treeDef: TreeMapDefinition): SunburstArc[] {
-	const root = hierarchy(treeDef.root, (d) => d.children)
-		.sum((d) => (d.children && d.children.length > 0 ? 0 : (d.weight ?? 1)))
-		.sort((a, b) => (b.value ?? 0) - (a.value ?? 0))
+	const root = hierarchy(treeDef.root, (d) => d.children).sum((d) =>
+		d.children && d.children.length > 0 ? 0 : (d.weight ?? 1),
+	)
 
 	// Count maximum visual depth to determine band size
 	const maxDepth = computeMaxVisualDepth(treeDef.root)
@@ -33,6 +33,9 @@ export function computeSunburstLayout(treeDef: TreeMapDefinition): SunburstArc[]
 	// For each node, compute how many transparent ancestors it has
 	const transparentOffsets = new Map<string, number>()
 	computeTransparentOffsets(partitioned.data, 0, transparentOffsets)
+
+	const PI2 = 2 * Math.PI
+	const angleOffset = treeDef.startAngle ?? 0
 
 	const arcs: SunburstArc[] = []
 
@@ -49,12 +52,16 @@ export function computeSunburstLayout(treeDef: TreeMapDefinition): SunburstArc[]
 		const adjustedY0 = rawY0 - offset * bandSize
 		const adjustedY1 = rawY1 - offset * bandSize
 
+		// Apply angular offset and wrap to [0, 2π]
+		const x0 = (((node.x0 + angleOffset) % PI2) + PI2) % PI2
+		const x1 = x0 + (node.x1 - node.x0)
+
 		arcs.push({
 			id: node.data.id,
 			label: node.data.label,
 			depth: node.depth - offset,
-			x0: node.x0,
-			x1: node.x1,
+			x0,
+			x1,
 			y0: adjustedY0,
 			y1: adjustedY1,
 			transparent: isTransparent,

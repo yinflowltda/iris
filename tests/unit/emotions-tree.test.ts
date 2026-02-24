@@ -15,7 +15,7 @@ describe('EMOTIONS_TREE', () => {
 		expect(EMOTIONS_TREE.root.id).toBe('evidence')
 	})
 
-	it('has 3 transparent group children at depth 1 (past, future, present)', () => {
+	it('has 3 transparent group children at depth 1 (present, future, past)', () => {
 		expect(EMOTIONS_TREE.root.children).toHaveLength(3)
 		for (const child of EMOTIONS_TREE.root.children!) {
 			expect(child.transparent).toBe(true)
