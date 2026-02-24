@@ -88,6 +88,75 @@ body {
 	display: none;
 }
 
+/* ── Liquid Glass Effect ── */
+/* Applied to toolbar, menu bar, popovers, and chat elements */
+
+.tlui-main-toolbar__tools {
+	background: rgba(255, 255, 255, 0.55) !important;
+	backdrop-filter: blur(20px) saturate(1.8);
+	-webkit-backdrop-filter: blur(20px) saturate(1.8);
+	border: 1px solid rgba(255, 255, 255, 0.35);
+	box-shadow:
+		0 4px 24px rgba(0, 0, 0, 0.08),
+		inset 0 1px 0 rgba(255, 255, 255, 0.5) !important;
+}
+
+.tlui-menu-zone {
+	background: rgba(255, 255, 255, 0.55) !important;
+	backdrop-filter: blur(20px) saturate(1.8);
+	-webkit-backdrop-filter: blur(20px) saturate(1.8);
+	border: 1px solid rgba(255, 255, 255, 0.35) !important;
+	border-top: none !important;
+	border-left: none !important;
+	box-shadow:
+		0 4px 24px rgba(0, 0, 0, 0.08),
+		inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.tlui-popover__content {
+	background: rgba(255, 255, 255, 0.65) !important;
+	backdrop-filter: blur(24px) saturate(1.8);
+	-webkit-backdrop-filter: blur(24px) saturate(1.8);
+	border: 1px solid rgba(255, 255, 255, 0.4) !important;
+	box-shadow:
+		0 8px 32px rgba(0, 0, 0, 0.12),
+		inset 0 1px 0 rgba(255, 255, 255, 0.5) !important;
+}
+
+.tlui-main-toolbar__extras__controls {
+	background: rgba(255, 255, 255, 0.55) !important;
+	backdrop-filter: blur(20px) saturate(1.8);
+	-webkit-backdrop-filter: blur(20px) saturate(1.8);
+	border: 1px solid rgba(255, 255, 255, 0.35) !important;
+}
+
+/* Dark theme glass overrides */
+.tl-theme__dark .tlui-main-toolbar__tools {
+	background: rgba(30, 30, 30, 0.6) !important;
+	border-color: rgba(255, 255, 255, 0.1);
+	box-shadow:
+		0 4px 24px rgba(0, 0, 0, 0.3),
+		inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+}
+
+.tl-theme__dark .tlui-menu-zone {
+	background: rgba(30, 30, 30, 0.6) !important;
+	border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.tl-theme__dark .tlui-popover__content {
+	background: rgba(30, 30, 30, 0.7) !important;
+	border-color: rgba(255, 255, 255, 0.1) !important;
+	box-shadow:
+		0 8px 32px rgba(0, 0, 0, 0.4),
+		inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+}
+
+.tl-theme__dark .tlui-main-toolbar__extras__controls {
+	background: rgba(30, 30, 30, 0.6) !important;
+	border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
 /* Dock the main toolbar to the bottom-left corner. */
 .tlui-main-toolbar.iris-main-toolbar--dock-bottom-left {
 	position: fixed;
@@ -167,8 +236,26 @@ body {
 .agent-changes,
 .todo-list,
 .agent-action-type-message {
-	background: var(--tl-color-panel);
-	box-shadow: var(--tl-shadow-2);
+	background: rgba(255, 255, 255, 0.55);
+	backdrop-filter: blur(20px) saturate(1.8);
+	-webkit-backdrop-filter: blur(20px) saturate(1.8);
+	border: 1px solid rgba(255, 255, 255, 0.35);
+	box-shadow:
+		0 4px 24px rgba(0, 0, 0, 0.08),
+		inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.tl-theme__dark .chat-input form,
+.tl-theme__dark .chat-history-prompt,
+.tl-theme__dark .chat-history-change,
+.tl-theme__dark .agent-changes,
+.tl-theme__dark .todo-list,
+.tl-theme__dark .agent-action-type-message {
+	background: rgba(30, 30, 30, 0.6);
+	border-color: rgba(255, 255, 255, 0.1);
+	box-shadow:
+		0 4px 24px rgba(0, 0, 0, 0.3),
+		inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 .chat-panel * {
