@@ -1,4 +1,5 @@
-import type { MapDefinition } from '../../../shared/types/MandalaTypes'
+import type { MapDefinition, TreeMapDefinition } from '../../../shared/types/MandalaTypes'
+import { registerFramework } from './framework-registry'
 
 export const EMOTIONS_MAP: MapDefinition = {
 	id: 'emotions-map',
@@ -125,3 +126,122 @@ export const EMOTIONS_MAP: MapDefinition = {
 		},
 	],
 }
+
+// ─── Tree-based definition (sunburst renderer) ──────────────────────────────
+
+const center = EMOTIONS_MAP.center
+const pastSlice = EMOTIONS_MAP.slices[0]
+const futureSlice = EMOTIONS_MAP.slices[1]
+const presentSlice = EMOTIONS_MAP.slices[2]
+const pastInner = pastSlice.cells[1] // past-thoughts-emotions
+const pastOuter = pastSlice.cells[0] // past-events
+const futureInner = futureSlice.cells[1] // future-beliefs
+const futureOuter = futureSlice.cells[0] // future-events
+const presentInner = presentSlice.cells[1] // present-beliefs
+const presentOuter = presentSlice.cells[0] // present-behaviors
+
+export const EMOTIONS_TREE: TreeMapDefinition = {
+	id: 'emotions-map',
+	name: EMOTIONS_MAP.name,
+	description: EMOTIONS_MAP.description,
+	root: {
+		id: center.id,
+		label: center.label,
+		question: center.question,
+		guidance: center.guidance,
+		examples: center.examples,
+		metadataSchema: { direction: 'string', linked_belief_id: 'string' },
+		children: [
+			{
+				id: pastInner.id,
+				label: pastInner.label,
+				question: pastInner.question,
+				guidance: pastInner.guidance,
+				examples: pastInner.examples,
+				weight: 1.75,
+				metadataSchema: {
+					kind: 'string',
+					intensity_before: 'number',
+					intensity_after: 'number',
+					linked_event_id: 'string',
+					distortion: 'string',
+				},
+				children: [
+					{
+						id: pastOuter.id,
+						label: pastOuter.label,
+						question: pastOuter.question,
+						guidance: pastOuter.guidance,
+						examples: pastOuter.examples,
+						metadataSchema: { trigger_type: 'string', is_primary: 'boolean' },
+					},
+				],
+			},
+			{
+				id: futureInner.id,
+				label: futureInner.label,
+				question: futureInner.question,
+				guidance: futureInner.guidance,
+				examples: futureInner.examples,
+				weight: 1.75,
+				metadataSchema: { strength: 'number', linked_old_belief_id: 'string' },
+				children: [
+					{
+						id: futureOuter.id,
+						label: futureOuter.label,
+						question: futureOuter.question,
+						guidance: futureOuter.guidance,
+						examples: futureOuter.examples,
+						metadataSchema: { action_type: 'string', linked_belief_id: 'string' },
+					},
+				],
+			},
+			{
+				id: presentInner.id,
+				label: presentInner.label,
+				question: presentInner.question,
+				guidance: presentInner.guidance,
+				examples: presentInner.examples,
+				weight: 1.0,
+				metadataSchema: {
+					belief_level: 'string',
+					strength_before: 'number',
+					strength_after: 'number',
+					associated_emotion: 'string',
+					associated_emotion_intensity: 'number',
+					distortion: 'string',
+				},
+				children: [
+					{
+						id: presentOuter.id,
+						label: presentOuter.label,
+						question: presentOuter.question,
+						guidance: presentOuter.guidance,
+						examples: presentOuter.examples,
+						metadataSchema: { behavior_type: 'string' },
+					},
+				],
+			},
+		],
+	},
+}
+
+registerFramework({
+	definition: EMOTIONS_MAP,
+	treeDefinition: EMOTIONS_TREE,
+	visual: {
+		colors: {
+			stroke: '#114559',
+			text: '#114559',
+			cellFill: '#FFFFFF',
+			cellHoverFill: '#D9E2EA',
+		},
+		labelFont: 'Quicksand, sans-serif',
+		defaultSize: 600,
+	},
+	template: {
+		icon: '◎',
+		description: 'Explore and map your emotions through a guided mandala-based framework.',
+		active: true,
+	},
+})
