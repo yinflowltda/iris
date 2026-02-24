@@ -24,6 +24,7 @@ import {
 	getCellBoundingBox,
 	makeEmptyState,
 } from '../lib/mandala-geometry'
+import { isNodeInSubtree } from '../lib/sunburst-layout'
 import { SunburstSvg } from './SunburstSvg'
 
 // ─── Shape type ──────────────────────────────────────────────────────────────
@@ -104,6 +105,48 @@ function MandalaInteractive({ shape }: { shape: MandalaShape }) {
 			document.removeEventListener('pointermove', onPointerMove)
 		}
 	}, [editor, shape.id])
+
+	// Hide notes outside the focused subtree
+	const { zoomedNodeId, zoomMode, state: mandalaState, frameworkId } = shape.props
+	useEffect(() => {
+		const { treeDefinition } = getFramework(frameworkId)
+		if (!treeDefinition) return
+		const root = treeDefinition.root
+
+		// Collect all note shape IDs from mandala state
+		const allNoteIds: { shapeId: string; cellId: string }[] = []
+		for (const [cellId, cellState] of Object.entries(mandalaState)) {
+			for (const sid of cellState.contentShapeIds ?? []) {
+				allNoteIds.push({ shapeId: `shape:${sid}`, cellId })
+			}
+		}
+
+		if (zoomedNodeId && zoomMode === 'focus') {
+			for (const { shapeId, cellId } of allNoteIds) {
+				const inSubtree = isNodeInSubtree(root, zoomedNodeId, cellId)
+				const existing = editor.getShape(shapeId as any)
+				if (existing) {
+					editor.updateShape({
+						id: existing.id,
+						type: existing.type,
+						opacity: inSubtree ? 1 : 0,
+					})
+				}
+			}
+		} else {
+			// Restore all notes to full opacity
+			for (const { shapeId } of allNoteIds) {
+				const existing = editor.getShape(shapeId as any)
+				if (existing && existing.opacity !== 1) {
+					editor.updateShape({
+						id: existing.id,
+						type: existing.type,
+						opacity: 1,
+					})
+				}
+			}
+		}
+	}, [editor, zoomedNodeId, zoomMode, mandalaState, frameworkId])
 
 	return (
 		<div style={{ position: 'relative', width: shape.props.w, height: shape.props.h }}>

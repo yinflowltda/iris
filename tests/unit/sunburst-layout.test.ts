@@ -3,6 +3,7 @@ import {
 	computeSunburstLayout,
 	findTreeNode,
 	getAllTreeNodeIds,
+	isNodeInSubtree,
 	type SunburstArc,
 } from '../../client/lib/sunburst-layout'
 import type { TreeMapDefinition } from '../../shared/types/MandalaTypes'
@@ -259,5 +260,36 @@ describe('findTreeNode', () => {
 	it('returns null for non-existent ID', () => {
 		const node = findTreeNode(SIMPLE_TREE.root, 'nonexistent')
 		expect(node).toBeNull()
+	})
+})
+
+// ─── isNodeInSubtree ─────────────────────────────────────────────────────────
+
+describe('isNodeInSubtree', () => {
+	const root = SIMPLE_TREE.root
+
+	it('returns true when nodeId is the subtree root itself', () => {
+		expect(isNodeInSubtree(root, 'a', 'a')).toBe(true)
+	})
+
+	it('returns true for a direct child of the subtree root', () => {
+		expect(isNodeInSubtree(root, 'a', 'a1')).toBe(true)
+		expect(isNodeInSubtree(root, 'a', 'a2')).toBe(true)
+	})
+
+	it('returns false for a node in a different subtree', () => {
+		expect(isNodeInSubtree(root, 'a', 'b')).toBe(false)
+	})
+
+	it('returns false when subtree root does not exist', () => {
+		expect(isNodeInSubtree(root, 'nonexistent', 'a1')).toBe(false)
+	})
+
+	it('returns true for all nodes when root is the subtree root', () => {
+		expect(isNodeInSubtree(root, 'root', 'root')).toBe(true)
+		expect(isNodeInSubtree(root, 'root', 'a')).toBe(true)
+		expect(isNodeInSubtree(root, 'root', 'a1')).toBe(true)
+		expect(isNodeInSubtree(root, 'root', 'a2')).toBe(true)
+		expect(isNodeInSubtree(root, 'root', 'b')).toBe(true)
 	})
 })

@@ -118,6 +118,12 @@ export function getAllTreeNodeIds(treeDef: TreeMapDefinition): string[] {
 	return ids
 }
 
+export function isNodeInSubtree(root: TreeNodeDef, subtreeRootId: string, nodeId: string): boolean {
+	const subtreeRoot = findTreeNode(root, subtreeRootId)
+	if (!subtreeRoot) return false
+	return findTreeNode(subtreeRoot, nodeId) !== null
+}
+
 export function findTreeNode(root: TreeNodeDef, nodeId: string): TreeNodeDef | null {
 	if (root.id === nodeId) return root
 	for (const child of root.children ?? []) {
