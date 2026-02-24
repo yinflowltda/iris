@@ -398,8 +398,14 @@ function MandalaSvg({
 
 // ─── Interactive wrapper (needs useEditor) ───────────────────────────────────
 
-const NOTE_INITIAL_SCALE = 2.5
-const NOTE_HALF_SIZE = 100 * NOTE_INITIAL_SCALE
+const NOTE_TARGET_SCREEN_SIZE = 250
+const NOTE_MIN_SCALE = 0.5
+const NOTE_MAX_SCALE = 2.5
+
+function getNoteScaleForZoom(zoom: number) {
+	const scale = NOTE_TARGET_SCREEN_SIZE / (200 * zoom)
+	return Math.min(NOTE_MAX_SCALE, Math.max(NOTE_MIN_SCALE, scale))
+}
 
 type MandalaPointInShapeSpaceEditor = {
 	getPointInShapeSpace(shape: MandalaShape, point: VecLike): VecLike
@@ -543,13 +549,17 @@ export class MandalaShapeUtil extends ShapeUtil<MandalaShape> {
 		const cellId = getLocalCellFromPage(this.editor, shape, pagePoint)
 		if (!cellId) return { id: shape.id, type: 'mandala' as const }
 
+		const zoom = this.editor.getZoomLevel()
+		const scale = getNoteScaleForZoom(zoom)
+		const halfSize = 100 * scale
+
 		const noteId = createShapeId()
 		this.editor.createShape({
 			id: noteId,
 			type: 'note',
-			x: pagePoint.x - NOTE_HALF_SIZE,
-			y: pagePoint.y - NOTE_HALF_SIZE,
-			props: { scale: NOTE_INITIAL_SCALE },
+			x: pagePoint.x - halfSize,
+			y: pagePoint.y - halfSize,
+			props: { scale },
 		})
 		this.editor.setSelectedShapes([noteId])
 		this.editor.setEditingShape(noteId)
