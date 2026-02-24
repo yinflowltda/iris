@@ -14,6 +14,7 @@ import {
 	type VecLike,
 } from 'tldraw'
 import type { MandalaArrowRecord, MandalaState } from '../../shared/types/MandalaTypes'
+import { ZoomModeToggle } from '../components/ZoomModeToggle'
 import { setActiveMandalaId } from '../lib/frameworks/active-framework'
 import { EMOTIONS_MAP } from '../lib/frameworks/emotions-map'
 import { getFramework } from '../lib/frameworks/framework-registry'
@@ -105,14 +106,17 @@ function MandalaInteractive({ shape }: { shape: MandalaShape }) {
 	}, [editor, shape.id])
 
 	return (
-		<SunburstSvg
-			w={shape.props.w}
-			h={shape.props.h}
-			frameworkId={shape.props.frameworkId}
-			mandalaState={shape.props.state}
-			hoveredCell={hoveredCell}
-			zoomedNodeId={shape.props.zoomedNodeId}
-		/>
+		<div style={{ position: 'relative', width: shape.props.w, height: shape.props.h }}>
+			<SunburstSvg
+				w={shape.props.w}
+				h={shape.props.h}
+				frameworkId={shape.props.frameworkId}
+				mandalaState={shape.props.state}
+				hoveredCell={hoveredCell}
+				zoomedNodeId={shape.props.zoomedNodeId}
+			/>
+			<ZoomModeToggle shape={shape} />
+		</div>
 	)
 }
 
