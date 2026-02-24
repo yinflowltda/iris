@@ -4,7 +4,6 @@ import type {
 	Point2d,
 	TreeMapDefinition,
 } from '../../shared/types/MandalaTypes'
-import type { SunburstArc } from './sunburst-layout'
 import { computeSunburstLayout, getAllTreeNodeIds } from './sunburst-layout'
 
 const DEG_TO_RAD = Math.PI / 180

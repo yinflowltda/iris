@@ -1,10 +1,16 @@
 import { buildResponseSchema } from '../../shared/schema/buildResponseSchema'
 import type { ModePart } from '../../shared/schema/PromptPartDefinitions'
 import type { AgentPrompt } from '../../shared/types/AgentPrompt'
-import { getSystemPromptFlags } from './getSystemPromptFlags'
+import { getSystemPromptFlags, type SystemPromptFlags } from './getSystemPromptFlags'
 import { buildEmotionsMapSection } from './sections/emotions-map-section'
 import { buildIntroPromptSection } from './sections/intro-section'
+import { buildLifeMapSection } from './sections/life-map-section'
 import { buildRulesPromptSection } from './sections/rules-section'
+
+const frameworkPromptBuilders: Record<string, (flags: SystemPromptFlags) => string> = {
+	'emotions-map': buildEmotionsMapSection,
+	'life-map': buildLifeMapSection,
+}
 
 /**
  * Build the system prompt for the agent.
@@ -29,13 +35,14 @@ export function buildSystemPrompt(
 		throw new Error('A mode part is always required.')
 	}
 
-	const { actionTypes, partTypes, modeType } = modePart
+	const { actionTypes, partTypes } = modePart
 	const flags = getSystemPromptFlags(actionTypes, partTypes)
 
 	const lines = [buildIntroPromptSection(flags), buildRulesPromptSection(flags)]
 
-	if (modeType === 'emotions-map') {
-		lines.push(buildEmotionsMapSection(flags))
+	const frameworkId = modePart.frameworkId
+	if (frameworkId && frameworkPromptBuilders[frameworkId]) {
+		lines.push(frameworkPromptBuilders[frameworkId](flags))
 	}
 
 	if (withSchema) {

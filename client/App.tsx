@@ -389,7 +389,6 @@ function App() {
 						y: shape.y - NOTE_HALF_SIZE,
 					})
 					app.editor.setSelectedShapes([noteId])
-					app.editor.setEditingShape(noteId)
 				})
 			},
 		)

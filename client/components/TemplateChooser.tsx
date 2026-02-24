@@ -1,5 +1,6 @@
 import type { PointerEvent } from 'react'
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useMemo } from 'react'
+import { getAllFrameworks } from '../lib/frameworks/framework-registry'
 import './TemplateChooser.css'
 
 interface Template {
@@ -10,23 +11,6 @@ interface Template {
 	active: boolean
 }
 
-const templates: Template[] = [
-	{
-		id: 'emotions-map',
-		name: 'Emotions Map',
-		description: 'Explore and map your emotions through a guided mandala-based framework.',
-		icon: '◎',
-		active: true,
-	},
-	{
-		id: 'life-map',
-		name: 'Life Map',
-		description: 'See how different areas of your life are doing at a glance.',
-		icon: '◐',
-		active: false,
-	},
-]
-
 export function TemplateChooser({
 	visible,
 	onSelectTemplate,
@@ -36,6 +20,16 @@ export function TemplateChooser({
 	onSelectTemplate: (frameworkId: string) => void
 	onRequestClose: () => void
 }) {
+	const templates: Template[] = useMemo(() => {
+		return getAllFrameworks().map((entry) => ({
+			id: entry.definition.id,
+			name: entry.definition.name,
+			description: entry.template.description,
+			icon: entry.template.icon,
+			active: entry.template.active,
+		}))
+	}, [])
+
 	const handleStart = useCallback(
 		(id: string) => () => {
 			onSelectTemplate(id)

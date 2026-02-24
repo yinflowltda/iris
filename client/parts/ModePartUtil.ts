@@ -1,5 +1,6 @@
 import type { ModePart } from '../../shared/schema/PromptPartDefinitions'
 import type { AgentRequest } from '../../shared/types/AgentRequest'
+import { getActiveMandala } from '../lib/frameworks/active-framework'
 import { PromptPartUtil, registerPromptPartUtil } from './PromptPartUtil'
 
 export const ModePartUtil = registerPromptPartUtil(
@@ -13,9 +14,16 @@ export const ModePartUtil = registerPromptPartUtil(
 				throw new Error(`Cannot get mode part for inactive mode: ${modeDefinition.type}`)
 			}
 
+			let frameworkId: string | null = null
+			if (modeDefinition.type === 'mandala') {
+				const mandala = getActiveMandala(this.agent.editor)
+				frameworkId = mandala?.props.frameworkId ?? null
+			}
+
 			return {
 				type: 'mode',
 				modeType: modeDefinition.type,
+				frameworkId,
 				partTypes: modeDefinition.parts,
 				actionTypes: modeDefinition.actions,
 			}

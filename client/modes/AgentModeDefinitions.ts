@@ -190,7 +190,7 @@ export const AGENT_MODE_DEFINITIONS = [
 		],
 	},
 	{
-		type: 'emotions-map',
+		type: 'mandala',
 		active: true,
 
 		parts: [

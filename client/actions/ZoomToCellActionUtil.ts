@@ -2,7 +2,7 @@ import { Box, type TLShapeId } from 'tldraw'
 import type { ZoomToCellAction } from '../../shared/schema/AgentActionSchemas'
 import type { Streaming } from '../../shared/types/Streaming'
 import type { AgentHelpers } from '../AgentHelpers'
-import { EMOTIONS_MAP } from '../lib/frameworks/emotions-map'
+import { getFrameworkForMandala } from '../lib/frameworks/framework-registry'
 import {
 	computeMandalaOuterRadius,
 	getCellBoundingBox,
@@ -30,7 +30,8 @@ export const ZoomToCellActionUtil = registerActionUtil(
 			if (!mandalaId) return null
 			action.mandalaId = mandalaId
 
-			if (!action.cellId || !isValidCellId(EMOTIONS_MAP, action.cellId)) return null
+			const { definition } = getFrameworkForMandala(this.editor, action.mandalaId)
+			if (!action.cellId || !isValidCellId(definition, action.cellId)) return null
 
 			return action
 		}
@@ -46,7 +47,8 @@ export const ZoomToCellActionUtil = registerActionUtil(
 			const cellId = action.cellId as string
 			const outerR = computeMandalaOuterRadius(mandala.props.w, mandala.props.h)
 			const localCenter = { x: mandala.props.w / 2, y: mandala.props.h / 2 }
-			const box = getCellBoundingBox(EMOTIONS_MAP, localCenter, outerR, cellId)
+			const { definition } = getFrameworkForMandala(editor, action.mandalaId as string)
+			const box = getCellBoundingBox(definition, localCenter, outerR, cellId)
 			if (!box) return
 
 			const pageBox = Box.From({

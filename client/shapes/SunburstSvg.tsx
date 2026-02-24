@@ -20,6 +20,8 @@ interface SunburstSvgProps {
 	animatingArcs?: Map<string, { x0: number; x1: number; y0: number; y1: number }>
 }
 
+const ZOOM_ANIMATION_MS = 400
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export function SunburstSvg({
@@ -74,7 +76,7 @@ export function SunburstSvg({
 		const cancel = animateSunburstZoom({
 			current,
 			target,
-			durationMs: 400,
+			durationMs: ZOOM_ANIMATION_MS,
 			onFrame: (interpolated) => {
 				animatingArcsRef.current = interpolated
 				setAnimFrame((n) => n + 1)

@@ -6,7 +6,7 @@ import type { Streaming } from '../../shared/types/Streaming'
 import type { AgentHelpers } from '../AgentHelpers'
 import { animateNotesToLayout } from '../lib/animate-note-layout'
 import { computeCellContentLayout } from '../lib/cell-layout'
-import { EMOTIONS_MAP } from '../lib/frameworks/emotions-map'
+import { getFrameworkForMandala } from '../lib/frameworks/framework-registry'
 import { computeMandalaOuterRadius, getCellBounds, isValidCellId } from '../lib/mandala-geometry'
 import { NODULE_COLOR_SEQUENCE } from '../lib/nodule-color-palette'
 import type { MandalaShape } from '../shapes/MandalaShapeUtil'
@@ -33,7 +33,8 @@ export const FillCellActionUtil = registerActionUtil(
 			if (!mandalaId) return null
 			action.mandalaId = mandalaId
 
-			if (!action.cellId || !isValidCellId(EMOTIONS_MAP, action.cellId)) return null
+			const { definition } = getFrameworkForMandala(this.editor, mandalaId)
+			if (!action.cellId || !isValidCellId(definition, action.cellId)) return null
 
 			return action
 		}
@@ -53,7 +54,8 @@ export const FillCellActionUtil = registerActionUtil(
 				y: mandala.props.h / 2,
 			}
 
-			const bounds = getCellBounds(EMOTIONS_MAP, localCenter, outerRadius, cellId)
+			const { definition } = getFrameworkForMandala(this.editor, action.mandalaId as string)
+			const bounds = getCellBounds(definition, localCenter, outerRadius, cellId)
 			if (!bounds) return
 
 			const currentState: MandalaState = { ...mandala.props.state }

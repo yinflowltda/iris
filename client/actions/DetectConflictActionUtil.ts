@@ -3,7 +3,7 @@ import type { DetectConflictAction } from '../../shared/schema/AgentActionSchema
 import type { MandalaState } from '../../shared/types/MandalaTypes'
 import type { Streaming } from '../../shared/types/Streaming'
 import type { AgentHelpers } from '../AgentHelpers'
-import { EMOTIONS_MAP } from '../lib/frameworks/emotions-map'
+import { getFrameworkForMandala } from '../lib/frameworks/framework-registry'
 import { isValidCellId } from '../lib/mandala-geometry'
 import type { MandalaShape } from '../shapes/MandalaShapeUtil'
 import { AgentActionUtil, registerActionUtil } from './AgentActionUtil'
@@ -28,7 +28,8 @@ export const DetectConflictActionUtil = registerActionUtil(
 			action.mandalaId = mandalaId
 
 			if (!action.cellIds || action.cellIds.length < 2) return null
-			if (!action.cellIds.every((id) => isValidCellId(EMOTIONS_MAP, id))) return null
+			const { definition } = getFrameworkForMandala(this.editor, action.mandalaId)
+			if (!action.cellIds.every((id) => isValidCellId(definition, id))) return null
 
 			return action
 		}

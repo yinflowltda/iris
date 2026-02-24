@@ -110,6 +110,7 @@ export interface AgentViewportBoundsPart {
 export interface ModePart {
 	type: 'mode'
 	modeType: string
+	frameworkId: string | null
 	partTypes: PromptPart['type'][]
 	actionTypes: AgentAction['_type'][]
 }

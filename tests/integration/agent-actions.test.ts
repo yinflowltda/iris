@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { getAllActionUtils } from '../../client/actions/AgentActionUtil'
 import { EMOTIONS_MAP } from '../../client/lib/frameworks/emotions-map'
+import { getAllFrameworks, getFramework } from '../../client/lib/frameworks/framework-registry'
+import { LIFE_MAP } from '../../client/lib/frameworks/life-map'
 import { getAllCellIds } from '../../client/lib/mandala-geometry'
 // Import mode definitions to trigger self-registration of all action utils
 import {
@@ -374,21 +376,21 @@ describe('action util registration', () => {
 	})
 })
 
-// ─── Emotions Map Mode Definition ────────────────────────────────────────────
+// ─── Mandala Mode Definition ─────────────────────────────────────────────────
 
-describe('emotions-map mode definition', () => {
+describe('mandala mode definition', () => {
 	it('exists in AGENT_MODE_DEFINITIONS', () => {
-		const mode = AGENT_MODE_DEFINITIONS.find((m) => m.type === 'emotions-map')
+		const mode = AGENT_MODE_DEFINITIONS.find((m) => m.type === 'mandala')
 		expect(mode).toBeDefined()
 	})
 
 	it('is an active mode', () => {
-		const mode = getAgentModeDefinition('emotions-map' as any)
+		const mode = getAgentModeDefinition('mandala' as any)
 		expect(mode.active).toBe(true)
 	})
 
 	it('includes mandala-specific actions', () => {
-		const mode = getAgentModeDefinition('emotions-map' as any)
+		const mode = getAgentModeDefinition('mandala' as any)
 		if (!mode.active) throw new Error('Mode should be active')
 		expect(mode.actions).toContain('fill_cell')
 		expect(mode.actions).toContain('highlight_cell')
@@ -399,14 +401,14 @@ describe('emotions-map mode definition', () => {
 	})
 
 	it('includes communication actions', () => {
-		const mode = getAgentModeDefinition('emotions-map' as any)
+		const mode = getAgentModeDefinition('mandala' as any)
 		if (!mode.active) throw new Error('Mode should be active')
 		expect(mode.actions).toContain('message')
 		expect(mode.actions).toContain('think')
 	})
 
 	it('includes basic shape editing actions', () => {
-		const mode = getAgentModeDefinition('emotions-map' as any)
+		const mode = getAgentModeDefinition('mandala' as any)
 		if (!mode.active) throw new Error('Mode should be active')
 		expect(mode.actions).toContain('create')
 		expect(mode.actions).toContain('delete')
@@ -416,13 +418,13 @@ describe('emotions-map mode definition', () => {
 	})
 
 	it('includes required internal action', () => {
-		const mode = getAgentModeDefinition('emotions-map' as any)
+		const mode = getAgentModeDefinition('mandala' as any)
 		if (!mode.active) throw new Error('Mode should be active')
 		expect(mode.actions).toContain('unknown')
 	})
 
 	it('has prompt parts configured', () => {
-		const mode = getAgentModeDefinition('emotions-map' as any)
+		const mode = getAgentModeDefinition('mandala' as any)
 		if (!mode.active) throw new Error('Mode should be active')
 		expect(mode.parts.length).toBeGreaterThan(0)
 	})
@@ -430,11 +432,11 @@ describe('emotions-map mode definition', () => {
 	it('includes the full set of working mode actions as a superset', () => {
 		const workingMode = getAgentModeDefinition('working')
 		if (!workingMode.active) throw new Error('Working mode should be active')
-		const emotionsMode = getAgentModeDefinition('emotions-map' as any)
-		if (!emotionsMode.active) throw new Error('Emotions-map mode should be active')
+		const mandalaMode = getAgentModeDefinition('mandala' as any)
+		if (!mandalaMode.active) throw new Error('Mandala mode should be active')
 
 		for (const action of workingMode.actions) {
-			expect(emotionsMode.actions).toContain(action)
+			expect(mandalaMode.actions).toContain(action)
 		}
 	})
 })
@@ -493,5 +495,46 @@ describe('cell ID consistency across schemas and geometry', () => {
 			})
 			expect(result.success).toBe(true)
 		}
+	})
+})
+
+// ─── Multi-Framework Integration ─────────────────────────────────────────────
+
+describe('multi-framework integration', () => {
+	it('framework registry contains both Emotions Map and Life Map', () => {
+		const all = getAllFrameworks()
+		const ids = all.map((f) => f.definition.id)
+		expect(ids).toContain('emotions-map')
+		expect(ids).toContain('life-map')
+	})
+
+	it('both frameworks have distinct cell IDs', () => {
+		const emotionsCells = new Set(getAllCellIds(EMOTIONS_MAP))
+		const lifeCells = new Set(getAllCellIds(LIFE_MAP))
+
+		for (const cellId of emotionsCells) {
+			expect(lifeCells.has(cellId)).toBe(false)
+		}
+	})
+
+	it('Life Map cell IDs are accepted by FillCellAction schema', () => {
+		const lifeCellIds = getAllCellIds(LIFE_MAP)
+		for (const cellId of lifeCellIds) {
+			const result = FillCellAction.safeParse({
+				_type: 'fill_cell',
+				intent: 'test',
+				mandalaId: 'mandala',
+				cellId,
+				content: 'test',
+			})
+			expect(result.success).toBe(true)
+		}
+	})
+
+	it('framework visual configs differ between Emotions Map and Life Map', () => {
+		const emotions = getFramework('emotions-map')
+		const life = getFramework('life-map')
+		expect(emotions.visual.colors.stroke).not.toBe(life.visual.colors.stroke)
+		expect(emotions.visual.defaultSize).not.toBe(life.visual.defaultSize)
 	})
 })

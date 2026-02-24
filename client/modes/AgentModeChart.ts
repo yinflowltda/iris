@@ -68,7 +68,7 @@ const _AGENT_MODE_CHART: Record<AgentModeDefinition['type'], AgentModeNode> = {
 	idling: {
 		onPromptStart(agent) {
 			if (hasMandalaOnCanvas(agent)) {
-				agent.mode.setMode('emotions-map')
+				agent.mode.setMode('mandala')
 			} else {
 				agent.mode.setMode('working')
 			}
@@ -107,7 +107,7 @@ const _AGENT_MODE_CHART: Record<AgentModeDefinition['type'], AgentModeNode> = {
 			agent.mode.setMode('idling')
 		},
 	},
-	'emotions-map': {
+	mandala: {
 		onEnter(agent, fromMode) {
 			agent.todos.reset()
 			agent.context.clear()
