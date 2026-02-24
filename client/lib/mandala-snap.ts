@@ -1,12 +1,23 @@
 import type { Editor, TLNoteShape, TLShapeId } from 'tldraw'
 import type { SimpleShapeId } from '../../shared/types/ids-schema'
-import type { MandalaState, MapDefinition, Point2d } from '../../shared/types/MandalaTypes'
+import type {
+	MandalaState,
+	MapDefinition,
+	Point2d,
+	TreeMapDefinition,
+} from '../../shared/types/MandalaTypes'
 import type { MandalaShape } from '../shapes/MandalaShapeUtil'
 import { animateNotesToLayout } from './animate-note-layout'
 import type { LayoutItem } from './cell-layout'
 import { computeCellContentLayout } from './cell-layout'
 import { getFramework } from './frameworks/framework-registry'
-import { computeMandalaOuterRadius, getCellAtPoint, getCellBounds } from './mandala-geometry'
+import {
+	computeMandalaOuterRadius,
+	getCellAtPoint,
+	getCellAtPointFromTree,
+	getCellBounds,
+	getCellBoundsFromTree,
+} from './mandala-geometry'
 
 const NOTE_BASE_SIZE = 200
 const CREATE_DEBOUNCE_MS = 150
@@ -139,7 +150,7 @@ function processPendingSnaps(
 
 	// Process each note against the closest mandala
 	for (const mandala of mandalas) {
-		const { definition: map } = getFramework(mandala.props.frameworkId)
+		const { definition: map, treeDefinition: treeDef } = getFramework(mandala.props.frameworkId)
 		const outerRadius = computeMandalaOuterRadius(mandala.props.w, mandala.props.h)
 		const pageCenter = {
 			x: mandala.x + mandala.props.w / 2,
@@ -172,7 +183,9 @@ function processPendingSnaps(
 			})
 			if (!closest || closest.id !== mandala.id) continue
 
-			const hit = getBestCellHitForPageBounds(map, pageBounds, pageCenter, outerRadius)
+			const hit = treeDef
+				? getBestCellHitForPageBoundsTree(treeDef, pageBounds, pageCenter, outerRadius)
+				: getBestCellHitForPageBounds(map, pageBounds, pageCenter, outerRadius)
 			const targetCellId = hit?.cellId ?? null
 			const hitPoint = hit?.point ?? { x: pageBounds.midX, y: pageBounds.midY }
 
@@ -194,7 +207,9 @@ function processPendingSnaps(
 				if (existingIds.length === 0) continue
 
 				const localDropPoint = { x: hitPoint.x - mandala.x, y: hitPoint.y - mandala.y }
-				const bounds = getCellBounds(map, localCenter, outerRadius, targetCellId)
+				const bounds = treeDef
+					? getCellBoundsFromTree(treeDef, localCenter, outerRadius, targetCellId)
+					: getCellBounds(map, localCenter, outerRadius, targetCellId)
 				if (!bounds) {
 					cellsToRelayout.add(targetCellId)
 					continue
@@ -244,7 +259,9 @@ function processPendingSnaps(
 				}
 				const existingIds = currentState[targetCellId].contentShapeIds
 				const localDropPoint = { x: hitPoint.x - mandala.x, y: hitPoint.y - mandala.y }
-				const bounds = getCellBounds(map, localCenter, outerRadius, targetCellId)
+				const bounds = treeDef
+					? getCellBoundsFromTree(treeDef, localCenter, outerRadius, targetCellId)
+					: getCellBounds(map, localCenter, outerRadius, targetCellId)
 				const insertIdx = bounds
 					? findClosestSlot(
 							computeCellContentLayout(bounds, existingIds.length + 1),
@@ -283,7 +300,9 @@ function processPendingSnaps(
 			const cellState = currentState[cellId]
 			if (!cellState || cellState.contentShapeIds.length === 0) continue
 
-			const bounds = getCellBounds(map, localCenter, outerRadius, cellId)
+			const bounds = treeDef
+				? getCellBoundsFromTree(treeDef, localCenter, outerRadius, cellId)
+				: getCellBounds(map, localCenter, outerRadius, cellId)
 			if (!bounds) continue
 
 			const layout = computeCellContentLayout(bounds, cellState.contentShapeIds.length)
@@ -371,6 +390,92 @@ function getBestCellHitForPageBounds(
 	const buckets = new Map<string, Point2d[]>()
 	for (const point of samplePoints) {
 		const cellId = getCellAtPoint(map, pageCenter, outerRadius, point)
+		if (!cellId) continue
+		const arr = buckets.get(cellId) ?? []
+		arr.push(point)
+		buckets.set(cellId, arr)
+	}
+
+	if (buckets.size === 0) return null
+
+	let bestCellId: string | null = null
+	let bestCount = -1
+	let bestDist = Number.POSITIVE_INFINITY
+	let bestPoint: Point2d = boundsCenter
+
+	for (const [cellId, points] of buckets.entries()) {
+		const count = points.length
+		let minDist = Number.POSITIVE_INFINITY
+		let nearest = points[0]
+		for (const p of points) {
+			const dx = p.x - boundsCenter.x
+			const dy = p.y - boundsCenter.y
+			const d = dx * dx + dy * dy
+			if (d < minDist) {
+				minDist = d
+				nearest = p
+			}
+		}
+
+		if (count > bestCount || (count === bestCount && minDist < bestDist)) {
+			bestCellId = cellId
+			bestCount = count
+			bestDist = minDist
+			bestPoint = nearest
+		}
+	}
+
+	return bestCellId ? { cellId: bestCellId, point: bestPoint } : null
+}
+
+function getBestCellHitForPageBoundsTree(
+	treeDef: TreeMapDefinition,
+	pageBounds: {
+		minX: number
+		minY: number
+		maxX: number
+		maxY: number
+		midX: number
+		midY: number
+		width: number
+		height: number
+	},
+	pageCenter: Point2d,
+	outerRadius: number,
+): { cellId: string; point: Point2d } | null {
+	const boundsCenter = { x: pageBounds.midX, y: pageBounds.midY }
+	const centerHit = getCellAtPointFromTree(treeDef, pageCenter, outerRadius, boundsCenter)
+	if (centerHit) return { cellId: centerHit, point: boundsCenter }
+
+	const r = Math.max(1, Math.min(pageBounds.width, pageBounds.height) / 2)
+	const radii = [r * 0.25, r * 0.55, r * 0.85]
+	const steps = 24
+
+	const samplePoints: Point2d[] = [
+		boundsCenter,
+		{ x: pageBounds.minX, y: pageBounds.minY },
+		{ x: pageBounds.maxX, y: pageBounds.minY },
+		{ x: pageBounds.minX, y: pageBounds.maxY },
+		{ x: pageBounds.maxX, y: pageBounds.maxY },
+		{ x: pageBounds.midX, y: pageBounds.minY },
+		{ x: pageBounds.midX, y: pageBounds.maxY },
+		{ x: pageBounds.minX, y: pageBounds.midY },
+		{ x: pageBounds.maxX, y: pageBounds.midY },
+	]
+
+	for (const rr of radii) {
+		for (let i = 0; i < steps; i++) {
+			const a = (i / steps) * Math.PI * 2
+			samplePoints.push({
+				x: boundsCenter.x + rr * Math.cos(a),
+				y: boundsCenter.y + rr * Math.sin(a),
+			})
+		}
+	}
+
+	const buckets = new Map<string, Point2d[]>()
+	for (const point of samplePoints) {
+		const cellId = getCellAtPointFromTree(treeDef, pageCenter, outerRadius, point)
 		if (!cellId) continue
 		const arr = buckets.get(cellId) ?? []
 		arr.push(point)
