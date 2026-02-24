@@ -153,6 +153,8 @@ function processPendingSnaps(
 
 	// Process each note against the closest mandala
 	for (const mandala of mandalas) {
+		// Skip snapping when mandala is in focus zoom — repositionNotesForZoom handles layout
+		if (mandala.props.zoomMode === 'focus' && mandala.props.zoomedNodeId) continue
 		const { definition: map, treeDefinition: treeDef } = getFramework(mandala.props.frameworkId)
 		const outerRadius = computeMandalaOuterRadius(mandala.props.w, mandala.props.h)
 		const pageCenter = {
