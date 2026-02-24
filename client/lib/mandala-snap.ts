@@ -25,6 +25,9 @@ import type { ArcAnimationState } from './sunburst-zoom'
 const NOTE_BASE_SIZE = 200
 const CREATE_DEBOUNCE_MS = 150
 
+// IDs of notes currently being repositioned by zoom — prevents snap from fighting
+const zoomAnimatingIds = new Set<TLShapeId>()
+
 export function registerMandalaSnapEffect(editor: Editor): () => void {
 	const recentlySnapped = new Set<TLShapeId>()
 	let createDebounceTimer: ReturnType<typeof setTimeout> | null = null
@@ -57,6 +60,7 @@ export function registerMandalaSnapEffect(editor: Editor): () => void {
 			if (next.type !== 'note') return
 			if (prev.x === next.x && prev.y === next.y) return
 			if (recentlySnapped.has(next.id)) return
+			if (zoomAnimatingIds.has(next.id)) return
 
 			pendingCreateIds.add(next.id)
 			if (createDebounceTimer) clearTimeout(createDebounceTimer)
@@ -153,8 +157,6 @@ function processPendingSnaps(
 
 	// Process each note against the closest mandala
 	for (const mandala of mandalas) {
-		// Skip snapping when mandala is in focus zoom — repositionNotesForZoom handles layout
-		if (mandala.props.zoomMode === 'focus' && mandala.props.zoomedNodeId) continue
 		const { definition: map, treeDefinition: treeDef } = getFramework(mandala.props.frameworkId)
 		const outerRadius = computeMandalaOuterRadius(mandala.props.w, mandala.props.h)
 		const pageCenter = {
@@ -591,6 +593,12 @@ export function repositionNotesForZoom(
 	}
 
 	if (targets.length > 0) {
+		// Mark these notes as zoom-animating so the snap system doesn't interfere
+		for (const t of targets) zoomAnimatingIds.add(t.id)
 		animateNotesToLayout(editor, targets, { durationMs: 300 })
+		// Clear after animation + buffer
+		setTimeout(() => {
+			for (const t of targets) zoomAnimatingIds.delete(t.id)
+		}, 500)
 	}
 }

@@ -365,27 +365,10 @@ export function getCellBoundsFromArcs(
 	const arc = arcs.find((a) => a.id === cellId)
 	if (!arc) return null
 
-	// Only use circle bounds for the actual root (y0=0 with no inner hole).
-	// When a cell zooms to fill the full circle but has y0 > 0 (ring), or
-	// even y0=0 with children occupying the outer band, use sector bounds
-	// so the layout respects the annular band rather than filling the center.
-	const sweep = arc.x1 - arc.x0
-	const isFullCircleFromCenter = arc.y0 === 0 && sweep >= 2 * Math.PI - 0.01
-	// Check if there's a child arc occupying the outer part (making this a ring)
-	const hasChildArc = arcs.some(
-		(a) =>
-			a.id !== arc.id &&
-			a.y0 >= arc.y0 &&
-			a.y1 <= arc.y1 + 0.01 &&
-			a.x0 >= arc.x0 - 0.01 &&
-			a.x1 <= arc.x1 + 0.01 &&
-			a.x1 - a.x0 > 0.01,
-	)
-
-	if (isFullCircleFromCenter && !hasChildArc) {
-		return { type: 'circle', center: { ...center }, radius: arc.y1 * outerRadius }
-	}
-
+	// Always return sector bounds — even for cells starting from center (y0=0).
+	// The sector/ring layout places notes within the radial band, which is
+	// correct for zoomed cells where the center is occupied by the root label
+	// and sibling arcs occupy adjacent bands.
 	const startAngleDeg = d3AngleToCellBoundsDeg(arc.x0)
 	const endAngleDeg = d3AngleToCellBoundsDeg(arc.x1)
 	const midD3 = (arc.x0 + arc.x1) / 2
