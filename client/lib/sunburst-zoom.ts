@@ -29,11 +29,22 @@ export function computeZoomTargets(
 	const xScale = xRange > 0 ? (2 * Math.PI) / xRange : 0
 	const yShift = target.y0
 
+	// Find max depth in the subtree to rescale y so arcs fill the full radius
+	let maxY1 = target.y1
+	for (const arc of arcs) {
+		// Only consider arcs within the target's x-range (i.e., in the subtree)
+		if (arc.x0 >= target.x0 && arc.x1 <= target.x1) {
+			if (arc.y1 > maxY1) maxY1 = arc.y1
+		}
+	}
+	const yRange = maxY1 - yShift
+	const yScale = yRange > 0 ? 1 / yRange : 1
+
 	for (const arc of arcs) {
 		const newX0 = Math.max(0, Math.min(2 * Math.PI, (arc.x0 - target.x0) * xScale))
 		const newX1 = Math.max(0, Math.min(2 * Math.PI, (arc.x1 - target.x0) * xScale))
-		const newY0 = Math.max(0, arc.y0 - yShift)
-		const newY1 = Math.max(0, arc.y1 - yShift)
+		const newY0 = Math.max(0, (arc.y0 - yShift) * yScale)
+		const newY1 = Math.max(0, (arc.y1 - yShift) * yScale)
 
 		targets.set(arc.id, { x0: newX0, x1: newX1, y0: newY0, y1: newY1 })
 	}

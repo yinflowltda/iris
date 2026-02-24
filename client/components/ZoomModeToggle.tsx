@@ -1,3 +1,4 @@
+import type { PointerEvent as ReactPointerEvent } from 'react'
 import { useEditor } from 'tldraw'
 import type { MandalaShape } from '../shapes/MandalaShapeUtil'
 
@@ -5,7 +6,10 @@ export function ZoomModeToggle({ shape }: { shape: MandalaShape }) {
 	const editor = useEditor()
 	const isFocus = shape.props.zoomMode === 'focus'
 
-	function toggle() {
+	function toggle(e: ReactPointerEvent) {
+		// Stop propagation so TLDraw doesn't interpret this as a shape click
+		e.stopPropagation()
+		e.preventDefault()
 		editor.updateShape({
 			id: shape.id,
 			type: 'mandala',
@@ -19,7 +23,7 @@ export function ZoomModeToggle({ shape }: { shape: MandalaShape }) {
 	return (
 		<button
 			type="button"
-			onClick={toggle}
+			onPointerDown={toggle}
 			style={{
 				position: 'absolute',
 				bottom: 8,
@@ -34,6 +38,7 @@ export function ZoomModeToggle({ shape }: { shape: MandalaShape }) {
 				color: '#555',
 				backdropFilter: 'blur(4px)',
 				userSelect: 'none',
+				pointerEvents: 'all',
 			}}
 			title={
 				isFocus

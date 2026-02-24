@@ -306,9 +306,9 @@ describe('isPointInCell', () => {
 // ─── getAllCellIdsFromTree ──────────────────────────────────────────────────
 
 describe('getAllCellIdsFromTree', () => {
-	it('returns 7 IDs for emotions tree', () => {
+	it('returns 10 IDs for emotions tree (3 transparent groups + 7 cells)', () => {
 		const ids = getAllCellIdsFromTree(EMOTIONS_TREE)
-		expect(ids).toHaveLength(7)
+		expect(ids).toHaveLength(10)
 	})
 })
 

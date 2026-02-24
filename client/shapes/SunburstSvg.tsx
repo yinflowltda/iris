@@ -119,13 +119,84 @@ export function SunburstSvg({
 	const cellLabels: ReactElement[] = []
 
 	for (const arc of arcs) {
-		// Skip root (rendered as center circle) and transparent nodes
-		if (arc.transparent || (rootArc && arc.id === rootArc.id)) continue
+		// Skip root (rendered as center circle)
+		if (rootArc && arc.id === rootArc.id) continue
 
 		// Use animating values if provided, otherwise use computed layout
 		const effectiveArc = animatingArcs?.has(arc.id)
 			? { ...arc, ...animatingArcs.get(arc.id)! }
 			: arc
+
+		// ── Transparent group nodes: label only, no cell fill ────────
+		if (arc.transparent) {
+			const sweep = effectiveArc.x1 - effectiveArc.x0
+			if (sweep < 0.15) continue
+
+			// Place label on the outermost edge of all descendants' rings
+			// Collect all descendant IDs, then find max y1
+			const descendantIds = new Set<string>()
+			function collectDescendants(parentId: string) {
+				for (const a of arcs) {
+					if (a.parentId === parentId && !descendantIds.has(a.id)) {
+						descendantIds.add(a.id)
+						collectDescendants(a.id)
+					}
+				}
+			}
+			collectDescendants(arc.id)
+			let maxChildY1 = effectiveArc.y1
+			for (const descId of descendantIds) {
+				const descArc = arcs.find((a) => a.id === descId)
+				if (!descArc) continue
+				const descEffective = animatingArcs?.has(descId)
+					? { ...descArc, ...animatingArcs.get(descId)! }
+					: descArc
+				if (descEffective.y1 > maxChildY1) maxChildY1 = descEffective.y1
+			}
+			const labelR = maxChildY1 * outerRadius + 6
+
+			const midAngle = (effectiveArc.x0 + effectiveArc.x1) / 2
+			const shouldFlip = midAngle > Math.PI / 2 && midAngle < (3 * Math.PI) / 2
+
+			const pathId = `sb-arc-${arc.id}`
+			const textArcD = describeTextArcRadians(
+				cx,
+				cy,
+				labelR,
+				effectiveArc.x0,
+				effectiveArc.x1,
+				shouldFlip,
+			)
+
+			arcDefs.push(<path key={pathId} id={pathId} d={textArcD} fill="none" stroke="none" />)
+
+			const fontSize = Math.max(7, Math.min(12, outerRadius * 0.03))
+			cellLabels.push(
+				<text
+					key={`label-${arc.id}`}
+					fontSize={fontSize}
+					fill={colors.text}
+					fillOpacity={0.5}
+					pointerEvents="none"
+					style={{
+						userSelect: 'none',
+						fontFamily: labelFont,
+						textTransform: 'uppercase',
+						letterSpacing: '0.15em',
+					}}
+				>
+					<textPath
+						href={`#${pathId}`}
+						startOffset="50%"
+						textAnchor="middle"
+						dominantBaseline="central"
+					>
+						{arc.label}
+					</textPath>
+				</text>,
+			)
+			continue
+		}
 
 		const isHovered = hoveredCell === arc.id
 		const pathD = arcGen(effectiveArc)
@@ -265,12 +336,17 @@ function describeTextArcRadians(
 	// In SVG, we compute x = cx + r*sin(angle), y = cy - r*cos(angle)
 	// for the d3 convention where 0 is at top going clockwise.
 
+	// Cap sweep just below 2π so start/end points stay distinct
+	// (a full-circle arc degenerates in SVG because endpoints coincide)
+	const maxSweep = 2 * Math.PI - 0.001
+	const clampedEnd = startAngle + Math.min(endAngle - startAngle, maxSweep)
+
 	const x1 = cx + r * Math.sin(startAngle)
 	const y1 = cy - r * Math.cos(startAngle)
-	const x2 = cx + r * Math.sin(endAngle)
-	const y2 = cy - r * Math.cos(endAngle)
+	const x2 = cx + r * Math.sin(clampedEnd)
+	const y2 = cy - r * Math.cos(clampedEnd)
 
-	const sweep = endAngle - startAngle
+	const sweep = clampedEnd - startAngle
 	const largeArc = sweep > Math.PI ? 1 : 0
 
 	if (flip) {

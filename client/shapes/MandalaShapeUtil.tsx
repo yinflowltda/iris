@@ -21,7 +21,9 @@ import { getFramework } from '../lib/frameworks/framework-registry'
 import {
 	computeMandalaOuterRadius,
 	getCellAtPoint,
+	getCellAtPointFromTree,
 	getCellBoundingBox,
+	getCellBoundingBoxFromTree,
 	makeEmptyState,
 } from '../lib/mandala-geometry'
 import { isNodeInSubtree } from '../lib/sunburst-layout'
@@ -71,8 +73,12 @@ function getLocalCellFromPage(
 	const localPoint = editor.getPointInShapeSpace(shape, pagePoint)
 	const outerR = computeMandalaOuterRadius(shape.props.w, shape.props.h)
 	const localCenter = { x: shape.props.w / 2, y: shape.props.h / 2 }
-	const { definition } = getFramework(shape.props.frameworkId)
-	return getCellAtPoint(definition, localCenter, outerR, localPoint)
+	const framework = getFramework(shape.props.frameworkId)
+	// Use tree-based hit-testing when available (matches sunburst rendering)
+	if (framework.treeDefinition) {
+		return getCellAtPointFromTree(framework.treeDefinition, localCenter, outerR, localPoint)
+	}
+	return getCellAtPoint(framework.definition, localCenter, outerR, localPoint)
 }
 
 function MandalaInteractive({ shape }: { shape: MandalaShape }) {
@@ -231,8 +237,10 @@ export class MandalaShapeUtil extends ShapeUtil<MandalaShape> {
 				// Navigate zoom: camera zooms to the cell bounds (default behavior)
 				const outerR = computeMandalaOuterRadius(shape.props.w, shape.props.h)
 				const localCenter = { x: shape.props.w / 2, y: shape.props.h / 2 }
-				const { definition } = getFramework(shape.props.frameworkId)
-				const box = getCellBoundingBox(definition, localCenter, outerR, cellId)
+				const framework = getFramework(shape.props.frameworkId)
+				const box = framework.treeDefinition
+					? getCellBoundingBoxFromTree(framework.treeDefinition, localCenter, outerR, cellId)
+					: getCellBoundingBox(framework.definition, localCenter, outerR, cellId)
 
 				if (box) {
 					const pageBox = Box.From({
@@ -299,14 +307,6 @@ export class MandalaShapeUtil extends ShapeUtil<MandalaShape> {
 	}
 
 	override isAspectRatioLocked() {
-		return true
-	}
-
-	override hideSelectionBoundsBg() {
-		return true
-	}
-
-	override hideSelectionBoundsFg() {
 		return true
 	}
 

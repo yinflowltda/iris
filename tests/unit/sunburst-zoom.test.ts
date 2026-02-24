@@ -89,7 +89,7 @@ describe('computeZoomTargets', () => {
 		expect(childB.x1).toBeCloseTo(PI2)
 	})
 
-	it('shifts y values so target y0 becomes 0', () => {
+	it('shifts and rescales y values so target subtree fills 0-1', () => {
 		const arcs = [
 			makeArc({ id: 'root', x0: 0, x1: PI2, y0: 0, y1: 0.33, depth: 0 }),
 			makeArc({
@@ -107,7 +107,7 @@ describe('computeZoomTargets', () => {
 		const childA = targets.get('child-a')!
 
 		expect(childA.y0).toBeCloseTo(0)
-		expect(childA.y1).toBeCloseTo(0.33)
+		expect(childA.y1).toBeCloseTo(1)
 	})
 
 	it('root y values are clamped to 0 when shifted below zero', () => {
