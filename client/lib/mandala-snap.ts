@@ -16,8 +16,11 @@ import {
 	getCellAtPoint,
 	getCellAtPointFromTree,
 	getCellBounds,
+	getCellBoundsFromArcs,
 	getCellBoundsFromTree,
 } from './mandala-geometry'
+import { computeSunburstLayout, isNodeInSubtree } from './sunburst-layout'
+import type { ArcAnimationState } from './sunburst-zoom'
 
 const NOTE_BASE_SIZE = 200
 const CREATE_DEBOUNCE_MS = 150
@@ -527,4 +530,65 @@ function findClosestSlot(layout: LayoutItem[], dropPoint: Point2d): number {
 		}
 	}
 	return best
+}
+
+/**
+ * Reposition notes to match zoomed (or base) cell geometry after focus zoom.
+ * When zoomedArcs is provided, uses those arc values; otherwise falls back to base layout.
+ */
+export function repositionNotesForZoom(
+	editor: Editor,
+	mandala: MandalaShape,
+	zoomedArcs: Map<string, ArcAnimationState> | null,
+): void {
+	const { treeDefinition: treeDef } = getFramework(mandala.props.frameworkId)
+	if (!treeDef) return
+
+	const outerRadius = computeMandalaOuterRadius(mandala.props.w, mandala.props.h)
+	const localCenter = { x: mandala.props.w / 2, y: mandala.props.h / 2 }
+	const mandalaState = mandala.props.state
+	const zoomedNodeId = mandala.props.zoomedNodeId
+
+	// Build arc array from zoom targets or base layout
+	const baseArcs = computeSunburstLayout(treeDef)
+	const arcArray = zoomedArcs
+		? baseArcs.map((arc) => {
+				const zoomed = zoomedArcs.get(arc.id)
+				return zoomed ? { ...arc, ...zoomed } : arc
+			})
+		: baseArcs
+
+	const targets: Array<{ id: TLShapeId; x: number; y: number; scale: number }> = []
+
+	for (const [cellId, cellState] of Object.entries(mandalaState)) {
+		if (!cellState.contentShapeIds || cellState.contentShapeIds.length === 0) continue
+
+		// When zoomed, only reposition notes in the subtree
+		if (zoomedNodeId && !isNodeInSubtree(treeDef.root, zoomedNodeId, cellId)) continue
+
+		const bounds = getCellBoundsFromArcs(arcArray, localCenter, outerRadius, cellId)
+		if (!bounds) continue
+
+		// Skip collapsed cells
+		if (bounds.type === 'sector' && bounds.innerRadius >= bounds.outerRadius) continue
+
+		const layout = computeCellContentLayout(bounds, cellState.contentShapeIds.length)
+
+		for (let i = 0; i < cellState.contentShapeIds.length; i++) {
+			const simpleId = cellState.contentShapeIds[i]
+			const fullId = `shape:${simpleId}` as TLShapeId
+			const item = layout[i]
+			if (!item || !editor.getShape(fullId)) continue
+			targets.push({
+				id: fullId,
+				x: item.center.x - item.diameter / 2,
+				y: item.center.y - item.diameter / 2,
+				scale: item.diameter / NOTE_BASE_SIZE,
+			})
+		}
+	}
+
+	if (targets.length > 0) {
+		animateNotesToLayout(editor, targets, { durationMs: 300 })
+	}
 }

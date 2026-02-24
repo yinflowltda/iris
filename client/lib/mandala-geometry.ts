@@ -356,6 +356,36 @@ export function getCellBoundsFromTree(
 	}
 }
 
+export function getCellBoundsFromArcs(
+	arcs: Array<{ id: string; x0: number; x1: number; y0: number; y1: number }>,
+	center: Point2d,
+	outerRadius: number,
+	cellId: string,
+): CellBounds | null {
+	const arc = arcs.find((a) => a.id === cellId)
+	if (!arc) return null
+
+	const sweep = arc.x1 - arc.x0
+	if (arc.y0 === 0 && sweep >= 2 * Math.PI - 0.01) {
+		return { type: 'circle', center: { ...center }, radius: arc.y1 * outerRadius }
+	}
+
+	const startAngleDeg = d3AngleToCellBoundsDeg(arc.x0)
+	const endAngleDeg = d3AngleToCellBoundsDeg(arc.x1)
+	const midD3 = (arc.x0 + arc.x1) / 2
+	const midAngleDeg = d3AngleToCellBoundsDeg(midD3)
+
+	return {
+		type: 'sector',
+		center: { ...center },
+		innerRadius: arc.y0 * outerRadius,
+		outerRadius: arc.y1 * outerRadius,
+		startAngle: endAngleDeg,
+		endAngle: startAngleDeg,
+		midAngle: midAngleDeg,
+	}
+}
+
 export function getCellBoundingBoxFromTree(
 	treeDef: TreeMapDefinition,
 	center: Point2d,

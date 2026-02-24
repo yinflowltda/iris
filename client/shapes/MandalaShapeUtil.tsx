@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
 	Box,
 	Circle2d,
@@ -26,7 +26,9 @@ import {
 	getCellBoundingBoxFromTree,
 	makeEmptyState,
 } from '../lib/mandala-geometry'
+import { repositionNotesForZoom } from '../lib/mandala-snap'
 import { isNodeInSubtree } from '../lib/sunburst-layout'
+import type { ArcAnimationState } from '../lib/sunburst-zoom'
 import { SunburstSvg } from './SunburstSvg'
 
 // ─── Shape type ──────────────────────────────────────────────────────────────
@@ -154,6 +156,16 @@ function MandalaInteractive({ shape }: { shape: MandalaShape }) {
 		}
 	}, [editor, zoomedNodeId, zoomMode, mandalaState, frameworkId])
 
+	// Reposition notes after zoom animation completes
+	const handleZoomComplete = useCallback(
+		(finalArcs: Map<string, ArcAnimationState>) => {
+			const mandala = editor.getShape<MandalaShape>(shape.id)
+			if (!mandala) return
+			repositionNotesForZoom(editor, mandala, mandala.props.zoomedNodeId ? finalArcs : null)
+		},
+		[editor, shape.id],
+	)
+
 	return (
 		<div style={{ position: 'relative', width: shape.props.w, height: shape.props.h }}>
 			<SunburstSvg
@@ -163,6 +175,7 @@ function MandalaInteractive({ shape }: { shape: MandalaShape }) {
 				mandalaState={shape.props.state}
 				hoveredCell={hoveredCell}
 				zoomedNodeId={shape.props.zoomedNodeId}
+				onZoomComplete={handleZoomComplete}
 			/>
 			<ZoomModeToggle shape={shape} />
 		</div>

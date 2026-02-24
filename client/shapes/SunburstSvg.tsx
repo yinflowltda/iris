@@ -18,6 +18,7 @@ interface SunburstSvgProps {
 	hoveredCell?: string | null
 	zoomedNodeId?: string | null
 	animatingArcs?: Map<string, { x0: number; x1: number; y0: number; y1: number }>
+	onZoomComplete?: (finalArcs: Map<string, ArcAnimationState>) => void
 }
 
 const ZOOM_ANIMATION_MS = 400
@@ -32,6 +33,7 @@ export function SunburstSvg({
 	hoveredCell,
 	zoomedNodeId,
 	animatingArcs: animatingArcsProp,
+	onZoomComplete,
 }: SunburstSvgProps) {
 	const framework = getFramework(frameworkId)
 	const treeDef = framework.treeDefinition
@@ -84,6 +86,7 @@ export function SunburstSvg({
 			onComplete: () => {
 				// Keep final state in ref so next animation starts from here
 				cancelRef.current = null
+				onZoomComplete?.(target)
 			},
 		})
 
@@ -91,7 +94,7 @@ export function SunburstSvg({
 		return () => {
 			cancel()
 		}
-	}, [zoomedNodeId, arcs])
+	}, [zoomedNodeId, arcs, onZoomComplete])
 
 	// Use animation ref if active, then prop override, then nothing
 	const animatingArcs = animatingArcsRef.current ?? animatingArcsProp
