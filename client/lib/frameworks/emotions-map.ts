@@ -144,9 +144,9 @@ export const EMOTIONS_TREE: TreeMapDefinition = {
 	id: 'emotions-map',
 	name: EMOTIONS_MAP.name,
 	description: EMOTIONS_MAP.description,
-	// Center present at top (12 o'clock): offset by -(present_sweep / 2)
-	// present_sweep = (1.0 / 4.5) * 2π, half = π / 4.5
-	startAngle: -Math.PI / 4.5,
+	// Center present at 12 o'clock: d3-shape arc has 0 at 3 o'clock,
+	// so rotate by -π/2 to reach 12, then -π/4.5 to center present's sweep
+	startAngle: -(Math.PI / 2 + Math.PI / 4.5),
 	root: {
 		id: center.id,
 		label: center.label,
