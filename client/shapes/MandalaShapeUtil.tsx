@@ -172,26 +172,37 @@ export class MandalaShapeUtil extends ShapeUtil<MandalaShape> {
 		const cellId = getLocalCellFromPage(this.editor, shape, pagePoint)
 
 		if (cellId) {
-			const outerR = computeMandalaOuterRadius(shape.props.w, shape.props.h)
-			const localCenter = { x: shape.props.w / 2, y: shape.props.h / 2 }
-			const { definition } = getFramework(shape.props.frameworkId)
-			const box = getCellBoundingBox(definition, localCenter, outerR, cellId)
-
-			if (box) {
-				const pageBox = Box.From({
-					x: box.x + shape.x,
-					y: box.y + shape.y,
-					w: box.w,
-					h: box.h,
+			if (shape.props.zoomMode === 'focus') {
+				// Focus zoom: update zoomedNodeId, SunburstSvg animates the arcs
+				const newZoomedId = shape.props.zoomedNodeId === cellId ? null : cellId
+				this.editor.updateShape<MandalaShape>({
+					id: shape.id,
+					type: 'mandala',
+					props: { zoomedNodeId: newZoomedId },
 				})
+			} else {
+				// Navigate zoom: camera zooms to the cell bounds (default behavior)
+				const outerR = computeMandalaOuterRadius(shape.props.w, shape.props.h)
+				const localCenter = { x: shape.props.w / 2, y: shape.props.h / 2 }
+				const { definition } = getFramework(shape.props.frameworkId)
+				const box = getCellBoundingBox(definition, localCenter, outerR, cellId)
 
-				const shrunk = Box.From({
-					x: pageBox.x + pageBox.w * 0.125,
-					y: pageBox.y + pageBox.h * 0.125,
-					w: pageBox.w * 0.75,
-					h: pageBox.h * 0.75,
-				})
-				this.editor.zoomToBounds(shrunk, { animation: { duration: 300 } })
+				if (box) {
+					const pageBox = Box.From({
+						x: box.x + shape.x,
+						y: box.y + shape.y,
+						w: box.w,
+						h: box.h,
+					})
+
+					const shrunk = Box.From({
+						x: pageBox.x + pageBox.w * 0.125,
+						y: pageBox.y + pageBox.h * 0.125,
+						w: pageBox.w * 0.75,
+						h: pageBox.h * 0.75,
+					})
+					this.editor.zoomToBounds(shrunk, { animation: { duration: 300 } })
+				}
 			}
 		}
 

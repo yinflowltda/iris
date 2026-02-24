@@ -1,10 +1,12 @@
 import { arc as d3Arc } from 'd3-shape'
 import type { ReactElement } from 'react'
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { MandalaState } from '../../shared/types/MandalaTypes'
 import { getFramework } from '../lib/frameworks/framework-registry'
 import type { SunburstArc } from '../lib/sunburst-layout'
 import { computeSunburstLayout } from '../lib/sunburst-layout'
+import type { ArcAnimationState } from '../lib/sunburst-zoom'
+import { animateSunburstZoom, computeZoomTargets } from '../lib/sunburst-zoom'
 
 // ─── Props ───────────────────────────────────────────────────────────────────
 
@@ -26,8 +28,8 @@ export function SunburstSvg({
 	frameworkId,
 	mandalaState: _mandalaState,
 	hoveredCell,
-	zoomedNodeId: _zoomedNodeId,
-	animatingArcs,
+	zoomedNodeId,
+	animatingArcs: animatingArcsProp,
 }: SunburstSvgProps) {
 	const framework = getFramework(frameworkId)
 	const treeDef = framework.treeDefinition
@@ -37,6 +39,60 @@ export function SunburstSvg({
 		if (!treeDef) return []
 		return computeSunburstLayout(treeDef)
 	}, [treeDef])
+
+	// ── Zoom animation state ─────────────────────────────────────────────
+	const animatingArcsRef = useRef<Map<string, ArcAnimationState> | null>(null)
+	const [, setAnimFrame] = useState(0)
+	const cancelRef = useRef<(() => void) | null>(null)
+
+	useEffect(() => {
+		if (arcs.length === 0) return
+
+		// Cancel any running animation
+		cancelRef.current?.()
+		cancelRef.current = null
+
+		// Build current state from ref or from base layout
+		const current = new Map<string, ArcAnimationState>()
+		for (const arc of arcs) {
+			const existing = animatingArcsRef.current?.get(arc.id)
+			current.set(arc.id, existing ?? { x0: arc.x0, x1: arc.x1, y0: arc.y0, y1: arc.y1 })
+		}
+
+		// Compute target: if zoomedNodeId is set, zoom to it; otherwise reset to base layout
+		let target: Map<string, ArcAnimationState>
+		if (zoomedNodeId) {
+			target = computeZoomTargets(arcs, zoomedNodeId)
+			if (target.size === 0) return // unknown node, do nothing
+		} else {
+			target = new Map<string, ArcAnimationState>()
+			for (const arc of arcs) {
+				target.set(arc.id, { x0: arc.x0, x1: arc.x1, y0: arc.y0, y1: arc.y1 })
+			}
+		}
+
+		const cancel = animateSunburstZoom({
+			current,
+			target,
+			durationMs: 400,
+			onFrame: (interpolated) => {
+				animatingArcsRef.current = interpolated
+				setAnimFrame((n) => n + 1)
+			},
+			onComplete: () => {
+				// Keep final state in ref so next animation starts from here
+				cancelRef.current = null
+			},
+		})
+
+		cancelRef.current = cancel
+		return () => {
+			cancel()
+		}
+	}, [zoomedNodeId, arcs])
+
+	// Use animation ref if active, then prop override, then nothing
+	const animatingArcs = animatingArcsRef.current ?? animatingArcsProp
 
 	if (!treeDef || arcs.length === 0) return null
 
