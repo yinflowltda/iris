@@ -1,15 +1,22 @@
 import { describe, expect, it } from 'vitest'
-import { EMOTIONS_MAP } from '../../client/lib/frameworks/emotions-map'
+import { EMOTIONS_MAP, EMOTIONS_TREE } from '../../client/lib/frameworks/emotions-map'
 import {
 	computeMandalaOuterRadius,
 	getAllCellIds,
+	getAllCellIdsFromTree,
 	getCellAtPoint,
+	getCellAtPointFromTree,
+	getCellBoundingBoxFromTree,
 	getCellBounds,
+	getCellBoundsFromTree,
 	getCellCenter,
 	isPointInCell,
 	isValidCellId,
+	isValidCellIdInTree,
 	makeEmptyState,
+	makeEmptyStateFromTree,
 } from '../../client/lib/mandala-geometry'
+import { computeSunburstLayout } from '../../client/lib/sunburst-layout'
 
 const CENTER = { x: 0, y: 0 }
 const OUTER_RADIUS = 600
@@ -289,5 +296,131 @@ describe('isPointInCell', () => {
 				y: 0,
 			}),
 		).toBe(false)
+	})
+})
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Tree-based geometry functions
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ─── getAllCellIdsFromTree ──────────────────────────────────────────────────
+
+describe('getAllCellIdsFromTree', () => {
+	it('returns 7 IDs for emotions tree', () => {
+		const ids = getAllCellIdsFromTree(EMOTIONS_TREE)
+		expect(ids).toHaveLength(7)
+	})
+})
+
+// ─── isValidCellIdInTree ───────────────────────────────────────────────────
+
+describe('isValidCellIdInTree', () => {
+	it('accepts valid IDs', () => {
+		for (const id of getAllCellIdsFromTree(EMOTIONS_TREE)) {
+			expect(isValidCellIdInTree(EMOTIONS_TREE, id)).toBe(true)
+		}
+	})
+
+	it('rejects invalid IDs', () => {
+		expect(isValidCellIdInTree(EMOTIONS_TREE, 'nonexistent')).toBe(false)
+		expect(isValidCellIdInTree(EMOTIONS_TREE, '')).toBe(false)
+	})
+})
+
+// ─── makeEmptyStateFromTree ────────────────────────────────────────────────
+
+describe('makeEmptyStateFromTree', () => {
+	it('creates state with correct keys', () => {
+		const state = makeEmptyStateFromTree(EMOTIONS_TREE)
+		const keys = Object.keys(state).sort()
+		const expected = getAllCellIdsFromTree(EMOTIONS_TREE).sort()
+		expect(keys).toEqual(expected)
+	})
+
+	it('all cells are empty', () => {
+		const state = makeEmptyStateFromTree(EMOTIONS_TREE)
+		for (const cell of Object.values(state)) {
+			expect(cell.status).toBe('empty')
+			expect(cell.contentShapeIds).toHaveLength(0)
+		}
+	})
+})
+
+// ─── getCellAtPointFromTree ────────────────────────────────────────────────
+
+describe('getCellAtPointFromTree', () => {
+	it('returns "evidence" for center point', () => {
+		expect(getCellAtPointFromTree(EMOTIONS_TREE, CENTER, OUTER_RADIUS, { x: 0, y: 0 })).toBe(
+			'evidence',
+		)
+	})
+
+	it('maps all cell centers back to correct cells', () => {
+		const arcs = computeSunburstLayout(EMOTIONS_TREE)
+		for (const arc of arcs) {
+			if (arc.transparent) continue
+			// Compute the center of this arc in screen coordinates
+			const midAngle = (arc.x0 + arc.x1) / 2
+			const midRadius = ((arc.y0 + arc.y1) / 2) * OUTER_RADIUS
+
+			// d3 convention: 0=top, clockwise
+			// screen x = center.x + r * sin(angle), screen y = center.y - r * cos(angle)
+			// But since atan2(dx, -dy): dx = r*sin(a), -dy = -r*cos(a) => dy = r*cos(a) => y = center.y + r*cos(a)
+			// Wait: dy = point.y - center.y, and angle = atan2(dx, -dy)
+			// So dx = r*sin(a), -dy = r*cos(a) => dy = -r*cos(a) => point.y = center.y - r*cos(a)
+			const px = CENTER.x + midRadius * Math.sin(midAngle)
+			const py = CENTER.y - midRadius * Math.cos(midAngle)
+
+			const result = getCellAtPointFromTree(EMOTIONS_TREE, CENTER, OUTER_RADIUS, {
+				x: px,
+				y: py,
+			})
+			expect(result).toBe(arc.id)
+		}
+	})
+
+	it('returns null for point outside radius', () => {
+		expect(
+			getCellAtPointFromTree(EMOTIONS_TREE, CENTER, OUTER_RADIUS, {
+				x: OUTER_RADIUS + 100,
+				y: 0,
+			}),
+		).toBeNull()
+	})
+})
+
+// ─── getCellBoundsFromTree ─────────────────────────────────────────────────
+
+describe('getCellBoundsFromTree', () => {
+	it('returns circle for root', () => {
+		const bounds = getCellBoundsFromTree(EMOTIONS_TREE, CENTER, OUTER_RADIUS, 'evidence')
+		expect(bounds).not.toBeNull()
+		expect(bounds!.type).toBe('circle')
+	})
+
+	it('returns sector for non-root cells', () => {
+		for (const id of getAllCellIdsFromTree(EMOTIONS_TREE)) {
+			if (id === 'evidence') continue
+			const bounds = getCellBoundsFromTree(EMOTIONS_TREE, CENTER, OUTER_RADIUS, id)
+			expect(bounds).not.toBeNull()
+			expect(bounds!.type).toBe('sector')
+		}
+	})
+
+	it('returns null for invalid cell ID', () => {
+		expect(getCellBoundsFromTree(EMOTIONS_TREE, CENTER, OUTER_RADIUS, 'invalid')).toBeNull()
+	})
+})
+
+// ─── getCellBoundingBoxFromTree ────────────────────────────────────────────
+
+describe('getCellBoundingBoxFromTree', () => {
+	it('returns non-null for all cells', () => {
+		for (const id of getAllCellIdsFromTree(EMOTIONS_TREE)) {
+			const box = getCellBoundingBoxFromTree(EMOTIONS_TREE, CENTER, OUTER_RADIUS, id)
+			expect(box).not.toBeNull()
+			expect(box!.w).toBeGreaterThan(0)
+			expect(box!.h).toBeGreaterThan(0)
+		}
 	})
 })
