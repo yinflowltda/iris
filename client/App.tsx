@@ -71,6 +71,8 @@ import { CircularNoteShapeUtil } from './shapes/CircularNoteShapeUtil'
 import { MandalaShapeTool } from './shapes/MandalaShapeTool'
 import { type MandalaShape, MandalaShapeUtil } from './shapes/MandalaShapeUtil'
 import { TargetAreaTool } from './tools/TargetAreaTool'
+import { MandalaIcon } from '../shared/icons/MandalaIcon'
+import { NoteIcon } from '../shared/icons/NoteIcon'
 import { TargetShapeTool } from './tools/TargetShapeTool'
 
 const ChatPanelContext = createContext<{ chatOpen: boolean; toggleChat: () => void }>({
@@ -444,13 +446,18 @@ function App() {
 				}
 			},
 			tools: (editor, tools) => {
+				// Override the note tool icon with a circular note
+				if (tools.note) {
+					tools.note.icon = <NoteIcon />
+
+				}
 				const next = {
 					...tools,
 					mandala: {
 						id: 'mandala',
 						label: 'Mandala',
 						kbd: 'm',
-						icon: 'tool-media',
+						icon: <MandalaIcon />,
 						onSelect() {
 							setShowTemplate(true)
 							editor.setCurrentTool('select')

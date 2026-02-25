@@ -1,0 +1,27 @@
+export function MandalaIcon() {
+	return (
+		<svg
+			xmlns="http://www.w3.org/2000/svg"
+			width="18"
+			height="18"
+			viewBox="0 0 18 18"
+			fill="none"
+			stroke="currentColor"
+			strokeWidth="1.28"
+			strokeLinecap="round"
+			strokeLinejoin="round"
+			style={{ flexShrink: 0 }}
+		>
+			<circle cx="9" cy="9" r="8" />
+			<circle cx="9" cy="9" r="3.2" />
+			<line x1="9" y1="1" x2="9" y2="5.8" />
+			<line x1="9" y1="12.2" x2="9" y2="17" />
+			<line x1="1" y1="9" x2="5.8" y2="9" />
+			<line x1="12.2" y1="9" x2="17" y2="9" />
+			<line x1="3.34" y1="3.34" x2="6.74" y2="6.74" />
+			<line x1="11.26" y1="11.26" x2="14.66" y2="14.66" />
+			<line x1="14.66" y1="3.34" x2="11.26" y2="6.74" />
+			<line x1="6.74" y1="11.26" x2="3.34" y2="14.66" />
+		</svg>
+	)
+}
