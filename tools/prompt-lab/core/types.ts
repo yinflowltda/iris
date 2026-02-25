@@ -101,3 +101,34 @@ export interface ApiClientConfig {
 	apiKey: string
 	model: string
 }
+
+// ============================================================================
+// Test Run ID & Results Organization
+// ============================================================================
+
+export interface TestRunMeta {
+	runId: string
+	framework: string
+	startedAt: string
+	completedAt?: string
+	scenarioCount: number
+	iterations: number
+	baselineAverage?: number
+	finalAverage?: number
+	improvement?: number
+	status: 'running' | 'completed' | 'failed'
+}
+
+export interface TestCaseResult {
+	testId: string
+	runId: string
+	scenarioId: string
+	iteration: number
+	conversation: ConversationResult
+	score: ConversationScore
+	screenshotPath?: string
+}
+
+export interface TestRunIndex {
+	runs: TestRunMeta[]
+}

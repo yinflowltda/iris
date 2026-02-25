@@ -2,7 +2,8 @@ import type { ApiClient } from './api-client'
 import { isAutoFail, scoreConversation } from './judge'
 import { analyzeScores, generatePromptChanges } from './optimizer'
 import { runConversation } from './simulator'
-import type { FrameworkConfig, IterationResult, LabReport, Scenario } from './types'
+import { generateRunId, generateTestId, initRunDir, saveTestCase } from './test-run'
+import type { FrameworkConfig, IterationResult, LabReport, Scenario, TestCaseResult } from './types'
 
 export interface LoopOptions {
 	scenarios: Scenario[]
@@ -13,10 +14,14 @@ export interface LoopOptions {
 	judgeClient: ApiClient
 	optimizerClient: ApiClient
 	maxIterations: number
+	/** Optional run ID (auto-generated if not provided) */
+	runId?: string
+	/** Whether to persist test cases to disk (default: true) */
+	persistResults?: boolean
 	onProgress?: (iteration: number, total: number, result: IterationResult) => void
 }
 
-export async function runLoop(options: LoopOptions): Promise<LabReport> {
+export async function runLoop(options: LoopOptions): Promise<LabReport & { runId: string }> {
 	const {
 		scenarios,
 		frameworkConfig,
@@ -29,6 +34,13 @@ export async function runLoop(options: LoopOptions): Promise<LabReport> {
 		onProgress,
 	} = options
 
+	const runId = options.runId ?? generateRunId()
+	const persist = options.persistResults !== false
+
+	if (persist) {
+		await initRunDir(runId)
+	}
+
 	const startedAt = new Date().toISOString()
 	const iterations: IterationResult[] = []
 	let baselineAverage = 0
@@ -36,8 +48,8 @@ export async function runLoop(options: LoopOptions): Promise<LabReport> {
 	for (let i = 1; i <= maxIterations; i++) {
 		const systemPrompt = buildSystemPromptFn()
 
-		// Run all scenarios and score them
-		const scores = await Promise.all(
+		// Run all scenarios and score them, keeping conversations for persistence
+		const results = await Promise.all(
 			scenarios.map(async (scenario) => {
 				const conversation = await runConversation({
 					scenario,
@@ -45,13 +57,33 @@ export async function runLoop(options: LoopOptions): Promise<LabReport> {
 					userClient,
 					systemPrompt,
 				})
-				return scoreConversation({
+				const score = await scoreConversation({
 					conversation,
 					frameworkConfig,
 					judgeClient,
 				})
+				return { conversation, score }
 			}),
 		)
+
+		const scores = results.map((r) => r.score)
+
+		// Persist each test case
+		if (persist) {
+			await Promise.all(
+				results.map(async ({ conversation, score }) => {
+					const testCase: TestCaseResult = {
+						testId: generateTestId(runId, score.scenarioId, i),
+						runId,
+						scenarioId: score.scenarioId,
+						iteration: i,
+						conversation,
+						score,
+					}
+					await saveTestCase(testCase)
+				}),
+			)
+		}
 
 		const analysis = analyzeScores(scores)
 
@@ -98,6 +130,7 @@ export async function runLoop(options: LoopOptions): Promise<LabReport> {
 	const finalAverage = iterations[iterations.length - 1].averageOverall
 
 	return {
+		runId,
 		startedAt,
 		completedAt: new Date().toISOString(),
 		framework: frameworkConfig.frameworkId,
