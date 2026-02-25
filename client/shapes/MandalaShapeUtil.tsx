@@ -163,18 +163,20 @@ function MandalaInteractive({ shape }: { shape: MandalaShape }) {
 						id: existing.id,
 						type: existing.type,
 						opacity: inSubtree ? 1 : 0,
+						isLocked: !inSubtree,
 					})
 				}
 			}
 		} else {
-			// Restore all notes to full opacity
+			// Restore all notes to full opacity and unlock
 			for (const { shapeId } of allNoteIds) {
 				const existing = editor.getShape(shapeId as any)
-				if (existing && existing.opacity !== 1) {
+				if (existing && (existing.opacity !== 1 || existing.isLocked)) {
 					editor.updateShape({
 						id: existing.id,
 						type: existing.type,
 						opacity: 1,
+						isLocked: false,
 					})
 				}
 			}
