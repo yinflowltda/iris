@@ -22,6 +22,7 @@
 		"verify": "biome check . && tsc --noEmit && vitest run"
 	},
 	"dependencies": {
+		"@ai-sdk/openai": "^3.0.33",
 		"@cloudflare/vite-plugin": "^1.13.2",
 		"@tldraw/tlschema": "^4.3.1",
 		"@worker-tools/json-stream": "^0.1.0-pre.12",
