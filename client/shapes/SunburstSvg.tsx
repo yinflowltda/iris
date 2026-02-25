@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { MandalaState } from '../../shared/types/MandalaTypes'
 import { getFramework } from '../lib/frameworks/framework-registry'
 import type { SunburstArc } from '../lib/sunburst-layout'
-import { computeSunburstLayout } from '../lib/sunburst-layout'
+import { computeSunburstLayout, isNodeInSubtree } from '../lib/sunburst-layout'
 import type { ArcAnimationState } from '../lib/sunburst-zoom'
 import { animateSunburstZoom, computeZoomTargets } from '../lib/sunburst-zoom'
 
@@ -117,6 +117,13 @@ export function SunburstSvg({
 	// Find root node
 	const rootArc = arcs.find((a) => a.depth === 0)
 
+	// When zoomed to a non-root cell, only show labels for the zoomed subtree
+	const isZoomedNonRoot = zoomedNodeId && rootArc && zoomedNodeId !== rootArc.id
+	const showLabelForArc = (arcId: string) => {
+		if (!isZoomedNonRoot) return true
+		return isNodeInSubtree(treeDef.root, zoomedNodeId!, arcId)
+	}
+
 	const cellPaths: ReactElement[] = []
 	const arcDefs: ReactElement[] = []
 	const cellLabels: ReactElement[] = []
@@ -133,7 +140,7 @@ export function SunburstSvg({
 		// ── Transparent group nodes: label only, no cell fill ────────
 		if (arc.transparent) {
 			const sweep = effectiveArc.x1 - effectiveArc.x0
-			if (sweep < 0.15) continue
+			if (sweep < 0.15 || !showLabelForArc(arc.id)) continue
 
 			// Place label on the outermost edge of all descendants' rings
 			// Collect all descendant IDs, then find max y1
@@ -219,7 +226,7 @@ export function SunburstSvg({
 
 		// ── Label arc + text ─────────────────────────────────────────
 		const sweep = effectiveArc.x1 - effectiveArc.x0
-		if (sweep < 0.15) continue // Too small for a label
+		if (sweep < 0.15 || !showLabelForArc(arc.id)) continue
 
 		const innerR = effectiveArc.y0 * outerRadius
 		const outerR = effectiveArc.y1 * outerRadius
@@ -272,6 +279,9 @@ export function SunburstSvg({
 	const centerLabel = rootArc?.label ?? treeDef.root.label
 	const centerFontSize = Math.max(10, Math.min(16, outerRadius * 0.045))
 
+	// Hide root label when zoomed to a non-root cell
+	const showRootLabel = !isZoomedNonRoot
+
 	const centerCircle = (
 		<g key="center">
 			<circle
@@ -283,7 +293,7 @@ export function SunburstSvg({
 				strokeWidth={1.5}
 				style={{ transition: 'fill 0.15s ease' }}
 			/>
-			<text
+			{showRootLabel && <text
 				x={cx}
 				y={cy}
 				textAnchor="middle"
@@ -300,7 +310,7 @@ export function SunburstSvg({
 				}}
 			>
 				{centerLabel.toUpperCase()}
-			</text>
+			</text>}
 		</g>
 	)
 
