@@ -46,7 +46,7 @@ export function ZoomModeToggle({ shape }: { shape: MandalaShape }) {
 					: 'Navigate mode (click to switch to Focus)'
 			}
 		>
-			{isFocus ? 'Focus' : 'Navigate'}
+			{isFocus ? 'Navigate' : 'Focus'}
 		</button>
 	)
 }
