@@ -1,4 +1,4 @@
-import { type TLShapeId, toRichText } from 'tldraw'
+import { Box, type TLShapeId, toRichText } from 'tldraw'
 import type { FillCellAction } from '../../shared/schema/AgentActionSchemas'
 import type { SimpleShapeId } from '../../shared/types/ids-schema'
 import type { MandalaState } from '../../shared/types/MandalaTypes'
@@ -7,7 +7,12 @@ import type { AgentHelpers } from '../AgentHelpers'
 import { animateNotesToLayout } from '../lib/animate-note-layout'
 import { computeCellContentLayout } from '../lib/cell-layout'
 import { getFrameworkForMandala } from '../lib/frameworks/framework-registry'
-import { computeMandalaOuterRadius, getCellBounds, isValidCellId } from '../lib/mandala-geometry'
+import {
+	computeMandalaOuterRadius,
+	getCellBoundingBox,
+	getCellBounds,
+	isValidCellId,
+} from '../lib/mandala-geometry'
 import { NODULE_COLOR_SEQUENCE } from '../lib/nodule-color-palette'
 import type { MandalaShape } from '../shapes/MandalaShapeUtil'
 import { AgentActionUtil, registerActionUtil } from './AgentActionUtil'
@@ -55,6 +60,7 @@ export const FillCellActionUtil = registerActionUtil(
 			}
 
 			const { definition } = getFrameworkForMandala(this.editor, action.mandalaId as string)
+
 			const bounds = getCellBounds(definition, localCenter, outerRadius, cellId)
 			if (!bounds) return
 
@@ -98,6 +104,20 @@ export const FillCellActionUtil = registerActionUtil(
 					url: '',
 				},
 			})
+
+			// Zoom camera centered on the new note
+			const notePageX = mandala.x + newLayout.center.x
+			const notePageY = mandala.y + newLayout.center.y
+			const zoomSize = newLayout.diameter * 1.2
+			editor.zoomToBounds(
+				Box.From({
+					x: notePageX - zoomSize / 2,
+					y: notePageY - zoomSize / 2,
+					w: zoomSize,
+					h: zoomSize,
+				}),
+				{ animation: { duration: 300 } },
+			)
 
 			const targets = allSimpleIds
 				.map((simpleId, i) => {

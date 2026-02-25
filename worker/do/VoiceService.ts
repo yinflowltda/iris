@@ -82,6 +82,10 @@ export class VoiceService {
 				)
 
 				if (rawResp instanceof Response) {
+					if (!rawResp.ok) {
+						const text = await rawResp.text()
+						throw new Error(`STT error (${rawResp.status}): ${text}`)
+					}
 					result = await rawResp.json()
 				} else {
 					result = rawResp
