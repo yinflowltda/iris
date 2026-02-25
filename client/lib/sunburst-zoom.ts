@@ -25,6 +25,21 @@ export function computeZoomTargets(
 	if (!target) return new Map()
 
 	const targets = new Map<string, ArcAnimationState>()
+
+	// When zooming to the root node, expand it to fill the full radius
+	// and collapse all other arcs
+	if (target.depth === 0) {
+		for (const arc of arcs) {
+			if (arc.id === target.id) {
+				targets.set(arc.id, { x0: 0, x1: 2 * Math.PI, y0: 0, y1: 1 })
+			} else {
+				// Collapse all non-root arcs to the root's outer edge
+				targets.set(arc.id, { x0: arc.x0, x1: arc.x0, y0: 0, y1: 0 })
+			}
+		}
+		return targets
+	}
+
 	const xRange = target.x1 - target.x0
 	const xScale = xRange > 0 ? (2 * Math.PI) / xRange : 0
 	const yShift = target.y0
@@ -43,8 +58,12 @@ export function computeZoomTargets(
 	for (const arc of arcs) {
 		const newX0 = Math.max(0, Math.min(2 * Math.PI, (arc.x0 - target.x0) * xScale))
 		const newX1 = Math.max(0, Math.min(2 * Math.PI, (arc.x1 - target.x0) * xScale))
-		const newY0 = Math.max(0, (arc.y0 - yShift) * yScale)
-		const newY1 = Math.max(0, (arc.y1 - yShift) * yScale)
+
+		// Collapse y to zero for arcs with no angular width (outside the subtree)
+		// to prevent phantom hits in hit-testing
+		const collapsed = newX1 - newX0 < 0.001
+		const newY0 = collapsed ? 0 : Math.max(0, (arc.y0 - yShift) * yScale)
+		const newY1 = collapsed ? 0 : Math.max(0, (arc.y1 - yShift) * yScale)
 
 		targets.set(arc.id, { x0: newX0, x1: newX1, y0: newY0, y1: newY1 })
 	}

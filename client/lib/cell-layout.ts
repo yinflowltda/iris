@@ -31,7 +31,7 @@ function layoutCircleCell(bounds: CircleCellBounds, itemCount: number): LayoutIt
 		return [
 			{
 				center: { ...bounds.center },
-				diameter: usableRadius * 2 * 0.95,
+				diameter: usableRadius * 2 * 0.6,
 			},
 		]
 	}

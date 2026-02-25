@@ -265,7 +265,10 @@ export function SunburstSvg({
 
 	// ── Center circle ────────────────────────────────────────────────────
 	const isCenterHovered = rootArc && hoveredCell === rootArc.id
-	const centerRadius = rootArc ? rootArc.y1 * outerRadius : outerRadius * 0.15
+	const animatedRoot = rootArc ? animatingArcs?.get(rootArc.id) : undefined
+	const centerRadius = rootArc
+		? (animatedRoot?.y1 ?? rootArc.y1) * outerRadius
+		: outerRadius * 0.15
 	const centerLabel = rootArc?.label ?? treeDef.root.label
 	const centerFontSize = Math.max(10, Math.min(16, outerRadius * 0.045))
 

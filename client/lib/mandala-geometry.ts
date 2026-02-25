@@ -391,7 +391,7 @@ export function getCellAtPointFromArcs(
 }
 
 export function getCellBoundsFromArcs(
-	arcs: Array<{ id: string; x0: number; x1: number; y0: number; y1: number }>,
+	arcs: Array<{ id: string; x0: number; x1: number; y0: number; y1: number; depth?: number }>,
 	center: Point2d,
 	outerRadius: number,
 	cellId: string,
@@ -399,7 +399,16 @@ export function getCellBoundsFromArcs(
 	const arc = arcs.find((a) => a.id === cellId)
 	if (!arc) return null
 
-	// Always return sector bounds — even for cells starting from center (y0=0).
+	// Root cell gets circle bounds for proper layout
+	if (arc.depth === 0) {
+		return {
+			type: 'circle',
+			center: { ...center },
+			radius: arc.y1 * outerRadius,
+		}
+	}
+
+	// Non-root cells always get sector bounds.
 	// The sector/ring layout places notes within the radial band, which is
 	// correct for zoomed cells where the center is occupied by the root label
 	// and sibling arcs occupy adjacent bands.

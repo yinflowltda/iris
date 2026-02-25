@@ -21,14 +21,16 @@ import { getFramework } from '../lib/frameworks/framework-registry'
 import {
 	computeMandalaOuterRadius,
 	getCellAtPoint,
+	getCellAtPointFromArcs,
 	getCellAtPointFromTree,
 	getCellBoundingBox,
 	getCellBoundingBoxFromTree,
 	makeEmptyState,
 } from '../lib/mandala-geometry'
 import { repositionNotesForZoom } from '../lib/mandala-snap'
-import { isNodeInSubtree } from '../lib/sunburst-layout'
+import { computeSunburstLayout, findTreeNode, isNodeInSubtree } from '../lib/sunburst-layout'
 import type { ArcAnimationState } from '../lib/sunburst-zoom'
+import { computeZoomTargets } from '../lib/sunburst-zoom'
 import { SunburstSvg } from './SunburstSvg'
 
 // ─── Shape type ──────────────────────────────────────────────────────────────
@@ -76,6 +78,24 @@ function getLocalCellFromPage(
 	const outerR = computeMandalaOuterRadius(shape.props.w, shape.props.h)
 	const localCenter = { x: shape.props.w / 2, y: shape.props.h / 2 }
 	const framework = getFramework(shape.props.frameworkId)
+
+	// In focus mode with a zoomed node, use zoomed arc geometry for hit-testing
+	if (
+		framework.treeDefinition &&
+		shape.props.zoomMode === 'focus' &&
+		shape.props.zoomedNodeId
+	) {
+		const baseArcs = computeSunburstLayout(framework.treeDefinition)
+		const zoomTargets = computeZoomTargets(baseArcs, shape.props.zoomedNodeId)
+		if (zoomTargets.size > 0) {
+			const zoomedArcs = baseArcs.map((arc) => {
+				const zoomed = zoomTargets.get(arc.id)
+				return zoomed ? { ...arc, ...zoomed } : arc
+			})
+			return getCellAtPointFromArcs(zoomedArcs, localCenter, outerR, localPoint)
+		}
+	}
+
 	// Use tree-based hit-testing when available (matches sunburst rendering)
 	if (framework.treeDefinition) {
 		return getCellAtPointFromTree(framework.treeDefinition, localCenter, outerR, localPoint)
@@ -130,8 +150,13 @@ function MandalaInteractive({ shape }: { shape: MandalaShape }) {
 		}
 
 		if (zoomedNodeId && zoomMode === 'focus') {
+			// When zoomed to root, only root's own notes are visible (not children's)
+			const zoomedNode = findTreeNode(root, zoomedNodeId)
+			const zoomedIsRoot = zoomedNode && zoomedNode === root
 			for (const { shapeId, cellId } of allNoteIds) {
-				const inSubtree = isNodeInSubtree(root, zoomedNodeId, cellId)
+				const inSubtree = zoomedIsRoot
+					? cellId === zoomedNodeId
+					: isNodeInSubtree(root, zoomedNodeId, cellId)
 				const existing = editor.getShape(shapeId as any)
 				if (existing) {
 					editor.updateShape({
