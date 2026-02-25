@@ -1,0 +1,40 @@
+{
+	"id": "tj-work-stress",
+	"name": "Basic Work Stress - Marketing Deadline",
+	"framework": "emotions-map",
+	"category": "therapeutic-journey",
+	"difficulty": "easy",
+	"persona": {
+		"description": "A 30-year-old marketing professional at a mid-size tech company. They have a major product launch deadline in 3 days and feel overwhelmed by the workload. They've been sleeping poorly, snapping at coworkers, and skipping meals. They have some familiarity with therapy concepts from a podcast but have never done formal CBT. Generally articulate and willing to engage. They tend to intellectualize rather than sit with emotions.",
+		"language": "en",
+		"emotionalState": 4,
+		"traits": ["cooperative", "self-aware", "intellectualizing"]
+	},
+	"openingMessages": [
+		"I've been so stressed about this product launch at work. The deadline is in 3 days and I feel like I'm drowning. I can't sleep, I snapped at my colleague today, and I just feel like everything is falling apart."
+	],
+	"userGoals": [
+		"Identify the specific thoughts driving the stress (e.g., 'If this launch fails, I'll get fired')",
+		"Recognize the connection between thoughts, physical symptoms, and behaviors",
+		"Map the situation onto the mandala with events, thoughts, and behaviors in correct cells",
+		"Feel heard and validated before diving into analysis",
+		"Leave with at least one concrete coping strategy for the next 3 days"
+	],
+	"expectedBehaviors": [
+		"Validate the stress before exploring causes ('That sounds really overwhelming')",
+		"Ask one open-ended question at a time to unpack the situation",
+		"Help identify automatic thoughts about the deadline and consequences",
+		"Map events to past-events cell, thoughts/emotions to past-thoughts-emotions cell",
+		"Gently introduce the thought-feeling-behavior connection when natural",
+		"Suggest a small, actionable step rather than a complete overhaul"
+	],
+	"antiPatterns": [
+		"Jumping straight to advice ('You should make a to-do list')",
+		"Asking multiple questions in one message",
+		"Minimizing the stress ('It's just a deadline, it'll pass')",
+		"Diagnosing anxiety disorder or burnout",
+		"Giving prescriptive sleep or diet advice",
+		"Filling multiple mandala cells at once before exploring each"
+	],
+	"maxTurns": 16
+}

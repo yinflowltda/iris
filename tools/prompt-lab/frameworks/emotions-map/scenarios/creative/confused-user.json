@@ -1,0 +1,41 @@
+{
+	"id": "creative-confused",
+	"name": "Confused User - No Therapy Background",
+	"framework": "emotions-map",
+	"category": "creative",
+	"difficulty": "medium",
+	"persona": {
+		"description": "A 55-year-old retired factory worker who has never been to therapy, doesn't know what CBT is, and finds the mandala interface confusing. They were sent the link by their adult daughter who is worried about them. They are dealing with loneliness after retirement but wouldn't use that word - they'd say they're 'bored' or 'don't know what to do with themselves.' They are patient and willing to try but may ask basic questions like 'What am I supposed to do here?' or 'What's this circle thing?' They communicate in simple, direct language.",
+		"language": "en",
+		"emotionalState": 4,
+		"traits": ["confused", "patient", "willing", "plain-spoken", "no-therapy-background"]
+	},
+	"openingMessages": [
+		"My daughter told me to try this. I'm not really sure what I'm supposed to do here. She says I've been down since I retired last year but I don't know, I just don't have anything to do anymore. What is this thing?"
+	],
+	"userGoals": [
+		"Understand what the tool is and how it works in simple terms",
+		"Feel comfortable despite unfamiliarity with therapy concepts",
+		"Begin talking about the retirement transition without feeling pathologized",
+		"Identify that 'bored' might actually be covering loneliness or loss of identity",
+		"See the mandala being used in a way that makes intuitive sense to them",
+		"Leave feeling that this was worthwhile and they might come back"
+	],
+	"expectedBehaviors": [
+		"Explain the tool and process in simple, jargon-free language",
+		"Meet the user where they are - don't assume therapy literacy",
+		"Validate the retirement struggle as a common and significant life transition",
+		"Use the user's own words ('bored', 'nothing to do') before introducing other frames",
+		"Introduce mandala concepts gradually and concretely ('This circle helps us map out what you're going through')",
+		"Check understanding frequently ('Does that make sense?' 'Is this helpful so far?')"
+	],
+	"antiPatterns": [
+		"Using therapy jargon ('activating event', 'cognitive distortion', 'schema')",
+		"Assuming the user knows how to navigate the interface",
+		"Moving too fast into emotional exploration before building rapport",
+		"Being condescending about their lack of therapy knowledge",
+		"Ignoring their confusion about the tool and jumping into content",
+		"Treating retirement as inherently negative rather than a transition"
+	],
+	"maxTurns": 16
+}

@@ -1,0 +1,41 @@
+{
+	"id": "creative-language",
+	"name": "Language Switch - Bilingual Emotional Expression",
+	"framework": "emotions-map",
+	"category": "creative",
+	"difficulty": "hard",
+	"persona": {
+		"description": "A 28-year-old bilingual Brazilian-American graphic designer who grew up speaking Portuguese at home and English at school. They naturally switch to Portuguese when expressing deep emotions, especially around family topics. Currently dealing with guilt about moving far from their aging parents in Brazil. They are expressive and articulate in both languages but find that certain emotions 'only exist' in Portuguese (e.g., 'saudade'). They may start in English and shift to Portuguese mid-sentence when emotions intensify.",
+		"language": "en",
+		"emotionalState": 5,
+		"traits": ["bilingual", "expressive", "culturally-aware", "guilt-prone"]
+	},
+	"openingMessages": [
+		"I've been feeling really guilty lately about living so far from my parents. They're getting older and I'm here building my career in the US while they're in Sao Paulo. It's this feeling of... saudade, you know? It's more than missing them. It's like this ache that doesn't go away."
+	],
+	"userGoals": [
+		"Feel that their bilingual emotional expression is welcomed and understood",
+		"Process the guilt about distance from family without being told what to do",
+		"Explore the cultural dimension of the guilt (family obligation in Brazilian culture)",
+		"Identify the automatic thoughts driving the guilt ('I'm abandoning them')",
+		"Find a way to hold both their career aspirations and family devotion",
+		"Have their cultural context genuinely integrated into the therapeutic process"
+	],
+	"expectedBehaviors": [
+		"Acknowledge and honor Portuguese expressions without requiring translation",
+		"Show understanding of 'saudade' as a culturally specific emotional concept",
+		"Explore cultural expectations around family proximity in Brazilian culture",
+		"Follow the user's language switching naturally without making it an issue",
+		"Map emotions using the user's own words, including Portuguese terms where appropriate",
+		"Ask about family relationships with cultural sensitivity"
+	],
+	"antiPatterns": [
+		"Asking 'Can you say that in English?' or treating language switching as a problem",
+		"Ignoring cultural context and treating this as a generic guilt scenario",
+		"Mistranslating or misunderstanding Portuguese emotional concepts",
+		"Imposing Western individualistic values ('You have to live your own life')",
+		"Treating the bilingualism as a curiosity rather than a natural part of the experience",
+		"Reducing 'saudade' to simple 'missing' or 'homesickness'"
+	],
+	"maxTurns": 14
+}
