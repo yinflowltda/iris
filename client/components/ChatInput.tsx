@@ -1,15 +1,38 @@
-import { type FormEventHandler, useState } from 'react'
+import { type FormEventHandler, useEffect, useState } from 'react'
 import { type Editor, useValue } from 'tldraw'
 import { AtIcon } from '../../shared/icons/AtIcon'
 import { BrainIcon } from '../../shared/icons/BrainIcon'
 import { ChevronDownIcon } from '../../shared/icons/ChevronDownIcon'
-import { AGENT_MODEL_DEFINITIONS, type AgentModelName } from '../../shared/models'
+import {
+	AGENT_MODEL_DEFINITIONS,
+	type AgentModelDefinition,
+	type AgentModelName,
+} from '../../shared/models'
 import { getContextItemKey } from '../../shared/types/ContextItem'
 import type { VoiceState } from '../../shared/types/VoiceTypes'
 import { useAgent } from '../agent/TldrawAgentAppProvider'
 import { ContextItemTag } from './ContextItemTag'
 import { SelectionTag } from './SelectionTag'
 import { MicIcon } from './VoiceControl'
+
+function useAvailableModels(): AgentModelDefinition[] {
+	const [models, setModels] = useState(() => Object.values(AGENT_MODEL_DEFINITIONS))
+
+	useEffect(() => {
+		fetch('/models')
+			.then((res) => res.json())
+			.then((data: unknown) => {
+				if (Array.isArray(data) && data.length > 0) {
+					setModels(data)
+				}
+			})
+			.catch(() => {
+				// Fall back to all models on error
+			})
+	}, [])
+
+	return models
+}
 
 export function ChatInput({
 	handleSubmit,
@@ -37,6 +60,7 @@ export function ChatInput({
 	const selectedShapes = useValue('selectedShapes', () => editor.getSelectedShapes(), [editor])
 	const contextItems = useValue('contextItems', () => agent.context.getItems(), [agent])
 	const modelName = useValue('modelName', () => agent.modelName.getModelName(), [agent])
+	const availableModels = useAvailableModels()
 
 	const hasText = inputValue.trim() !== ''
 	const showSendButton = hasText || isGenerating
@@ -114,7 +138,7 @@ export function ChatInput({
 								value={modelName}
 								onChange={(e) => agent.modelName.setModelName(e.target.value as AgentModelName)}
 							>
-								{Object.values(AGENT_MODEL_DEFINITIONS).map((model) => (
+								{availableModels.map((model) => (
 									<option key={model.name} value={model.name}>
 										{model.name}
 									</option>

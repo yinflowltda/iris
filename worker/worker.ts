@@ -2,6 +2,7 @@ import { WorkerEntrypoint } from 'cloudflare:workers'
 import type { ExecutionContext } from '@cloudflare/workers-types'
 import { AutoRouter, cors, error, type IRequest } from 'itty-router'
 import type { Environment } from './environment'
+import { getAvailableModels } from './routes/models'
 import { stream } from './routes/stream'
 import { voice } from './routes/voice'
 
@@ -17,6 +18,9 @@ const router = AutoRouter<IRequest, [env: Environment, ctx: ExecutionContext]>({
 })
 	.post('/stream', stream)
 	.get('/voice', voice)
+	.get('/models', (_req: IRequest, env: Environment) => {
+		return Response.json(getAvailableModels(env))
+	})
 
 export default class extends WorkerEntrypoint<Environment> {
 	override fetch(request: Request): Promise<Response> {
