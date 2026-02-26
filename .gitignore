@@ -8,3 +8,4 @@ dist/
 .wrangler/
 test-results/
 playwright-report/
+tools/prompt-lab/results/

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useToasts } from 'tldraw'
 import type {
 	ChatHistoryActionItem,
 	ChatHistoryPromptItem,
@@ -11,7 +12,7 @@ export function useVoice(agent: TldrawAgent) {
 	const clientRef = useRef<VoiceClient | null>(null)
 	const [voiceState, setVoiceState] = useState<VoiceState>('idle')
 	const [isListening, setIsListening] = useState(false)
-	const [errorMsg, setErrorMsg] = useState<string | null>(null)
+	const toasts = useToasts()
 
 	useEffect(() => {
 		const client = new VoiceClient()
@@ -22,7 +23,7 @@ export function useVoice(agent: TldrawAgent) {
 				setVoiceState(state)
 			}),
 			client.on('connected', () => {
-				setErrorMsg(null)
+				// connection established
 			}),
 			client.on('disconnected', () => {
 				setIsListening(false)
@@ -65,8 +66,11 @@ export function useVoice(agent: TldrawAgent) {
 				})
 			}),
 			client.on('error', (msg) => {
-				setErrorMsg(msg)
-				setTimeout(() => setErrorMsg(null), 5000)
+				toasts.addToast({
+					title: 'Error',
+					description: msg,
+					severity: 'error',
+				})
 			}),
 		]
 
@@ -94,7 +98,7 @@ export function useVoice(agent: TldrawAgent) {
 		}
 	}, [isListening])
 
-	return { voiceState, isListening, errorMsg, toggleListening }
+	return { voiceState, isListening, toggleListening }
 }
 
 export function MicIcon({ state, isListening }: { state: VoiceState; isListening: boolean }) {

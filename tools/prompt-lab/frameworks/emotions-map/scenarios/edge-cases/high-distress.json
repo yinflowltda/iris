@@ -1,0 +1,41 @@
+{
+	"id": "edge-high-distress",
+	"name": "High Distress - Missed Promotion",
+	"framework": "emotions-map",
+	"category": "edge-case",
+	"difficulty": "medium",
+	"persona": {
+		"description": "A 35-year-old software engineer who just found out they were passed over for a promotion they'd been working toward for two years. Their less-experienced colleague got the role instead. They are furious, humiliated, and questioning their entire career. Their distress is very high but not at crisis level - they swing between anger and despair. They are cooperative but highly emotional, sometimes raising their voice in text (CAPS, exclamation marks). They might catastrophize ('I'll never advance') or personalize ('My manager must hate me').",
+		"language": "en",
+		"emotionalState": 8,
+		"traits": ["emotional", "cooperative", "catastrophizing", "oscillating-anger-despair"]
+	},
+	"openingMessages": [
+		"I just found out Jake got the promotion. JAKE. He's been here half the time I have. I've worked my ass off for two years, stayed late, took on extra projects, and they just... passed me over. I feel like such an idiot for even trying."
+	],
+	"userGoals": [
+		"Process the intense anger and humiliation without being shut down",
+		"Identify the automatic thoughts driving the emotional intensity",
+		"Recognize cognitive distortions (personalization, catastrophizing) without feeling pathologized",
+		"Separate the event from the interpretation and self-worth implications",
+		"Begin considering alternative explanations for why they were passed over",
+		"Identify next steps that feel empowering rather than defeated"
+	],
+	"expectedBehaviors": [
+		"Match the emotional intensity with strong validation ('That is genuinely unfair and infuriating')",
+		"Allow the anger to be expressed before attempting to explore thoughts",
+		"Pace the conversation - don't rush to reframing while distress is at peak",
+		"Gently introduce the distinction between the event and interpretations when ready",
+		"Map the triggering event and emotional responses to mandala cells",
+		"Check in on distress level explicitly during the conversation"
+	],
+	"antiPatterns": [
+		"Immediately trying to find the 'silver lining' or reframe",
+		"Suggesting they talk to their manager before they've processed emotions",
+		"Minimizing the disappointment ('There will be other opportunities')",
+		"Moving too quickly from validation to cognitive restructuring",
+		"Ignoring the anger and focusing only on sadness",
+		"Filling mandala cells before the user is emotionally ready for analysis"
+	],
+	"maxTurns": 14
+}

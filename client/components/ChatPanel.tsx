@@ -8,7 +8,7 @@ import { useVoice } from './VoiceControl'
 export function ChatPanel() {
 	const agent = useAgent()
 	const inputRef = useRef<HTMLTextAreaElement>(null)
-	const { voiceState, isListening, errorMsg, toggleListening } = useVoice(agent)
+	const { voiceState, isListening, toggleListening } = useVoice(agent)
 
 	const handleSubmit = useCallback<FormEventHandler<HTMLFormElement>>(
 		async (e) => {
@@ -48,11 +48,6 @@ export function ChatPanel() {
 					isListening={isListening}
 					onMicClick={toggleListening}
 				/>
-				{errorMsg && (
-					<div className="voice-error" role="alert">
-						{errorMsg}
-					</div>
-				)}
 			</div>
 		</div>
 	)

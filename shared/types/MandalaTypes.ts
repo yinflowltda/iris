@@ -141,3 +141,28 @@ export type ElementMetadata =
 	| EvidenceMetadata
 	| FutureBeliefsMetadata
 	| FutureEventsMetadata
+
+// ─── Note metadata (satellite badges on notes) ─────────────────────────────
+
+export type NoteMetadataFieldName =
+	| 'status'
+	| 'priority'
+	| 'assignee'
+	| 'tags'
+	| 'dueDate'
+	| 'progress'
+
+export interface NoteMetadataOption {
+	key: string
+	emoji: string
+	label: string
+}
+
+export interface NoteMetadata {
+	status?: string
+	priority?: 'low' | 'medium' | 'high' | 'critical'
+	assignee?: string
+	tags?: string[]
+	dueDate?: string
+	progress?: { done: number; total: number }
+}

@@ -1,13 +1,16 @@
-import { type TLShapeId, toRichText } from 'tldraw'
+import { Box, type TLShapeId, toRichText } from 'tldraw'
 import type { FillCellAction } from '../../shared/schema/AgentActionSchemas'
 import type { SimpleShapeId } from '../../shared/types/ids-schema'
 import type { MandalaState } from '../../shared/types/MandalaTypes'
 import type { Streaming } from '../../shared/types/Streaming'
 import type { AgentHelpers } from '../AgentHelpers'
-import { animateNotesToLayout } from '../lib/animate-note-layout'
 import { computeCellContentLayout } from '../lib/cell-layout'
 import { getFrameworkForMandala } from '../lib/frameworks/framework-registry'
-import { computeMandalaOuterRadius, getCellBounds, isValidCellId } from '../lib/mandala-geometry'
+import {
+	computeMandalaOuterRadius,
+	getCellBounds,
+	isValidCellId,
+} from '../lib/mandala-geometry'
 import { NODULE_COLOR_SEQUENCE } from '../lib/nodule-color-palette'
 import type { MandalaShape } from '../shapes/MandalaShapeUtil'
 import { AgentActionUtil, registerActionUtil } from './AgentActionUtil'
@@ -55,6 +58,7 @@ export const FillCellActionUtil = registerActionUtil(
 			}
 
 			const { definition } = getFrameworkForMandala(this.editor, action.mandalaId as string)
+
 			const bounds = getCellBounds(definition, localCenter, outerRadius, cellId)
 			if (!bounds) return
 
@@ -78,6 +82,20 @@ export const FillCellActionUtil = registerActionUtil(
 			const newLayout = layout[layout.length - 1]
 			const scale = newLayout.diameter / NOTE_BASE_SIZE
 
+			// Snap existing notes to final positions to avoid race conditions
+			for (let i = 0; i < allSimpleIds.length - 1; i++) {
+				const fullId = `shape:${allSimpleIds[i]}` as TLShapeId
+				const item = layout[i]
+				if (!item || !editor.getShape(fullId)) continue
+				editor.updateShape({
+					id: fullId,
+					type: 'note',
+					x: item.center.x - item.diameter / 2,
+					y: item.center.y - item.diameter / 2,
+					props: { scale: item.diameter / NOTE_BASE_SIZE },
+				})
+			}
+
 			editor.createShape({
 				id: newShapeId,
 				type: 'note',
@@ -99,22 +117,6 @@ export const FillCellActionUtil = registerActionUtil(
 				},
 			})
 
-			const targets = allSimpleIds
-				.map((simpleId, i) => {
-					const fullId = `shape:${simpleId}` as TLShapeId
-					const item = layout[i]
-					if (!item || !editor.getShape(fullId)) return null
-					return {
-						id: fullId,
-						x: item.center.x - item.diameter / 2,
-						y: item.center.y - item.diameter / 2,
-						scale: item.diameter / NOTE_BASE_SIZE,
-					}
-				})
-				.filter(Boolean) as Array<{ id: TLShapeId; x: number; y: number; scale: number }>
-
-			animateNotesToLayout(editor, targets, { durationMs: 300 })
-
 			currentState[cellId] = {
 				status: 'filled',
 				contentShapeIds: allSimpleIds,
@@ -125,6 +127,20 @@ export const FillCellActionUtil = registerActionUtil(
 				type: 'mandala',
 				props: { state: currentState },
 			})
+
+			// Zoom camera centered on the new note
+			const notePageX = mandala.x + newLayout.center.x
+			const notePageY = mandala.y + newLayout.center.y
+			const zoomSize = newLayout.diameter * 1.2
+			editor.zoomToBounds(
+				Box.From({
+					x: notePageX - zoomSize / 2,
+					y: notePageY - zoomSize / 2,
+					w: zoomSize,
+					h: zoomSize,
+				}),
+				{ animation: { duration: 300 } },
+			)
 		}
 	},
 )
