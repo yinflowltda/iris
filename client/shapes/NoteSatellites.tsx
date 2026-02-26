@@ -165,43 +165,50 @@ export function NoteSatellites({ shape }: NoteSatellitesProps) {
 		}
 	}
 
+	// Extend the hit area beyond the note circle to cover the satellite orbit zone.
+	// The overflow is the badge offset + badge size so hover triggers when approaching the orbit.
+	const overflow = offset + badgeSize
+
 	return (
 		<div
 			onPointerEnter={() => setHovered(true)}
 			onPointerLeave={() => setHovered(false)}
 			style={{
 				position: 'absolute',
-				top: 0,
-				left: 0,
-				width: radius * 2,
-				height: radius * 2,
-				pointerEvents: 'none',
+				top: -overflow,
+				left: -overflow,
+				width: radius * 2 + overflow * 2,
+				height: radius * 2 + overflow * 2,
+				pointerEvents: 'all',
 			}}
 		>
-			{activeFields.map((field, i) => (
-				<SatelliteBadge
-					key={field}
-					position={positions[i]}
-					display={getFieldDisplay(field, metadata)}
-					noteCenter={noteCenter}
-					size={badgeSize}
-					options={getOptionsForField(field)}
-					showRemove={true}
-					onSelect={(key) => handleSelectValue(field, key)}
-					onRemove={() => removeField(field)}
-				/>
-			))}
+			{/* Inner div offsets satellites back to note-local coordinates */}
+			<div style={{ position: 'relative', top: overflow, left: overflow }}>
+				{activeFields.map((field, i) => (
+					<SatelliteBadge
+						key={field}
+						position={positions[i]}
+						display={getFieldDisplay(field, metadata)}
+						noteCenter={noteCenter}
+						size={badgeSize}
+						options={getOptionsForField(field)}
+						showRemove={true}
+						onSelect={(key) => handleSelectValue(field, key)}
+						onRemove={() => removeField(field)}
+					/>
+				))}
 
-			{showAddButton && positions[activeFields.length] && (
-				<AddFieldSatellite
-					position={positions[activeFields.length]}
-					noteCenter={noteCenter}
-					size={badgeSize}
-					availableFields={availableToAdd}
-					onAddField={handleAddField}
-					visible={hovered}
-				/>
-			)}
+				{showAddButton && positions[activeFields.length] && (
+					<AddFieldSatellite
+						position={positions[activeFields.length]}
+						noteCenter={noteCenter}
+						size={badgeSize}
+						availableFields={availableToAdd}
+						onAddField={handleAddField}
+						visible={hovered}
+					/>
+				)}
+			</div>
 		</div>
 	)
 }
