@@ -47,5 +47,14 @@ export default defineConfig(() => {
 			cloudflare(),
 			react(),
 		],
+		server: {
+			proxy: {
+				'/openai-proxy': {
+					target: 'http://127.0.0.1:3456',
+					changeOrigin: true,
+					rewrite: (path: string) => path.replace(/^\/openai-proxy/, ''),
+				},
+			},
+		},
 	}
 })

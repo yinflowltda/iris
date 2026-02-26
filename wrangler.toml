@@ -38,5 +38,5 @@ new_classes = ["VoiceAgentDurableObject"]
 
 [vars]
 TTS_ENABLED = "false"
-OPENAI_COMPATIBLE_BASE_URL = ""
-OPENAI_COMPATIBLE_API_KEY = ""
+OPENAI_COMPATIBLE_BASE_URL = "http://127.0.0.1:3456/v1"
+OPENAI_COMPATIBLE_API_KEY = "not-needed"
