@@ -38,3 +38,5 @@ new_classes = ["VoiceAgentDurableObject"]
 
 [vars]
 TTS_ENABLED = "false"
+OPENAI_COMPATIBLE_BASE_URL = ""
+OPENAI_COMPATIBLE_API_KEY = ""
