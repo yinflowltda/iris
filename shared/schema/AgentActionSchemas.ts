@@ -466,6 +466,22 @@ export const SetMetadataAction = z
 
 export type SetMetadataAction = z.infer<typeof SetMetadataAction>
 
+// Set Note Metadata Action (universal note metadata)
+export const SetNoteMetadataAction = z
+	.object({
+		_type: z.literal('set_note_metadata'),
+		intent: z.string(),
+		shapeId: SimpleShapeIdSchema,
+		metadata: z.record(z.string(), z.unknown()),
+	})
+	.meta({
+		title: 'Set Note Metadata',
+		description:
+			'Sets universal metadata on a note shape (status, priority, tags, dueDate, progress). Partial updates are merged into existing metadata.',
+	})
+
+export type SetNoteMetadataAction = z.infer<typeof SetNoteMetadataAction>
+
 // Get Metadata Action (mandala-specific)
 export const GetMetadataAction = z
 	.object({

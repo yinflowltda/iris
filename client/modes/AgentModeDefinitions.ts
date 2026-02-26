@@ -27,6 +27,7 @@ import { ReviewActionUtil } from '../actions/ReviewActionUtil'
 import { RotateActionUtil } from '../actions/RotateActionUtil'
 import { SendToBackActionUtil } from '../actions/SendToBackActionUtil'
 import { SetMetadataActionUtil } from '../actions/SetMetadataActionUtil'
+import { SetNoteMetadataActionUtil } from '../actions/SetNoteMetadataActionUtil'
 import { SetMyViewActionUtil } from '../actions/SetMyViewActionUtil'
 import { StackActionUtil } from '../actions/StackActionUtil'
 import { ThinkActionUtil } from '../actions/ThinkActionUtil'
@@ -183,6 +184,7 @@ export const AGENT_MODE_DEFINITIONS = [
 			DetectConflictActionUtil.type,
 			CreateArrowActionUtil.type,
 			SetMetadataActionUtil.type,
+			SetNoteMetadataActionUtil.type,
 			GetMetadataActionUtil.type,
 
 			// Internal (required)
@@ -231,6 +233,7 @@ export const AGENT_MODE_DEFINITIONS = [
 			DetectConflictActionUtil.type,
 			CreateArrowActionUtil.type,
 			SetMetadataActionUtil.type,
+			SetNoteMetadataActionUtil.type,
 			GetMetadataActionUtil.type,
 
 			// Individual shapes
