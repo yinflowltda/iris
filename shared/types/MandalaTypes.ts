@@ -61,6 +61,36 @@ export interface TreeMapDefinition {
 	root: TreeNodeDef
 	/** Angular offset (radians) applied to all arcs to rotate the layout */
 	startAngle?: number
+	noteMetadataConfig?: NoteMetadataConfig
+}
+
+// ─── Note metadata (universal, stored in shape.meta.noteMetadata) ────────────
+
+export interface NoteMetadataProgress {
+	done: number
+	total: number
+}
+
+export interface NoteMetadata {
+	status?: string
+	priority?: 'high' | 'medium' | 'low'
+	assignee?: string
+	tags?: string[]
+	dueDate?: string
+	progress?: NoteMetadataProgress
+}
+
+export type NoteMetadataFieldName = keyof NoteMetadata
+
+export interface NoteMetadataOption {
+	key: string
+	emoji: string
+	label: string
+}
+
+export interface NoteMetadataConfig {
+	disabledFields?: NoteMetadataFieldName[]
+	statusOptions?: NoteMetadataOption[]
 }
 
 // ─── Shared state types ─────────────────────────────────────────────────────
