@@ -2,42 +2,53 @@ import { useCallback } from 'react'
 import {
 	Circle2d,
 	Group2d,
+	getColorValue,
+	getDefaultColorTheme,
 	LABEL_FONT_SIZES,
 	NoteShapeUtil,
 	RichTextLabel,
 	TEXT_PROPS,
 	type TLNoteShape,
 	type TLShapeId,
-	getColorValue,
-	getDefaultColorTheme,
 	useEditor,
 	useValue,
 } from 'tldraw'
 
 const NOTE_BASE_SIZE = 200
 
-/**
- * Padding for the inscribed square of a circle: (1 - 1/√2) / 2 ≈ 14.6% of diameter.
- * This keeps text within the circle boundary instead of the bounding square.
- */
-const CIRCULAR_LABEL_PADDING = Math.round(NOTE_BASE_SIZE * ((1 - 1 / Math.SQRT2) / 2))
+/** Character count threshold above which font size starts shrinking. */
+const CHAR_THRESHOLD = 100
 
-function isRichTextEmpty(richText: { content: { content?: unknown }[] }) {
+/** Minimum font size multiplier to keep text readable. */
+const MIN_FONT_SCALE = 0.45
+
+function isRichTextEmpty(richText: { content: unknown[] }) {
 	return richText.content.length === 1 && !(richText.content[0] as { content?: unknown }).content
+}
+
+/** Extract plain-text character count from TipTap richText JSON. */
+function getRichTextLength(richText: { content: unknown[] }): number {
+	let len = 0
+	const walk = (node: unknown) => {
+		if (!node || typeof node !== 'object') return
+		const n = node as { type?: string; text?: string; content?: unknown[] }
+		if (n.type === 'text' && typeof n.text === 'string') {
+			len += n.text.length
+		}
+		if (Array.isArray(n.content)) {
+			for (const child of n.content) walk(child)
+		}
+	}
+	for (const child of richText.content) walk(child)
+	return len
 }
 
 function useIsShapeReadyForEditing(shapeId: TLShapeId) {
 	const editor = useEditor()
-	return useValue(
-		'isReadyForEditing',
-		() => {
-			const editingId = editor.getEditingShapeId()
-			return (
-				editingId !== null && (editingId === shapeId || editor.getHoveredShapeId() === shapeId)
-			)
-		},
-		[editor, shapeId],
-	)
+	return useValue('isReadyForEditing', () => {
+		const editingId = editor.getEditingShapeId()
+		return editingId !== null && (editingId === shapeId || editor.getHoveredShapeId() === shapeId)
+	}, [editor, shapeId])
 }
 
 /**
@@ -77,7 +88,6 @@ export class CircularNoteShapeUtil extends NoteShapeUtil {
 		return this.enforceCircularProps(adjusted)
 	}
 
-	// biome-ignore lint/correctness/useHookAtTopLevel: tldraw component() methods use hooks
 	override component(shape: TLNoteShape) {
 		const {
 			id,
@@ -95,24 +105,32 @@ export class CircularNoteShapeUtil extends NoteShapeUtil {
 			},
 		} = shape
 
+		// biome-ignore lint/correctness/useHookAtTopLevel: tldraw component() methods use hooks
 		const editor = useEditor()
 		const theme = getDefaultColorTheme({ isDarkMode: editor.user.getIsDarkMode() })
 		const nw = NOTE_BASE_SIZE * scale
 		const nh = NOTE_BASE_SIZE * scale
 
+		// biome-ignore lint/correctness/useHookAtTopLevel: tldraw component() methods use hooks
 		const isDarkMode = useValue('dark mode', () => editor.user.getIsDarkMode(), [editor])
 		const isSelected = shape.id === editor.getOnlySelectedShapeId()
+		// biome-ignore lint/correctness/useHookAtTopLevel: tldraw component() methods use hooks
 		const isReadyForEditing = useIsShapeReadyForEditing(id)
 		const isEmpty = isRichTextEmpty(richText)
 
-		const handleKeyDown = useCallback(
-			(e: KeyboardEvent) => {
-				if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-					e.preventDefault()
-				}
-			},
-			[],
-		)
+		// biome-ignore lint/correctness/useHookAtTopLevel: tldraw component() methods use hooks
+		const handleKeyDown = useCallback((e: KeyboardEvent) => {
+			if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+				e.preventDefault()
+			}
+		}, [])
+
+		// Shrink font when text exceeds character threshold
+		const charCount = getRichTextLength(richText)
+		const fontScale =
+			charCount <= CHAR_THRESHOLD
+				? 1
+				: Math.max(MIN_FONT_SCALE, Math.sqrt(CHAR_THRESHOLD / charCount))
 
 		// Inscribed square: side = diameter / √2, offset = (diameter - side) / 2
 		const inscribedSide = nw / Math.SQRT2
@@ -146,7 +164,7 @@ export class CircularNoteShapeUtil extends NoteShapeUtil {
 							shapeId={id}
 							type={type}
 							font={font}
-							fontSize={(fontSizeAdjustment || LABEL_FONT_SIZES[size]) * scale}
+							fontSize={(fontSizeAdjustment || LABEL_FONT_SIZES[size]) * scale * fontScale}
 							lineHeight={TEXT_PROPS.lineHeight}
 							align={align}
 							verticalAlign={verticalAlign}
