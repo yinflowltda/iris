@@ -1,4 +1,5 @@
 import { type LanguageModel, type ModelMessage, streamText } from 'ai'
+import { createOpenAI } from '@ai-sdk/openai'
 import { createWorkersAI } from 'workers-ai-provider'
 import {
 	AGENT_MODEL_DEFINITIONS,
@@ -19,13 +20,31 @@ type WorkersAIModelId = Parameters<ReturnType<typeof createWorkersAI>>[0]
 
 export class AgentService {
 	workersai: ReturnType<typeof createWorkersAI>
+	private env: Environment
 
 	constructor(env: Environment) {
+		this.env = env
 		this.workersai = createWorkersAI({ binding: env.AI })
 	}
 
 	getModel(modelName: AgentModelName): LanguageModel {
 		const modelDefinition = getAgentModelDefinition(modelName)
+
+		if (modelDefinition.provider === 'openai-compatible') {
+			const baseURL = this.env.OPENAI_COMPATIBLE_BASE_URL
+			if (!baseURL) {
+				throw new Error(
+					`OpenAI-compatible endpoint not configured. Set OPENAI_COMPATIBLE_BASE_URL to use ${modelName}.`,
+				)
+			}
+			const provider = createOpenAI({
+				baseURL,
+				apiKey: this.env.OPENAI_COMPATIBLE_API_KEY || 'not-needed',
+				compatibility: 'compatible',
+			})
+			return provider.chat(modelDefinition.id)
+		}
+
 		return this.workersai(modelDefinition.id as WorkersAIModelId)
 	}
 
@@ -170,8 +189,12 @@ export class AgentService {
 }
 
 function getFallbackModels(preferred: AgentModelName): AgentModelName[] {
+	const preferredDef = AGENT_MODEL_DEFINITIONS[preferred]
+	if (!preferredDef) return []
 	const allModels = Object.keys(AGENT_MODEL_DEFINITIONS) as AgentModelName[]
-	return allModels.filter((name) => name !== preferred)
+	return allModels.filter(
+		(name) => name !== preferred && AGENT_MODEL_DEFINITIONS[name]?.provider === preferredDef.provider,
+	)
 }
 
 function isInferenceUpstreamError(error: unknown): boolean {
