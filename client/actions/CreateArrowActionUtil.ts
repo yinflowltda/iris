@@ -1,4 +1,4 @@
-import { type TLShapeId, toRichText } from 'tldraw'
+import { Box, type TLShapeId, toRichText } from 'tldraw'
 import type { CreateArrowAction } from '../../shared/schema/AgentActionSchemas'
 import type { SimpleShapeId } from '../../shared/types/ids-schema'
 import type { MandalaArrowRecord } from '../../shared/types/MandalaTypes'
@@ -35,7 +35,7 @@ export const CreateArrowActionUtil = registerActionUtil(
 			return action
 		}
 
-		override applyAction(action: Streaming<CreateArrowAction>) {
+		override async applyAction(action: Streaming<CreateArrowAction>) {
 			if (!action.complete) return
 
 			const { editor } = this
@@ -141,6 +141,39 @@ export const CreateArrowActionUtil = registerActionUtil(
 					arrows: [...existingArrows, newRecord],
 				},
 			})
+
+			// Pan camera from source to destination, following the arrow path
+			const noteSize = Math.max(sourceBounds.w, sourceBounds.h)
+			const zoomSize = noteSize * 1.2
+			const sourcePageX = mandala.x + sx
+			const sourcePageY = mandala.y + sy
+			const targetPageX = mandala.x + tx
+			const targetPageY = mandala.y + ty
+
+			// Snap to source note instantly
+			editor.zoomToBounds(
+				Box.From({
+					x: sourcePageX - zoomSize / 2,
+					y: sourcePageY - zoomSize / 2,
+					w: zoomSize,
+					h: zoomSize,
+				}),
+			)
+
+			// Pan to target note with animation
+			await new Promise<void>((resolve) => setTimeout(resolve, 100))
+			editor.zoomToBounds(
+				Box.From({
+					x: targetPageX - zoomSize / 2,
+					y: targetPageY - zoomSize / 2,
+					w: zoomSize,
+					h: zoomSize,
+				}),
+				{ animation: { duration: 600 } },
+			)
+
+			// Wait for pan animation to complete
+			await new Promise<void>((resolve) => setTimeout(resolve, 600))
 		}
 	},
 )

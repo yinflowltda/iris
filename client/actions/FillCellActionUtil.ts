@@ -82,8 +82,7 @@ export const FillCellActionUtil = registerActionUtil(
 			const newLayout = layout[layout.length - 1]
 			const scale = newLayout.diameter / NOTE_BASE_SIZE
 
-			// Snap existing notes to their final positions immediately to avoid
-			// race conditions when multiple fill_cell actions fire in quick succession
+			// Snap existing notes to final positions to avoid race conditions
 			for (let i = 0; i < allSimpleIds.length - 1; i++) {
 				const fullId = `shape:${allSimpleIds[i]}` as TLShapeId
 				const item = layout[i]
@@ -129,7 +128,7 @@ export const FillCellActionUtil = registerActionUtil(
 				props: { state: currentState },
 			})
 
-			// Zoom camera centered on the new note — runs after all state is committed
+			// Zoom camera centered on the new note
 			const notePageX = mandala.x + newLayout.center.x
 			const notePageY = mandala.y + newLayout.center.y
 			const zoomSize = newLayout.diameter * 1.2
