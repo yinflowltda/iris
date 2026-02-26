@@ -1,4 +1,5 @@
 import { Circle2d, Group2d, NoteShapeUtil, type TLNoteShape } from 'tldraw'
+import { NoteSatellites } from './NoteSatellites'
 
 const NOTE_BASE_SIZE = 200
 
@@ -36,6 +37,16 @@ export class CircularNoteShapeUtil extends NoteShapeUtil {
 	override onBeforeUpdate(prev: TLNoteShape, next: TLNoteShape) {
 		const adjusted = super.onBeforeUpdate(prev, next) ?? next
 		return this.enforceCircularProps(adjusted)
+	}
+
+	override component(shape: TLNoteShape) {
+		const baseComponent = super.component(shape)
+		return (
+			<>
+				{baseComponent}
+				<NoteSatellites shape={shape} />
+			</>
+		)
 	}
 
 	override indicator(shape: TLNoteShape) {
