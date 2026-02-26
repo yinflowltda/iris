@@ -232,14 +232,18 @@ function convertNoteShapeToFocused(editor: Editor, shape: TLNoteShape): FocusedN
 	const util = editor.getShapeUtil(shape)
 	const text = util.getText(shape)
 	const bounds = getSimpleBounds(editor, shape)
+	const meta = shape.meta as Record<string, unknown>
+	const noteMetadata = meta?.noteMetadata as Record<string, unknown> | undefined
+
 	return {
 		_type: 'note',
 		color: shape.props.color,
-		note: (shape.meta.note as string) ?? '',
+		note: (meta.note as string) ?? '',
 		shapeId: convertTldrawIdToSimpleId(shape.id),
 		text: text ?? '',
 		x: bounds.x,
 		y: bounds.y,
+		...(noteMetadata && Object.keys(noteMetadata).length > 0 ? { noteMetadata } : {}),
 	}
 }
 

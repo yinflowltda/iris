@@ -4,6 +4,7 @@ import {
 	type Editor,
 	type FONT_SIZES,
 	type IndexKey,
+	type JsonObject,
 	reverseRecordsDiff,
 	type TLArrowShape,
 	type TLBindingCreate,
@@ -568,6 +569,12 @@ function convertNoteShapeToTldrawShape(
 			},
 			meta: {
 				note: focusedShape.note ?? defaultNoteShape.meta?.note ?? '',
+				...(focusedShape.noteMetadata
+					? { noteMetadata: focusedShape.noteMetadata as JsonObject }
+					: {}),
+				...(defaultNoteShape.meta?.noteMetadata && !focusedShape.noteMetadata
+					? { noteMetadata: defaultNoteShape.meta.noteMetadata }
+					: {}),
 			},
 		},
 	}

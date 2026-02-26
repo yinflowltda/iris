@@ -61,6 +61,7 @@ const FocusedNoteShape = z.object({
 	text: FocusedLabel.optional(),
 	x: z.number(),
 	y: z.number(),
+	noteMetadata: z.record(z.string(), z.unknown()).optional(),
 })
 
 export type FocusedNoteShape = z.infer<typeof FocusedNoteShape>
