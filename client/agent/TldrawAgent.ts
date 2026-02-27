@@ -687,9 +687,7 @@ export class TldrawAgent {
 					this.schedule({
 						agentMessages: ['Your previous response was cut off before you could send a message to the user. Please respond to the user now.'],
 					})
-				}
-
-				if (
+				} else if (
 					!cancelled &&
 					!hadUserFacingMessage &&
 					availableActions.includes('message') &&
