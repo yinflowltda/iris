@@ -724,33 +724,47 @@ export class TldrawAgent {
 				await Promise.all(actionPromises)
 
 				if (hadUserFacingMessage && lastMessageText.trim().length < 10) {
-					console.warn('[Agent] Message action produced but content too short/empty — treating as no message')
+					console.warn(
+						'[Agent] Message action produced but content too short/empty — treating as no message',
+					)
 					hadUserFacingMessage = false
 				}
 
 				if (!cancelled && wasTruncated && !hadUserFacingMessage) {
-					console.warn('[Agent] Response truncated by token limit — scheduling continuation for message')
+					console.warn(
+						'[Agent] Response truncated by token limit — scheduling continuation for message',
+					)
 					this.schedule({
-						agentMessages: ['Your previous response was cut off before you could send a message to the user. Please respond to the user now.'],
+						agentMessages: [
+							'Your previous response was cut off before you could send a message to the user. Please respond to the user now.',
+						],
 					})
-				} else if (
-					!cancelled &&
-					!hadUserFacingMessage &&
-					availableActions.includes('message')
-				) {
+				} else if (!cancelled && !hadUserFacingMessage && availableActions.includes('message')) {
 					if (request.source !== 'self') {
 						// Non-self request: always retry
-						console.warn('[Agent] Request completed without a user-facing message — scheduling continuation')
+						console.warn(
+							'[Agent] Request completed without a user-facing message — scheduling continuation',
+						)
 						this.noMessageRetryCount = 0
-						this.schedule({ agentMessages: ['No message was sent to the user. Please respond now.'] })
+						this.schedule({
+							agentMessages: ['No message was sent to the user. Please respond now.'],
+						})
 					} else if (this.noMessageRetryCount < 1) {
 						// Self-sourced request: retry once
-						console.warn('[Agent] Self-sourced request completed without a message — retrying (attempt ' + (this.noMessageRetryCount + 1) + ')')
+						console.warn(
+							'[Agent] Self-sourced request completed without a message — retrying (attempt ' +
+								(this.noMessageRetryCount + 1) +
+								')',
+						)
 						this.noMessageRetryCount++
-						this.schedule({ agentMessages: ['No message was sent to the user. Please respond now.'] })
+						this.schedule({
+							agentMessages: ['No message was sent to the user. Please respond now.'],
+						})
 					} else {
 						// Self-sourced request: exceeded retry limit
-						console.warn('[Agent] Self-sourced request failed to produce a message after retries — giving up')
+						console.warn(
+							'[Agent] Self-sourced request failed to produce a message after retries — giving up',
+						)
 						this.noMessageRetryCount = 0
 						this.onError(new Error('The AI was unable to generate a response. Please try again.'))
 					}

@@ -1,5 +1,5 @@
-import { type LanguageModel, type ModelMessage, streamText } from 'ai'
 import { createOpenAI } from '@ai-sdk/openai'
+import { type LanguageModel, type ModelMessage, streamText } from 'ai'
 import { createWorkersAI } from 'workers-ai-provider'
 import {
 	AGENT_MODEL_DEFINITIONS,
@@ -15,7 +15,7 @@ import { buildMessages } from '../prompt/buildMessages'
 import { buildSystemPrompt } from '../prompt/buildSystemPrompt'
 import { getModelName } from '../prompt/getModelName'
 import { closeAndParseJson } from './closeAndParseJson'
-import { MAX_SAME_MODEL_RETRIES, getErrorText, isInferenceUpstreamError } from './retryHelper'
+import { getErrorText, isInferenceUpstreamError, MAX_SAME_MODEL_RETRIES } from './retryHelper'
 
 type WorkersAIModelId = Parameters<ReturnType<typeof createWorkersAI>>[0]
 
@@ -110,13 +110,17 @@ export class AgentService {
 
 					const hasMoreAttempts = attempt < maxAttempts - 1
 					if (hasMoreAttempts) {
-						console.warn(`Error on model ${modelName} (attempt ${attempt + 1}). Retrying same model.`)
+						console.warn(
+							`Error on model ${modelName} (attempt ${attempt + 1}). Retrying same model.`,
+						)
 						continue
 					}
 
 					const hasMoreModels = modelIndex < candidates.length - 1
 					if (hasMoreModels) {
-						console.warn(`All retries failed for ${modelName}. Trying fallback ${candidates[modelIndex + 1]}.`)
+						console.warn(
+							`All retries failed for ${modelName}. Trying fallback ${candidates[modelIndex + 1]}.`,
+						)
 					}
 				}
 			}
@@ -218,7 +222,8 @@ function getFallbackModels(preferred: AgentModelName): AgentModelName[] {
 	if (!preferredDef) return []
 	const allModels = Object.keys(AGENT_MODEL_DEFINITIONS) as AgentModelName[]
 	return allModels.filter(
-		(name) => name !== preferred && AGENT_MODEL_DEFINITIONS[name]?.provider === preferredDef.provider,
+		(name) =>
+			name !== preferred && AGENT_MODEL_DEFINITIONS[name]?.provider === preferredDef.provider,
 	)
 }
 

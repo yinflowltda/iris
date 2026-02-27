@@ -44,7 +44,6 @@ export async function runWithRetries<T>(
 				const hasMoreAttempts = attempt < maxAttempts - 1
 				if (hasMoreAttempts) {
 					console.warn(`Error on model ${model} (attempt ${attempt + 1}). Retrying same model.`)
-					continue
 				}
 			}
 		}
