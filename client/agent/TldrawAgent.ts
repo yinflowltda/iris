@@ -606,6 +606,7 @@ export class TldrawAgent {
 			let incompleteDiff: RecordsDiff<TLRecord> | null = null
 			const actionPromises: Promise<void>[] = []
 			let hadUserFacingMessage = false
+			let lastMessageText = ''
 			let wasTruncated = false
 			try {
 				for await (const action of this.streamAgentActions({ prompt, signal })) {
@@ -658,6 +659,7 @@ export class TldrawAgent {
 
 								if (transformedAction._type === 'message' && transformedAction.complete) {
 									hadUserFacingMessage = true
+									lastMessageText = (transformedAction as any).text || ''
 									this.noMessageRetryCount = 0
 								}
 
@@ -689,6 +691,11 @@ export class TldrawAgent {
 					}
 				}
 				await Promise.all(actionPromises)
+
+				if (hadUserFacingMessage && lastMessageText.trim().length < 10) {
+					console.warn('[Agent] Message action produced but content too short/empty — treating as no message')
+					hadUserFacingMessage = false
+				}
 
 				if (!cancelled && wasTruncated && !hadUserFacingMessage) {
 					console.warn('[Agent] Response truncated by token limit — scheduling continuation for message')
