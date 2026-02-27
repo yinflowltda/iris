@@ -627,6 +627,18 @@ export class TldrawAgent {
 				for await (const action of this.streamAgentActions({ prompt, signal })) {
 					if (cancelled) break
 
+					// Reset watchdog on any streaming activity (prevents false alarm on long action streams)
+					if (watchdogTimer) {
+						clearTimeout(watchdogTimer)
+						watchdogTimer = setTimeout(() => {
+							if (!hadUserFacingMessage && !cancelled) {
+								watchdogFired = true
+								console.error('[Agent] Watchdog: 45s elapsed without a message — aborting')
+								controller.abort('Watchdog timeout')
+							}
+						}, WATCHDOG_TIMEOUT_MS)
+					}
+
 					// Detect truncation sentinel from server
 					if ((action as any)._type === '_truncated') {
 						wasTruncated = true
@@ -730,12 +742,12 @@ export class TldrawAgent {
 						// Non-self request: always retry
 						console.warn('[Agent] Request completed without a user-facing message — scheduling continuation')
 						this.noMessageRetryCount = 0
-						this.schedule({ data: ['No message was sent to the user. Please respond now.'] })
+						this.schedule({ agentMessages: ['No message was sent to the user. Please respond now.'] })
 					} else if (this.noMessageRetryCount < 1) {
 						// Self-sourced request: retry once
 						console.warn('[Agent] Self-sourced request completed without a message — retrying (attempt ' + (this.noMessageRetryCount + 1) + ')')
 						this.noMessageRetryCount++
-						this.schedule({ data: ['No message was sent to the user. Please respond now.'] })
+						this.schedule({ agentMessages: ['No message was sent to the user. Please respond now.'] })
 					} else {
 						// Self-sourced request: exceeded retry limit
 						console.warn('[Agent] Self-sourced request failed to produce a message after retries — giving up')
