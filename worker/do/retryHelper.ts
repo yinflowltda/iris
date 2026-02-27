@@ -1,4 +1,4 @@
-const MAX_SAME_MODEL_RETRIES = 1
+export const MAX_SAME_MODEL_RETRIES = 1
 
 export function isInferenceUpstreamError(error: unknown): boolean {
 	const text = getErrorText(error).toLowerCase()
@@ -19,6 +19,11 @@ export function getErrorText(error: unknown): string {
 	}
 }
 
+/**
+ * Testable retry helper that mirrors the inline retry logic in AgentService.streamActions.
+ * AgentService can't call this directly because streamActions is an async generator (yield*),
+ * but the logic is identical. This function exists for unit testing the retry pattern.
+ */
 export async function runWithRetries<T>(
 	candidates: string[],
 	fn: (model: string, attemptIndex: number) => Promise<T>,

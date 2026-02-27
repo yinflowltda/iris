@@ -15,7 +15,7 @@ import { buildMessages } from '../prompt/buildMessages'
 import { buildSystemPrompt } from '../prompt/buildSystemPrompt'
 import { getModelName } from '../prompt/getModelName'
 import { closeAndParseJson } from './closeAndParseJson'
-import { getErrorText, isInferenceUpstreamError } from './retryHelper'
+import { MAX_SAME_MODEL_RETRIES, getErrorText, isInferenceUpstreamError } from './retryHelper'
 
 type WorkersAIModelId = Parameters<ReturnType<typeof createWorkersAI>>[0]
 
@@ -88,7 +88,6 @@ export class AgentService {
 		const fallbackModels = getFallbackModels(preferredModel)
 		const candidates = [preferredModel, ...fallbackModels]
 
-		const MAX_SAME_MODEL_RETRIES = 1
 		let lastError: unknown = null
 
 		for (const [modelIndex, modelName] of candidates.entries()) {
@@ -98,7 +97,7 @@ export class AgentService {
 				try {
 					yield* this.streamActionsWithModel(modelName, messages)
 					return
-				} catch (error: any) {
+				} catch (error: unknown) {
 					lastError = error
 
 					if (isInferenceUpstreamError(error)) {
