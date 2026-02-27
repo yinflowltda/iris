@@ -49,6 +49,7 @@ import { ModePartUtil } from '../parts/ModePartUtil'
 import { PeripheralShapesPartUtil } from '../parts/PeripheralShapesPartUtil'
 import { ScreenshotPartUtil } from '../parts/ScreenshotPartUtil'
 import { SelectedShapesPartUtil } from '../parts/SelectedShapesPartUtil'
+import { SessionStatePartUtil } from '../parts/SessionStatePartUtil'
 import { TimePartUtil } from '../parts/TimePartUtil'
 import { TodoListPartUtil } from '../parts/TodoListPartUtil'
 import { UserActionHistoryPartUtil } from '../parts/UserActionHistoryPartUtil'
@@ -196,6 +197,7 @@ export const AGENT_MODE_DEFINITIONS = [
 		parts: [
 			ModePartUtil.type,
 			DebugPartUtil.type,
+			SessionStatePartUtil.type,
 			ModelNamePartUtil.type,
 			MessagesPartUtil.type,
 			DataPartUtil.type,
