@@ -599,9 +599,16 @@ export class TldrawAgent {
 			let incompleteDiff: RecordsDiff<TLRecord> | null = null
 			const actionPromises: Promise<void>[] = []
 			let hadUserFacingMessage = false
+			let wasTruncated = false
 			try {
 				for await (const action of this.streamAgentActions({ prompt, signal })) {
 					if (cancelled) break
+
+					// Detect truncation sentinel from server
+					if ((action as any)._type === '_truncated') {
+						wasTruncated = true
+						continue
+					}
 
 					// Set acting flag BEFORE editor.run so user action tracker ignores all changes
 					// including diff reverts that happen before act() is called
@@ -674,6 +681,13 @@ export class TldrawAgent {
 					}
 				}
 				await Promise.all(actionPromises)
+
+				if (!cancelled && wasTruncated && !hadUserFacingMessage) {
+					console.warn('[Agent] Response truncated by token limit — scheduling continuation for message')
+					this.schedule({
+						agentMessages: ['Your previous response was cut off before you could send a message to the user. Please respond to the user now.'],
+					})
+				}
 
 				if (
 					!cancelled &&

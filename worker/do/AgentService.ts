@@ -136,7 +136,7 @@ export class AgentService {
 			throw new Error('Model is a string, not a LanguageModel')
 		}
 
-		const { textStream } = streamText({
+		const streamResult = streamText({
 			model,
 			messages,
 			maxOutputTokens: 8192,
@@ -155,7 +155,7 @@ export class AgentService {
 		let maybeIncompleteAction: AgentAction | null = null
 
 		let startTime = Date.now()
-		for await (const text of textStream) {
+		for await (const text of streamResult.textStream) {
 			buffer += text
 
 			const partialObject = tryParseStreamingJson(buffer)
@@ -199,6 +199,16 @@ export class AgentService {
 				complete: true,
 				time: Date.now() - startTime,
 			}
+		}
+
+		const reason = await streamResult.finishReason
+		if (reason === 'length') {
+			console.warn('Stream truncated due to maxOutputTokens limit')
+			yield {
+				_type: '_truncated',
+				complete: true,
+				time: Date.now() - startTime,
+			} as any
 		}
 	}
 }
