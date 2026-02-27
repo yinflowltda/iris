@@ -15,6 +15,7 @@ import { buildMessages } from '../prompt/buildMessages'
 import { buildSystemPrompt } from '../prompt/buildSystemPrompt'
 import { getModelName } from '../prompt/getModelName'
 import { closeAndParseJson } from './closeAndParseJson'
+import { getErrorText, isInferenceUpstreamError } from './retryHelper'
 
 type WorkersAIModelId = Parameters<ReturnType<typeof createWorkersAI>>[0]
 
@@ -87,27 +88,42 @@ export class AgentService {
 		const fallbackModels = getFallbackModels(preferredModel)
 		const candidates = [preferredModel, ...fallbackModels]
 
+		const MAX_SAME_MODEL_RETRIES = 1
 		let lastError: unknown = null
 
-		for (const [index, modelName] of candidates.entries()) {
-			try {
-				yield* this.streamActionsWithModel(modelName, messages)
-				return
-			} catch (error: any) {
-				lastError = error
-				const canRetry = index < candidates.length - 1
-				if (!canRetry || !isInferenceUpstreamError(error)) {
-					console.error('streamActions error:', error)
-					throw toReadableError(error)
-				}
+		for (const [modelIndex, modelName] of candidates.entries()) {
+			const maxAttempts = modelIndex === 0 ? MAX_SAME_MODEL_RETRIES + 1 : 1
 
-				const nextModel = candidates[index + 1]
-				console.warn(
-					`Upstream error on model ${modelName}. Retrying with fallback model ${nextModel}.`,
-				)
+			for (let attempt = 0; attempt < maxAttempts; attempt++) {
+				try {
+					yield* this.streamActionsWithModel(modelName, messages)
+					return
+				} catch (error: any) {
+					lastError = error
+
+					if (isInferenceUpstreamError(error)) {
+						const nextModel = candidates[modelIndex + 1]
+						if (nextModel) {
+							console.warn(`Upstream error on model ${modelName}. Trying fallback ${nextModel}.`)
+						}
+						break
+					}
+
+					const hasMoreAttempts = attempt < maxAttempts - 1
+					if (hasMoreAttempts) {
+						console.warn(`Error on model ${modelName} (attempt ${attempt + 1}). Retrying same model.`)
+						continue
+					}
+
+					const hasMoreModels = modelIndex < candidates.length - 1
+					if (hasMoreModels) {
+						console.warn(`All retries failed for ${modelName}. Trying fallback ${candidates[modelIndex + 1]}.`)
+					}
+				}
 			}
 		}
 
+		console.error('streamActions error: all models and retries exhausted', lastError)
 		throw toReadableError(lastError)
 	}
 
@@ -197,11 +213,6 @@ function getFallbackModels(preferred: AgentModelName): AgentModelName[] {
 	)
 }
 
-function isInferenceUpstreamError(error: unknown): boolean {
-	const text = getErrorText(error).toLowerCase()
-	return text.includes('inferenceupstreamerror')
-}
-
 function toReadableError(error: unknown): Error {
 	if (isInferenceUpstreamError(error)) {
 		return new Error('AI models are temporarily unavailable. Please try again in a moment.')
@@ -211,22 +222,6 @@ function toReadableError(error: unknown): Error {
 		return new Error(text)
 	}
 	return new Error('Model provider error. Please try again.')
-}
-
-function getErrorText(error: unknown): string {
-	if (error instanceof Error && typeof error.message === 'string' && error.message.length > 0) {
-		return error.message
-	}
-
-	if (typeof error === 'string' && error.length > 0) {
-		return error
-	}
-
-	try {
-		return JSON.stringify(error) || 'Unknown stream error'
-	} catch {
-		return 'Unknown stream error'
-	}
 }
 
 function tryParseStreamingJson(buffer: string): any | null {
