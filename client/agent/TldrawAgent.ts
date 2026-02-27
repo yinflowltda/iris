@@ -334,6 +334,8 @@ export class TldrawAgent {
 			await this.request(request)
 		} catch (e) {
 			console.error('Error data:', e)
+			this.onError(e)
+			this.mode.setMode('idling')
 			this.requests.setIsPrompting(false)
 			this.requests.setCancelFn(null)
 			return
