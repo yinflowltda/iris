@@ -610,6 +610,19 @@ export class TldrawAgent {
 			let hadUserFacingMessage = false
 			let lastMessageText = ''
 			let wasTruncated = false
+
+			const WATCHDOG_TIMEOUT_MS = 45_000
+			let watchdogTimer: ReturnType<typeof setTimeout> | null = null
+			let watchdogFired = false
+
+			watchdogTimer = setTimeout(() => {
+				if (!hadUserFacingMessage && !cancelled) {
+					watchdogFired = true
+					console.error('[Agent] Watchdog: 45s elapsed without a message — aborting')
+					controller.abort('Watchdog timeout')
+				}
+			}, WATCHDOG_TIMEOUT_MS)
+
 			try {
 				for await (const action of this.streamAgentActions({ prompt, signal })) {
 					if (cancelled) break
@@ -663,6 +676,10 @@ export class TldrawAgent {
 									hadUserFacingMessage = true
 									lastMessageText = (transformedAction as any).text || ''
 									this.noMessageRetryCount = 0
+									if (watchdogTimer) {
+										clearTimeout(watchdogTimer)
+										watchdogTimer = null
+									}
 								}
 
 								// Apply the action to the app and editor
@@ -726,7 +743,20 @@ export class TldrawAgent {
 						this.onError(new Error('The AI was unable to generate a response. Please try again.'))
 					}
 				}
+
+				if (watchdogTimer) {
+					clearTimeout(watchdogTimer)
+					watchdogTimer = null
+				}
 			} catch (e) {
+				if (watchdogTimer) {
+					clearTimeout(watchdogTimer)
+					watchdogTimer = null
+				}
+				if (watchdogFired) {
+					this.onError(new Error('The AI took too long to respond. Please try again.'))
+					return
+				}
 				if (e === 'Cancelled by user' || (e instanceof Error && e.name === 'AbortError')) {
 					return
 				}
