@@ -31,11 +31,6 @@ export const OPENAI_COMPATIBLE_MODEL_DEFINITIONS: Record<string, AgentModelDefin
 		id: 'claude-sonnet-4',
 		provider: 'openai-compatible',
 	},
-	'claude-haiku-4': {
-		name: 'claude-haiku-4',
-		id: 'claude-haiku-4',
-		provider: 'openai-compatible',
-	},
 } as const
 
 /**
