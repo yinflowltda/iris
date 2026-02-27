@@ -1,3 +1,5 @@
+import { Extension } from '@tiptap/core'
+import { CharacterCount } from '@tiptap/extensions'
 import { ReadonlySharedStyleMap } from '@tldraw/editor'
 import {
 	createContext,
@@ -29,6 +31,7 @@ import {
 	type TLShapeId,
 	type TLUiOverrides,
 	type TLUiStylePanelProps,
+	tipTapDefaultExtensions,
 	Tldraw,
 	TldrawOverlays,
 	TldrawUiButton,
@@ -321,6 +324,31 @@ function App() {
 		}
 	}, [])
 
+	const textOptions = useMemo(() => {
+		// Block Enter key at the ProseMirror level. DOM-level onKeyDown
+		// fires after ProseMirror has already processed the keystroke,
+		// so we must intercept via a TipTap keyboard shortcut extension.
+		const NoLineBreaks = Extension.create({
+			name: 'noLineBreaks',
+			addKeyboardShortcuts() {
+				return {
+					Enter: () => true, // returning true = "handled, do nothing"
+					'Shift-Enter': () => true,
+				}
+			},
+		})
+
+		return {
+			tipTapConfig: {
+				extensions: [
+					...tipTapDefaultExtensions,
+					CharacterCount.configure({ limit: 110 }),
+					NoLineBreaks,
+				],
+			},
+		}
+	}, [])
+
 	// Session resume + reactive progress tracking
 	useEffect(() => {
 		if (!app) return
@@ -596,6 +624,7 @@ function App() {
 							tools={tools}
 							overrides={overrides}
 							components={components}
+							textOptions={textOptions}
 						>
 							<TldrawAgentAppProvider onMount={setApp} onUnmount={handleUnmount} />
 						</Tldraw>
