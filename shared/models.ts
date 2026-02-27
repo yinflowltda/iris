@@ -13,9 +13,14 @@ export const WORKERSAI_MODEL_DEFINITIONS: Record<string, AgentModelDefinition> =
 		id: '@cf/openai/gpt-oss-120b',
 		provider: 'workersai',
 	},
-	'@cf/meta/llama-3.3-70b-instruct-fp8-fast': {
-		name: '@cf/meta/llama-3.3-70b-instruct-fp8-fast',
-		id: '@cf/meta/llama-3.3-70b-instruct-fp8-fast',
+	'@cf/qwen/qwen3-30b-a3b-fp8': {
+		name: '@cf/qwen/qwen3-30b-a3b-fp8',
+		id: '@cf/qwen/qwen3-30b-a3b-fp8',
+		provider: 'workersai',
+	},
+	'@cf/google/gemma-3-12b-it': {
+		name: '@cf/google/gemma-3-12b-it',
+		id: '@cf/google/gemma-3-12b-it',
 		provider: 'workersai',
 	},
 } as const

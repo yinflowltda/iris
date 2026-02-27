@@ -121,6 +121,15 @@ export interface DebugPart {
 	logMessages: boolean
 }
 
+export interface SessionStatePart {
+	type: 'sessionState'
+	currentStep: number
+	filledCells: string[]
+	activeCells: string[]
+	mode: 'guided' | 'free'
+	frameworkId: string
+}
+
 // ============================================================================
 // Prompt Part Definitions
 // ============================================================================
@@ -188,6 +197,15 @@ export const CanvasLintsPartDefinition: PromptPartDefinition<CanvasLintsPart> = 
 // ChatHistory
 const CHAT_HISTORY_PRIORITY = -Infinity // history should appear first in the prompt (low priority)
 
+/**
+ * Maximum number of chat history items to include in the prompt.
+ * Each conversational turn produces multiple items (1 prompt + N actions),
+ * so 40 items covers roughly the last 5–8 turns of conversation.
+ * Older context is less relevant and the model gets current state via
+ * screenshot + session state.
+ */
+const MAX_CHAT_HISTORY_ITEMS = 40
+
 export const ChatHistoryPartDefinition: PromptPartDefinition<ChatHistoryPart> = {
 	type: 'chatHistory',
 	priority: CHAT_HISTORY_PRIORITY,
@@ -203,7 +221,10 @@ export const ChatHistoryPartDefinition: PromptPartDefinition<ChatHistoryPart> = 
 			end = lastIndex
 		}
 
-		for (let i = 0; i < end; i++) {
+		// Window to the most recent items to prevent unbounded prompt growth
+		const start = Math.max(0, end - MAX_CHAT_HISTORY_ITEMS)
+
+		for (let i = start; i < end; i++) {
 			const item = history[i]
 			const message = buildHistoryItemMessage(item, CHAT_HISTORY_PRIORITY)
 			if (message) messages.push(message)
@@ -525,4 +546,10 @@ export const ModePartDefinition: PromptPartDefinition<ModePart> = {
 export const DebugPartDefinition: PromptPartDefinition<DebugPart> = {
 	type: 'debug',
 	// No buildContent - this is metadata for the worker, not prompt content for the model
+}
+
+// SessionState - sends session state metadata to worker for step-scoped prompt construction
+export const SessionStatePartDefinition: PromptPartDefinition<SessionStatePart> = {
+	type: 'sessionState',
+	// No buildContent - this is metadata for the worker, not content for the model
 }
