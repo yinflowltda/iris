@@ -299,7 +299,7 @@ const MenuPanelWithActions = memo(function MenuPanelWithActions() {
 	)
 })
 
-const NOTE_HALF_SIZE = 100
+const NOTE_HALF_SIZE = 98
 
 function hasNoTextContent(richText: unknown): boolean {
 	if (!richText || typeof richText !== 'object') return true
@@ -342,7 +342,7 @@ function App() {
 			tipTapConfig: {
 				extensions: [
 					...tipTapDefaultExtensions,
-					CharacterCount.configure({ limit: 110 }),
+					CharacterCount.configure({ limit: 100 }),
 					NoLineBreaks,
 				],
 			},
