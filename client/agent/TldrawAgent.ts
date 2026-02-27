@@ -234,6 +234,12 @@ export class TldrawAgent {
 	private isActingOnEditor = false
 
 	/**
+	 * Tracks how many consecutive self-sourced requests completed without a user-facing message.
+	 * Used to prevent infinite retry loops for self-sourced requests.
+	 */
+	private noMessageRetryCount = 0
+
+	/**
 	 * Get whether the agent is currently acting on the editor.
 	 * @returns true if the agent is currently acting, false otherwise.
 	 */
@@ -543,6 +549,7 @@ export class TldrawAgent {
 	 */
 	reset() {
 		this.cancel()
+		this.noMessageRetryCount = 0
 
 		// Reset all managers
 		this.actions.reset()
@@ -651,6 +658,7 @@ export class TldrawAgent {
 
 								if (transformedAction._type === 'message' && transformedAction.complete) {
 									hadUserFacingMessage = true
+									this.noMessageRetryCount = 0
 								}
 
 								// Apply the action to the app and editor
@@ -690,13 +698,24 @@ export class TldrawAgent {
 				} else if (
 					!cancelled &&
 					!hadUserFacingMessage &&
-					availableActions.includes('message') &&
-					request.source !== 'self'
+					availableActions.includes('message')
 				) {
-					console.warn(
-						'[Agent] Request completed without a user-facing message — scheduling continuation',
-					)
-					this.schedule({ data: ['No message was sent to the user. Please respond now.'] })
+					if (request.source !== 'self') {
+						// Non-self request: always retry
+						console.warn('[Agent] Request completed without a user-facing message — scheduling continuation')
+						this.noMessageRetryCount = 0
+						this.schedule({ data: ['No message was sent to the user. Please respond now.'] })
+					} else if (this.noMessageRetryCount < 1) {
+						// Self-sourced request: retry once
+						console.warn('[Agent] Self-sourced request completed without a message — retrying (attempt ' + (this.noMessageRetryCount + 1) + ')')
+						this.noMessageRetryCount++
+						this.schedule({ data: ['No message was sent to the user. Please respond now.'] })
+					} else {
+						// Self-sourced request: exceeded retry limit
+						console.warn('[Agent] Self-sourced request failed to produce a message after retries — giving up')
+						this.noMessageRetryCount = 0
+						this.onError(new Error('The AI was unable to generate a response. Please try again.'))
+					}
 				}
 			} catch (e) {
 				if (e === 'Cancelled by user' || (e instanceof Error && e.name === 'AbortError')) {
