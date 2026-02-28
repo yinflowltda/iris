@@ -27,6 +27,10 @@ export function MandalaCover({ content, w, h, onDismiss }: MandalaCoverProps) {
 		}
 	}, [fadingOut, onDismiss])
 
+	const handleSlideChange = useCallback((index: number) => {
+		currentSlideRef.current = index
+	}, [])
+
 	return (
 		<div
 			className={`mandala-cover${fadingOut ? ' mandala-cover--fading' : ''}`}
@@ -39,7 +43,11 @@ export function MandalaCover({ content, w, h, onDismiss }: MandalaCoverProps) {
 				borderRadius: '50%',
 				pointerEvents: 'all',
 			}}
-			onTransitionEnd={handleFadeOutEnd}
+			onTransitionEnd={(e) => {
+				if (e.propertyName === 'opacity') {
+					handleFadeOutEnd()
+				}
+			}}
 			onPointerDown={(e) => {
 				e.stopPropagation()
 				handleClick()
@@ -48,9 +56,7 @@ export function MandalaCover({ content, w, h, onDismiss }: MandalaCoverProps) {
 			<TextCarousel
 				slides={content.slides}
 				intervalMs={content.intervalMs}
-				onSlideChange={(index) => {
-					currentSlideRef.current = index
-				}}
+				onSlideChange={handleSlideChange}
 			/>
 		</div>
 	)
@@ -68,13 +74,11 @@ function TextCarousel({ slides, intervalMs, onSlideChange }: TextCarouselProps) 
 
 	useEffect(() => {
 		const fadeOutDuration = 500
+		let timeoutId: ReturnType<typeof setTimeout>
 
 		const timer = setInterval(() => {
-			// Fade out
 			setVisible(false)
-
-			// After fade out, switch slide and fade in
-			setTimeout(() => {
+			timeoutId = setTimeout(() => {
 				setCurrentIndex((prev) => {
 					const next = (prev + 1) % slides.length
 					onSlideChange(next)
@@ -84,7 +88,10 @@ function TextCarousel({ slides, intervalMs, onSlideChange }: TextCarouselProps) 
 			}, fadeOutDuration)
 		}, intervalMs)
 
-		return () => clearInterval(timer)
+		return () => {
+			clearInterval(timer)
+			clearTimeout(timeoutId)
+		}
 	}, [slides.length, intervalMs, onSlideChange])
 
 	return (

@@ -325,8 +325,10 @@ function App() {
 				action: {
 					_type: 'message',
 					text: slideText,
+					complete: true,
+					time: Date.now(),
 				},
-				diff: { added: {}, removed: {}, updated: {} },
+				diff: { added: {}, removed: {}, updated: {} } as any,
 				acceptance: 'accepted',
 			})
 
@@ -621,38 +623,38 @@ function App() {
 
 	return (
 		<MandalaCoverContext.Provider value={{ onCoverSlideClick: handleCoverSlideClick }}>
-		<ChatPanelContext.Provider value={{ chatOpen, toggleChat }}>
-			<TldrawUiToastsProvider>
-				<div className="tldraw-agent-container">
-					<div className="tldraw-canvas">
-						<Tldraw
-							persistenceKey="tldraw-agent-demo"
-							options={options}
-							shapeUtils={shapeUtils}
-							tools={tools}
-							overrides={overrides}
-							components={components}
-						>
-							<TldrawAgentAppProvider onMount={setApp} onUnmount={handleUnmount} />
-						</Tldraw>
+			<ChatPanelContext.Provider value={{ chatOpen, toggleChat }}>
+				<TldrawUiToastsProvider>
+					<div className="tldraw-agent-container">
+						<div className="tldraw-canvas">
+							<Tldraw
+								persistenceKey="tldraw-agent-demo"
+								options={options}
+								shapeUtils={shapeUtils}
+								tools={tools}
+								overrides={overrides}
+								components={components}
+							>
+								<TldrawAgentAppProvider onMount={setApp} onUnmount={handleUnmount} />
+							</Tldraw>
+						</div>
+						<div className={`agent-chat-slot${chatOpen ? ' agent-chat-slot--open' : ''}`}>
+							<ErrorBoundary fallback={ChatPanelFallback}>
+								{app && (
+									<TldrawAgentAppContextProvider app={app}>
+										<ChatPanel inputRef={chatInputRef} />
+									</TldrawAgentAppContextProvider>
+								)}
+							</ErrorBoundary>
+						</div>
+						<TemplateChooser
+							visible={showTemplate}
+							onSelectTemplate={handleSelectTemplate}
+							onRequestClose={() => setShowTemplate(false)}
+						/>
 					</div>
-					<div className={`agent-chat-slot${chatOpen ? ' agent-chat-slot--open' : ''}`}>
-						<ErrorBoundary fallback={ChatPanelFallback}>
-							{app && (
-								<TldrawAgentAppContextProvider app={app}>
-									<ChatPanel inputRef={chatInputRef} />
-								</TldrawAgentAppContextProvider>
-							)}
-						</ErrorBoundary>
-					</div>
-					<TemplateChooser
-						visible={showTemplate}
-						onSelectTemplate={handleSelectTemplate}
-						onRequestClose={() => setShowTemplate(false)}
-					/>
-				</div>
-			</TldrawUiToastsProvider>
-		</ChatPanelContext.Provider>
+				</TldrawUiToastsProvider>
+			</ChatPanelContext.Provider>
 		</MandalaCoverContext.Provider>
 	)
 }

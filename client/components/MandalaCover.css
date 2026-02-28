@@ -7,6 +7,7 @@
 	transition: opacity 500ms ease-out;
 	cursor: pointer;
 	z-index: 10;
+	overflow: hidden;
 }
 
 .mandala-cover--fading {
