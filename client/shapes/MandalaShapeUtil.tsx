@@ -215,16 +215,16 @@ function MandalaInteractive({ shape }: { shape: MandalaShape }) {
 				hoveredCell={hoveredCell}
 				zoomedNodeId={shape.props.zoomedNodeId}
 				onZoomComplete={handleZoomComplete}
+				coverContent={
+					shape.props.cover?.active && shape.props.cover.content ? (
+						<MandalaCover
+							content={shape.props.cover.content}
+							onDismiss={handleCoverDismiss}
+						/>
+					) : undefined
+				}
 			/>
 			<ZoomModeToggle shape={shape} />
-			{shape.props.cover?.active && shape.props.cover.content && (
-				<MandalaCover
-					content={shape.props.cover.content}
-					w={shape.props.w}
-					h={shape.props.h}
-					onDismiss={handleCoverDismiss}
-				/>
-			)}
 		</div>
 	)
 }

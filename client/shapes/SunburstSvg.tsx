@@ -19,6 +19,7 @@ interface SunburstSvgProps {
 	zoomedNodeId?: string | null
 	animatingArcs?: Map<string, { x0: number; x1: number; y0: number; y1: number }>
 	onZoomComplete?: (finalArcs: Map<string, ArcAnimationState>) => void
+	coverContent?: React.ReactNode
 }
 
 const ZOOM_ANIMATION_MS = 400
@@ -34,6 +35,7 @@ export function SunburstSvg({
 	zoomedNodeId,
 	animatingArcs: animatingArcsProp,
 	onZoomComplete,
+	coverContent,
 }: SunburstSvgProps) {
 	const framework = getFramework(frameworkId)
 	const treeDef = framework.treeDefinition
@@ -327,6 +329,22 @@ export function SunburstSvg({
 			<g transform={`translate(${cx},${cy})`}>{cellPaths}</g>
 			{centerCircle}
 			<g>{cellLabels}</g>
+			{coverContent && (
+				<>
+					<clipPath id="mandala-cover-clip">
+						<circle cx={cx} cy={cy} r={outerRadius} />
+					</clipPath>
+					<foreignObject
+						x={cx - outerRadius}
+						y={cy - outerRadius}
+						width={outerRadius * 2}
+						height={outerRadius * 2}
+						clipPath="url(#mandala-cover-clip)"
+					>
+						{coverContent}
+					</foreignObject>
+				</>
+			)}
 		</svg>
 	)
 }

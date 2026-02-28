@@ -6,12 +6,10 @@ import './MandalaCover.css'
 
 interface MandalaCoverProps {
 	content: CoverContent
-	w: number
-	h: number
 	onDismiss: () => void
 }
 
-export function MandalaCover({ content, w, h, onDismiss }: MandalaCoverProps) {
+export function MandalaCover({ content, onDismiss }: MandalaCoverProps) {
 	const { onCoverSlideClick } = useMandalaCoverActions()
 	const [fadingOut, setFadingOut] = useState(false)
 	const currentSlideRef = useRef(0)
@@ -29,15 +27,6 @@ export function MandalaCover({ content, w, h, onDismiss }: MandalaCoverProps) {
 	return (
 		<div
 			className={`mandala-cover${fadingOut ? ' mandala-cover--fading' : ''}`}
-			style={{
-				position: 'absolute',
-				top: 0,
-				left: 0,
-				width: w,
-				height: h,
-				borderRadius: '50%',
-				pointerEvents: 'all',
-			}}
 			onTransitionEnd={(e) => {
 				if (e.propertyName === 'opacity') {
 					onDismiss()
