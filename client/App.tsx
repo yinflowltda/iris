@@ -325,15 +325,18 @@ function App() {
 	}, [])
 
 	const textOptions = useMemo(() => {
-		// Block Enter key at the ProseMirror level. DOM-level onKeyDown
-		// fires after ProseMirror has already processed the keystroke,
-		// so we must intercept via a TipTap keyboard shortcut extension.
-		const NoLineBreaks = Extension.create({
-			name: 'noLineBreaks',
+		const MAX_LINE_BREAKS = 20
+
+		const LineBreakLimit = Extension.create({
+			name: 'lineBreakLimit',
 			addKeyboardShortcuts() {
+				const blockIfTooManyBreaks = (editor: any) => {
+					const paragraphs = editor.state.doc.content.childCount
+					return paragraphs >= MAX_LINE_BREAKS
+				}
 				return {
-					Enter: () => true, // returning true = "handled, do nothing"
-					'Shift-Enter': () => true,
+					Enter: ({ editor }) => blockIfTooManyBreaks(editor),
+					'Shift-Enter': ({ editor }) => blockIfTooManyBreaks(editor),
 				}
 			},
 		})
@@ -342,8 +345,8 @@ function App() {
 			tipTapConfig: {
 				extensions: [
 					...tipTapDefaultExtensions,
-					CharacterCount.configure({ limit: 200 }),
-					NoLineBreaks,
+					CharacterCount.configure({ limit: 420 }),
+					LineBreakLimit,
 				],
 			},
 		}

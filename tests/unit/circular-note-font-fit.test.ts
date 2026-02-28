@@ -13,13 +13,13 @@ describe('fitFontToBox', () => {
 		const measure = (fontSize: number) => ({ w: 100, h: fontSize * 11 })
 		const result = fitFontToBox({ baseFontSize: 18, maxHeight: 125, measure })
 		expect(result).toBeLessThanOrEqual(11) // 11 * 11 = 121 <= 125
-		expect(result).toBeGreaterThanOrEqual(1)
+		expect(result).toBeGreaterThanOrEqual(3)
 	})
 
-	it('returns 1 when text cannot fit even at minimum', () => {
+	it('returns 3 (minimum) when text cannot fit even at minimum', () => {
 		const measure = (fontSize: number) => ({ w: 100, h: 9999 })
 		const result = fitFontToBox({ baseFontSize: 18, maxHeight: 125, measure })
-		expect(result).toBe(1)
+		expect(result).toBe(3)
 	})
 
 	it('uses binary search - calls measure O(log n) times', () => {
