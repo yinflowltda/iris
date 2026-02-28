@@ -13,7 +13,7 @@ import {
 	useEditor,
 	type VecLike,
 } from 'tldraw'
-import type { MandalaArrowRecord, MandalaState } from '../../shared/types/MandalaTypes'
+import type { CoverConfig, MandalaArrowRecord, MandalaState } from '../../shared/types/MandalaTypes'
 import { ZoomModeToggle } from '../components/ZoomModeToggle'
 import { setActiveMandalaId } from '../lib/frameworks/active-framework'
 import { EMOTIONS_MAP } from '../lib/frameworks/emotions-map'
@@ -44,6 +44,7 @@ export type MandalaShapeProps = {
 	arrowsVisible: boolean
 	zoomedNodeId: string | null
 	zoomMode: string
+	cover: CoverConfig | null
 }
 
 declare module 'tldraw' {
@@ -222,6 +223,7 @@ export class MandalaShapeUtil extends ShapeUtil<MandalaShape> {
 		arrowsVisible: T.boolean,
 		zoomedNodeId: T.jsonValue as any,
 		zoomMode: T.string,
+		cover: T.jsonValue as any,
 	}
 
 	getDefaultProps(): MandalaShapeProps {
@@ -234,6 +236,7 @@ export class MandalaShapeUtil extends ShapeUtil<MandalaShape> {
 			arrowsVisible: true,
 			zoomedNodeId: null,
 			zoomMode: 'navigate',
+			cover: null,
 		}
 	}
 
