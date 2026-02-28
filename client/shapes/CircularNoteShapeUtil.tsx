@@ -100,6 +100,8 @@ export class CircularNoteShapeUtil extends NoteShapeUtil {
 
 		const fontSize = (fontSizeAdjustment || LABEL_FONT_SIZES[size]) * scale
 
+		const debug = typeof window !== 'undefined' && localStorage.getItem('CIRCULAR_NOTE_DEBUG') === '1'
+
 		return (
 			<div
 				id={id}
@@ -122,6 +124,7 @@ export class CircularNoteShapeUtil extends NoteShapeUtil {
 							width: inscribedSide,
 							height: inscribedSide,
 							overflow: 'hidden',
+							...(debug ? { border: '1px dashed red' } : {}),
 						}}
 					>
 						<RichTextLabel
@@ -144,6 +147,26 @@ export class CircularNoteShapeUtil extends NoteShapeUtil {
 							hasCustomTabBehavior
 							showTextOutline={false}
 						/>
+					{debug && (
+						<div
+							style={{
+								position: 'absolute',
+								bottom: 0,
+								left: 0,
+								right: 0,
+								fontSize: '9px',
+								lineHeight: '1.2',
+								color: 'red',
+								background: 'rgba(255,255,255,0.85)',
+								padding: '2px 4px',
+								pointerEvents: 'none',
+								fontFamily: 'monospace',
+							}}
+						>
+							fs:{fontSizeAdjustment || LABEL_FONT_SIZES[size]}px
+							{fontSizeAdjustment ? ` (adj from ${LABEL_FONT_SIZES[size]})` : ''}
+						</div>
+					)}
 					</div>
 				)}
 			</div>
