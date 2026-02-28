@@ -54,6 +54,7 @@ import {
 	TldrawAgentAppProvider,
 } from './agent/TldrawAgentAppProvider'
 import { ChatPanel } from './components/ChatPanel'
+import { MandalaCoverContext } from './components/MandalaCoverContext'
 import { ChatPanelFallback } from './components/ChatPanelFallback'
 import { CustomHelperButtons } from './components/CustomHelperButtons'
 import { AgentViewportBoundsHighlights } from './components/highlights/AgentViewportBoundsHighlights'
@@ -310,6 +311,37 @@ function App() {
 	const [showTemplate, setShowTemplate] = useState(SHOW_TEMPLATE_CHOOSER)
 	const [chatOpen, setChatOpen] = useState(false)
 	const toggleChat = useCallback(() => setChatOpen((v) => !v), [])
+	const chatInputRef = useRef<HTMLTextAreaElement>(null)
+
+	const handleCoverSlideClick = useCallback(
+		(slideText: string) => {
+			if (!app) return
+			const agent = app.agents.getAgent()
+			if (!agent) return
+
+			// Push agent message to chat
+			agent.chat.push({
+				type: 'action',
+				action: {
+					_type: 'message',
+					text: slideText,
+				},
+				diff: { added: {}, removed: {}, updated: {} },
+				acceptance: 'accepted',
+			})
+
+			// Open chat sidebar
+			if (!chatOpen) {
+				toggleChat()
+			}
+
+			// Focus chat input (defer so sidebar renders)
+			requestAnimationFrame(() => {
+				chatInputRef.current?.focus()
+			})
+		},
+		[app, chatOpen, toggleChat],
+	)
 	const handleUnmount = useCallback(() => {
 		setApp(null)
 	}, [])
@@ -585,6 +617,7 @@ function App() {
 	}, [app])
 
 	return (
+		<MandalaCoverContext.Provider value={{ onCoverSlideClick: handleCoverSlideClick }}>
 		<ChatPanelContext.Provider value={{ chatOpen, toggleChat }}>
 			<TldrawUiToastsProvider>
 				<div className="tldraw-agent-container">
@@ -604,7 +637,7 @@ function App() {
 						<ErrorBoundary fallback={ChatPanelFallback}>
 							{app && (
 								<TldrawAgentAppContextProvider app={app}>
-									<ChatPanel />
+									<ChatPanel inputRef={chatInputRef} />
 								</TldrawAgentAppContextProvider>
 							)}
 						</ErrorBoundary>
@@ -617,6 +650,7 @@ function App() {
 				</div>
 			</TldrawUiToastsProvider>
 		</ChatPanelContext.Provider>
+		</MandalaCoverContext.Provider>
 	)
 }
 

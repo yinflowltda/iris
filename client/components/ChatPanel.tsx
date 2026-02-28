@@ -5,15 +5,16 @@ import { ChatHistory } from './chat-history/ChatHistory'
 import { TodoList } from './TodoList'
 import { useVoice } from './VoiceControl'
 
-export function ChatPanel() {
+export function ChatPanel({ inputRef }: { inputRef?: React.RefObject<HTMLTextAreaElement | null> }) {
 	const agent = useAgent()
-	const inputRef = useRef<HTMLTextAreaElement>(null)
+	const localRef = useRef<HTMLTextAreaElement>(null)
+	const effectiveRef = inputRef ?? localRef
 	const { voiceState, isListening, toggleListening } = useVoice(agent)
 
 	const handleSubmit = useCallback<FormEventHandler<HTMLFormElement>>(
 		async (e) => {
 			e.preventDefault()
-			if (!inputRef.current) return
+			if (!effectiveRef.current) return
 			const formData = new FormData(e.currentTarget)
 			const value = formData.get('input') as string
 
@@ -22,7 +23,7 @@ export function ChatPanel() {
 				return
 			}
 
-			inputRef.current.value = ''
+			effectiveRef.current.value = ''
 
 			agent.interrupt({
 				input: {
@@ -43,7 +44,7 @@ export function ChatPanel() {
 				<TodoList agent={agent} />
 				<ChatInput
 					handleSubmit={handleSubmit}
-					inputRef={inputRef}
+					inputRef={effectiveRef}
 					voiceState={voiceState}
 					isListening={isListening}
 					onMicClick={toggleListening}
