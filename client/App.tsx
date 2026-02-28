@@ -1,3 +1,5 @@
+import { Extension } from '@tiptap/core'
+import { CharacterCount } from '@tiptap/extensions'
 import { ReadonlySharedStyleMap } from '@tldraw/editor'
 import {
 	createContext,
@@ -29,6 +31,7 @@ import {
 	type TLShapeId,
 	type TLUiOverrides,
 	type TLUiStylePanelProps,
+	tipTapDefaultExtensions,
 	Tldraw,
 	TldrawOverlays,
 	TldrawUiButton,
@@ -296,7 +299,7 @@ const MenuPanelWithActions = memo(function MenuPanelWithActions() {
 	)
 })
 
-const NOTE_HALF_SIZE = 100
+const NOTE_HALF_SIZE = 98
 
 function hasNoTextContent(richText: unknown): boolean {
 	if (!richText || typeof richText !== 'object') return true
@@ -318,6 +321,34 @@ function App() {
 		return {
 			// Keep "Actions" next to the hamburger menu (top-left).
 			actionShortcutsLocation: 'menu' as const,
+		}
+	}, [])
+
+	const textOptions = useMemo(() => {
+		const MAX_LINE_BREAKS = 20
+
+		const LineBreakLimit = Extension.create({
+			name: 'lineBreakLimit',
+			addKeyboardShortcuts() {
+				const blockIfTooManyBreaks = (editor: any) => {
+					const paragraphs = editor.state.doc.content.childCount
+					return paragraphs >= MAX_LINE_BREAKS
+				}
+				return {
+					Enter: ({ editor }) => blockIfTooManyBreaks(editor),
+					'Shift-Enter': ({ editor }) => blockIfTooManyBreaks(editor),
+				}
+			},
+		})
+
+		return {
+			tipTapConfig: {
+				extensions: [
+					...tipTapDefaultExtensions,
+					CharacterCount.configure({ limit: 420 }),
+					LineBreakLimit,
+				],
+			},
 		}
 	}, [])
 
@@ -596,6 +627,7 @@ function App() {
 							tools={tools}
 							overrides={overrides}
 							components={components}
+							textOptions={textOptions}
 						>
 							<TldrawAgentAppProvider onMount={setApp} onUnmount={handleUnmount} />
 						</Tldraw>
