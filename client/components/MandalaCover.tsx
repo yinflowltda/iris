@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import type { CoverContent } from '../../shared/types/MandalaTypes'
+import { GooeyTextMorphing } from './GooeyTextMorphing'
 import { useMandalaCoverActions } from './MandalaCoverContext'
 import './MandalaCover.css'
 
@@ -21,13 +22,7 @@ export function MandalaCover({ content, w, h, onDismiss }: MandalaCoverProps) {
 		setFadingOut(true)
 	}, [content.slides, onCoverSlideClick])
 
-	const handleFadeOutEnd = useCallback(() => {
-		if (fadingOut) {
-			onDismiss()
-		}
-	}, [fadingOut, onDismiss])
-
-	const handleSlideChange = useCallback((index: number) => {
+	const handleTextChange = useCallback((index: number) => {
 		currentSlideRef.current = index
 	}, [])
 
@@ -45,7 +40,7 @@ export function MandalaCover({ content, w, h, onDismiss }: MandalaCoverProps) {
 			}}
 			onTransitionEnd={(e) => {
 				if (e.propertyName === 'opacity') {
-					handleFadeOutEnd()
+					onDismiss()
 				}
 			}}
 			onPointerDown={(e) => {
@@ -53,58 +48,14 @@ export function MandalaCover({ content, w, h, onDismiss }: MandalaCoverProps) {
 				handleClick()
 			}}
 		>
-			<TextCarousel
-				slides={content.slides}
-				intervalMs={content.intervalMs}
-				onSlideChange={handleSlideChange}
+			<GooeyTextMorphing
+				texts={content.slides}
+				morphTime={1}
+				cooldownTime={content.intervalMs / 1000}
+				className="text-carousel"
+				textClassName="text-carousel__slide"
+				onTextChange={handleTextChange}
 			/>
-		</div>
-	)
-}
-
-interface TextCarouselProps {
-	slides: string[]
-	intervalMs: number
-	onSlideChange: (index: number) => void
-}
-
-function TextCarousel({ slides, intervalMs, onSlideChange }: TextCarouselProps) {
-	const [currentIndex, setCurrentIndex] = useState(0)
-	const [visible, setVisible] = useState(true)
-
-	useEffect(() => {
-		const fadeOutDuration = 500
-		let timeoutId: ReturnType<typeof setTimeout>
-
-		const timer = setInterval(() => {
-			setVisible(false)
-			timeoutId = setTimeout(() => {
-				setCurrentIndex((prev) => {
-					const next = (prev + 1) % slides.length
-					onSlideChange(next)
-					return next
-				})
-				setVisible(true)
-			}, fadeOutDuration)
-		}, intervalMs)
-
-		return () => {
-			clearInterval(timer)
-			clearTimeout(timeoutId)
-		}
-	}, [slides.length, intervalMs, onSlideChange])
-
-	return (
-		<div className="text-carousel">
-			<p
-				className="text-carousel__slide"
-				style={{
-					opacity: visible ? 1 : 0,
-					transition: 'opacity 500ms ease-in-out',
-				}}
-			>
-				{slides[currentIndex]}
-			</p>
 		</div>
 	)
 }
