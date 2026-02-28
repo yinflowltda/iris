@@ -1,18 +1,22 @@
 import {
 	Circle2d,
+	FONT_FAMILIES,
 	getColorValue,
 	getDefaultColorTheme,
 	Group2d,
 	LABEL_FONT_SIZES,
 	NoteShapeUtil,
+	renderHtmlFromRichTextForMeasurement,
 	RichTextLabel,
 	TEXT_PROPS,
 	type TLNoteShape,
 	useEditor,
 	useValue,
 } from 'tldraw'
+import { fitFontToBox } from '../lib/circular-note-font-fit'
 
 const NOTE_BASE_SIZE = 200
+const CONTENT_PADDING = 8
 
 /**
  * Forces note behavior for the mandala:
@@ -136,7 +140,7 @@ export class CircularNoteShapeUtil extends NoteShapeUtil {
 									: getColorValue(theme, labelColor, 'fill')
 							}
 							wrap
-							padding={12 * scale}
+							padding={CONTENT_PADDING * scale}
 							hasCustomTabBehavior
 							showTextOutline={false}
 						/>
@@ -168,13 +172,50 @@ export class CircularNoteShapeUtil extends NoteShapeUtil {
 	}
 
 	private enforceCircularProps(shape: TLNoteShape): TLNoteShape {
-		if (shape.props.growY === 0) return shape
+		const { richText, growY, fontSizeAdjustment: currentAdj, size, font } = shape.props
+
+		const isEmpty =
+			richText.content.length === 1 &&
+			!(richText.content[0] as { content?: unknown }).content
+
+		// Compute required font size adjustment
+		let nextFontSizeAdj = 0
+		if (!isEmpty) {
+			const inscribedSide = NOTE_BASE_SIZE / Math.SQRT2
+			const maxHeight = inscribedSide - CONTENT_PADDING * 2
+			const baseFontSize = LABEL_FONT_SIZES[size]
+			const html = renderHtmlFromRichTextForMeasurement(this.editor, richText)
+
+			const fitted = fitFontToBox({
+				baseFontSize,
+				maxHeight,
+				measure: (fontSize) =>
+					this.editor.textMeasure.measureHtml(html, {
+						...TEXT_PROPS,
+						fontFamily: FONT_FAMILIES[font],
+						fontSize,
+						maxWidth: inscribedSide - CONTENT_PADDING * 2,
+					}),
+			})
+
+			// Only set fontSizeAdjustment when font needed shrinking
+			if (fitted < baseFontSize) {
+				nextFontSizeAdj = fitted
+			}
+		}
+
+		const needsUpdate =
+			growY !== 0 ||
+			currentAdj !== nextFontSizeAdj
+
+		if (!needsUpdate) return shape
 
 		return {
 			...shape,
 			props: {
 				...shape.props,
 				growY: 0,
+				fontSizeAdjustment: nextFontSizeAdj,
 			},
 		}
 	}
