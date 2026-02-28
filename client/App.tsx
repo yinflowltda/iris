@@ -342,7 +342,7 @@ function App() {
 			tipTapConfig: {
 				extensions: [
 					...tipTapDefaultExtensions,
-					CharacterCount.configure({ limit: 100 }),
+					CharacterCount.configure({ limit: 200 }),
 					NoLineBreaks,
 				],
 			},
