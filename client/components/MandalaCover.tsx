@@ -26,10 +26,10 @@ export function MandalaCover({ content, w, h, onDismiss }: MandalaCoverProps) {
 		currentSlideRef.current = index
 	}, [])
 
-	// Match the sunburst's visual circle: size - labelPadding * 2
+	// Match the sunburst's visual circle (outerRadius * 2), inset by stroke width
 	const size = Math.min(w, h)
 	const labelPadding = Math.max(20, size * 0.05)
-	const diameter = size - labelPadding * 2
+	const diameter = size - labelPadding * 2 - 2
 	const offset = (size - diameter) / 2
 
 	return (
