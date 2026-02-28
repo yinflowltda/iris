@@ -285,4 +285,15 @@ registerFramework({
 		description: 'Explore and map your emotions through a guided mandala-based framework.',
 		active: true,
 	},
+	initialCover: {
+		type: 'text-carousel',
+		slides: [
+			'How do I resolve these emotions?',
+			'What\u2019s really behind this feeling?',
+			'How can I stop ruminating about this?',
+			'Why is this concerning me so much?',
+			'What am I not seeing about this situation?',
+		],
+		intervalMs: 5000,
+	},
 })
