@@ -21,6 +21,9 @@ export function ChatHistoryPrompt({
 	// Get the CSS class modifier based on the prompt source
 	const sourceClass = `chat-history-prompt-${promptSource}`
 
+	// Skip rendering if there's nothing to display
+	if (!displayMessage && !showTags) return null
+
 	return (
 		<div className="chat-history-prompt-container">
 			<div className={`chat-history-prompt ${sourceClass}`}>
