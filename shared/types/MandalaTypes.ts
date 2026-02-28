@@ -166,3 +166,16 @@ export interface NoteMetadata {
 	dueDate?: string
 	progress?: { done: number; total: number }
 }
+
+// ─── Cover system (initial state overlay) ────────────────────────────────────
+
+export interface CoverContent {
+	type: 'text-carousel'
+	slides: string[]
+	intervalMs: number
+}
+
+export interface CoverConfig {
+	active: boolean
+	content: CoverContent
+}
