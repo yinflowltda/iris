@@ -14,6 +14,7 @@ import {
 	type VecLike,
 } from 'tldraw'
 import type { CoverConfig, MandalaArrowRecord, MandalaState } from '../../shared/types/MandalaTypes'
+import { MandalaCover } from '../components/MandalaCover'
 import { ZoomModeToggle } from '../components/ZoomModeToggle'
 import { setActiveMandalaId } from '../lib/frameworks/active-framework'
 import { EMOTIONS_MAP } from '../lib/frameworks/emotions-map'
@@ -184,6 +185,16 @@ function MandalaInteractive({ shape }: { shape: MandalaShape }) {
 		}
 	}, [editor, zoomedNodeId, zoomMode, mandalaState, frameworkId])
 
+	const handleCoverDismiss = useCallback(() => {
+		editor.updateShape<MandalaShape>({
+			id: shape.id,
+			type: 'mandala',
+			props: {
+				cover: { ...shape.props.cover!, active: false },
+			},
+		})
+	}, [editor, shape.id, shape.props.cover])
+
 	// Reposition notes after zoom animation completes
 	const handleZoomComplete = useCallback(
 		(finalArcs: Map<string, ArcAnimationState>) => {
@@ -206,6 +217,14 @@ function MandalaInteractive({ shape }: { shape: MandalaShape }) {
 				onZoomComplete={handleZoomComplete}
 			/>
 			<ZoomModeToggle shape={shape} />
+			{shape.props.cover?.active && shape.props.cover.content && (
+				<MandalaCover
+					content={shape.props.cover.content}
+					w={shape.props.w}
+					h={shape.props.h}
+					onDismiss={handleCoverDismiss}
+				/>
+			)}
 		</div>
 	)
 }
