@@ -30,6 +30,16 @@ export function GooeyTextMorphing({
 		let cooldown = cooldownTime
 		let animFrameId: number
 
+		// Show first text immediately (text2 is the visible span during cooldown)
+		if (text1Ref.current && text2Ref.current) {
+			text2Ref.current.textContent = texts[0]
+			text2Ref.current.style.opacity = '100%'
+			text2Ref.current.style.filter = ''
+			text1Ref.current.style.opacity = '0%'
+			text1Ref.current.style.filter = ''
+		}
+		onTextChangeRef.current?.(0)
+
 		const setMorph = (fraction: number) => {
 			if (text1Ref.current && text2Ref.current) {
 				text2Ref.current.style.filter = `blur(${Math.min(8 / fraction - 8, 100)}px)`
