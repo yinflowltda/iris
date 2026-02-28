@@ -571,6 +571,9 @@ function App() {
 					w: size,
 					h: size,
 					state: makeEmptyState(framework.definition),
+					cover: framework.initialCover
+						? { active: true, content: framework.initialCover }
+						: null,
 				},
 			})
 
