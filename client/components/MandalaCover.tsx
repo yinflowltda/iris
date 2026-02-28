@@ -50,8 +50,8 @@ export function MandalaCover({ content, w, h, onDismiss }: MandalaCoverProps) {
 		>
 			<GooeyTextMorphing
 				texts={content.slides}
-				morphTime={2.1}
-				cooldownTime={3.25}
+				morphTime={2.52}
+				cooldownTime={3.9}
 				className="text-carousel"
 				textClassName="text-carousel__slide"
 				onTextChange={handleTextChange}
