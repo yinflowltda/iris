@@ -319,18 +319,28 @@ function App() {
 			const agent = app.agents.getAgent()
 			if (!agent) return
 
-			// Push agent message to chat
-			agent.chat.push({
-				type: 'action',
-				action: {
-					_type: 'message',
-					text: slideText,
-					complete: true,
-					time: Date.now(),
+			// Push a prompt (creates a chat section) then the agent message
+			agent.chat.push(
+				{
+					type: 'prompt',
+					promptSource: 'user',
+					agentFacingMessage: slideText,
+					userFacingMessage: slideText,
+					contextItems: [],
+					selectedShapes: [],
 				},
-				diff: { added: {}, removed: {}, updated: {} } as any,
-				acceptance: 'accepted',
-			})
+				{
+					type: 'action',
+					action: {
+						_type: 'message',
+						text: slideText,
+						complete: true,
+						time: Date.now(),
+					},
+					diff: { added: {}, removed: {}, updated: {} } as any,
+					acceptance: 'accepted',
+				},
+			)
 
 			// Open chat sidebar
 			if (!chatOpen) {
