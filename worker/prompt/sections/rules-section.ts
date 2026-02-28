@@ -152,6 +152,11 @@ ${flagged(
 	flags.hasThink && flags.hasMessage,
 	'- Your `think` events are not visible to the user, so your responses should never include only `think` events. Use a `message` action to communicate with the user.',
 )}
+${flagged(
+	flags.hasMessage,
+	`- **CRITICAL: System notifications, background task updates, memory checks, and any meta-level agent messages MUST NEVER appear in the \`message\` action output.** If the system surfaces such content, process it silently inside a \`think\` action and respond only to what the user has actually said.
+- **CRITICAL: If the user has already responded, never output a "still waiting" or "I'm waiting for your response" message. Treat any such tendency as a conversation sync error. Acknowledge the user's actual response directly.**`,
+)}
 
 ### Starting your work
 
