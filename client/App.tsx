@@ -325,7 +325,7 @@ function App() {
 					type: 'prompt',
 					promptSource: 'user',
 					agentFacingMessage: slideText,
-					userFacingMessage: slideText,
+					userFacingMessage: '',
 					contextItems: [],
 					selectedShapes: [],
 				},
