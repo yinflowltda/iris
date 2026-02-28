@@ -26,21 +26,15 @@ export function MandalaCover({ content, w, h, onDismiss }: MandalaCoverProps) {
 		currentSlideRef.current = index
 	}, [])
 
-	// Match the sunburst's visual circle (outerRadius * 2), inset by stroke width
-	const size = Math.min(w, h)
-	const labelPadding = Math.max(20, size * 0.05)
-	const diameter = size - labelPadding * 2 - 2
-	const offset = (size - diameter) / 2
-
 	return (
 		<div
 			className={`mandala-cover${fadingOut ? ' mandala-cover--fading' : ''}`}
 			style={{
 				position: 'absolute',
-				top: offset,
-				left: offset,
-				width: diameter,
-				height: diameter,
+				top: 0,
+				left: 0,
+				width: w,
+				height: h,
 				borderRadius: '50%',
 				pointerEvents: 'all',
 			}}
