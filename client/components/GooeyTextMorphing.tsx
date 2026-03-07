@@ -30,16 +30,14 @@ export function GooeyTextMorphing({
 		let cooldown = cooldownTime
 		let animFrameId: number
 
-		// Morph in the first text (text2 starts hidden, morphs to visible)
+		// Show first text immediately
 		if (text1Ref.current && text2Ref.current) {
 			text2Ref.current.textContent = texts[0]
-			text2Ref.current.style.opacity = '0%'
-			text2Ref.current.style.filter = 'blur(100px)'
+			text2Ref.current.style.opacity = '100%'
+			text2Ref.current.style.filter = ''
 			text1Ref.current.style.opacity = '0%'
 			text1Ref.current.style.filter = ''
 		}
-		// Start with cooldown already expired so morph begins immediately
-		cooldown = 0
 		onTextChangeRef.current?.(0)
 
 		const setMorph = (fraction: number) => {
