@@ -122,6 +122,86 @@ const TRANSPARENT_TREE: TreeMapDefinition = {
 	},
 }
 
+/** Tree with two halves that have different radial band configs */
+const REMAPPED_TREE: TreeMapDefinition = {
+	id: 'remapped',
+	name: 'Remapped Tree',
+	description: 'A tree with radial band remapping',
+	startAngle: Math.PI / 2, // first child at 3 o'clock
+	root: {
+		id: 'root',
+		label: 'Root',
+		question: '',
+		guidance: '',
+		examples: [],
+		children: [
+			// Bottom half: 2 children, each with 1 leaf (depth 2)
+			{
+				id: 'bottom-a',
+				label: 'Bottom A',
+				question: '',
+				guidance: '',
+				examples: [],
+				children: [
+					{ id: 'bottom-a-leaf', label: 'Leaf', question: '', guidance: '', examples: [] },
+				],
+			},
+			{
+				id: 'bottom-b',
+				label: 'Bottom B',
+				question: '',
+				guidance: '',
+				examples: [],
+				children: [
+					{ id: 'bottom-b-leaf', label: 'Leaf', question: '', guidance: '', examples: [] },
+				],
+			},
+			// Top half: 2 children, each with 1 leaf (depth 2)
+			{
+				id: 'top-a',
+				label: 'Top A',
+				question: '',
+				guidance: '',
+				examples: [],
+				children: [
+					{ id: 'top-a-leaf', label: 'Leaf', question: '', guidance: '', examples: [] },
+				],
+			},
+			{
+				id: 'top-b',
+				label: 'Top B',
+				question: '',
+				guidance: '',
+				examples: [],
+				children: [
+					{ id: 'top-b-leaf', label: 'Leaf', question: '', guidance: '', examples: [] },
+				],
+			},
+		],
+	},
+	radialBands: {
+		centerRadius: 0.1,
+		regions: [
+			{
+				// Bottom half: π/2 to 3π/2 (after startAngle offset)
+				angularRange: [Math.PI / 2, (3 * Math.PI) / 2],
+				bands: {
+					1: [0.1, 0.5],
+					2: [0.5, 1.0],
+				},
+			},
+			{
+				// Top half: 3π/2 to 5π/2 (after startAngle offset)
+				angularRange: [(3 * Math.PI) / 2, (5 * Math.PI) / 2],
+				bands: {
+					1: [0.1, 0.3],
+					2: [0.3, 0.8],
+				},
+			},
+		],
+	},
+}
+
 // ─── computeSunburstLayout ───────────────────────────────────────────────────
 
 describe('computeSunburstLayout', () => {
@@ -291,5 +371,60 @@ describe('isNodeInSubtree', () => {
 		expect(isNodeInSubtree(root, 'root', 'a1')).toBe(true)
 		expect(isNodeInSubtree(root, 'root', 'a2')).toBe(true)
 		expect(isNodeInSubtree(root, 'root', 'b')).toBe(true)
+	})
+})
+
+// ─── Radial band remapping ──────────────────────────────────────────────────
+
+describe('radial band remapping', () => {
+	const arcs = computeSunburstLayout(REMAPPED_TREE)
+	const byId = (id: string) => arcs.find((a) => a.id === id)!
+
+	it('root y1 equals centerRadius', () => {
+		const root = byId('root')
+		expect(root.y0).toBeCloseTo(0, 5)
+		expect(root.y1).toBeCloseTo(0.1, 5)
+	})
+
+	it('bottom-half depth-1 arcs use bottom region bands', () => {
+		const bottomA = byId('bottom-a')
+		expect(bottomA.y0).toBeCloseTo(0.1, 5)
+		expect(bottomA.y1).toBeCloseTo(0.5, 5)
+	})
+
+	it('bottom-half depth-2 arcs use bottom region bands', () => {
+		const bottomALeaf = byId('bottom-a-leaf')
+		expect(bottomALeaf.y0).toBeCloseTo(0.5, 5)
+		expect(bottomALeaf.y1).toBeCloseTo(1.0, 5)
+	})
+
+	it('top-half depth-1 arcs use top region bands', () => {
+		const topA = byId('top-a')
+		expect(topA.y0).toBeCloseTo(0.1, 5)
+		expect(topA.y1).toBeCloseTo(0.3, 5)
+	})
+
+	it('top-half depth-2 arcs use top region bands', () => {
+		const topALeaf = byId('top-a-leaf')
+		expect(topALeaf.y0).toBeCloseTo(0.3, 5)
+		expect(topALeaf.y1).toBeCloseTo(0.8, 5)
+	})
+
+	it('angular allocation (x0/x1) is unchanged — 4 equal children', () => {
+		const bottomA = byId('bottom-a')
+		const topB = byId('top-b')
+		const sweep = bottomA.x1 - bottomA.x0
+		expect(sweep).toBeCloseTo(TAU / 4, 3)
+		const topSweep = topB.x1 - topB.x0
+		expect(topSweep).toBeCloseTo(TAU / 4, 3)
+	})
+
+	it('without radialBands, partition-computed y values are used (no remapping)', () => {
+		// SIMPLE_TREE has no radialBands — values should be partition-default
+		const simpleArcs = computeSunburstLayout(SIMPLE_TREE)
+		const a = simpleArcs.find((arc) => arc.id === 'a')!
+		// maxDepth=3, depth 1 → y0=1/3≈0.333, y1=2/3≈0.667
+		expect(a.y0).toBeCloseTo(1 / 3, 3)
+		expect(a.y1).toBeCloseTo(2 / 3, 3)
 	})
 })
