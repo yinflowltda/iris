@@ -548,7 +548,7 @@ export function SunburstSvg({
 			)}
 			<text
 				x={cx}
-				y={cy - outerRadius - labelPadding * 0.5 + 50}
+				y={cy - outerRadius - labelPadding * 0.5}
 				textAnchor="middle"
 				dominantBaseline="auto"
 				fontSize={18}
