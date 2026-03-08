@@ -284,6 +284,14 @@ registerFramework({
 		icon: '◎',
 		description: 'Explore and map your emotions through a guided mandala-based framework.',
 		active: true,
+		longDescription:
+			'A therapeutic mandala for exploring emotions across time. Map past events, present behaviors, and future aspirations through a structured CBT-inspired framework that helps you identify patterns, challenge beliefs, and find evidence for change.',
+		useCases: ['Therapeutic', 'CBT-Inspired', 'Past–Present–Future', '6 Cells'],
+		keyQuestions: [
+			'What\u2019s really behind this feeling?',
+			'How do my past events shape my present beliefs?',
+			'What evidence supports or contradicts what I believe?',
+		],
 	},
 	initialCover: {
 		type: 'text-carousel',

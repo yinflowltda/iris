@@ -92,7 +92,7 @@ applyNodulePaletteToThemes(DefaultColorThemePalette.lightMode, DefaultColorTheme
  * Flip these to `true` if we want to expose the full TLDraw UI again.
  */
 const SHOW_FULL_TLDRAW_TOOLS = false
-const SHOW_TEMPLATE_CHOOSER = false
+const SHOW_TEMPLATE_CHOOSER = true
 
 const MANDALA_TEMPLATE_DEFINITIONS = {
 	'emotions-map': {

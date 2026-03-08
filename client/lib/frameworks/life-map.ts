@@ -421,6 +421,14 @@ registerFramework({
 		icon: '◐',
 		description: 'See how different areas of your life are doing at a glance.',
 		active: true,
+		longDescription:
+			'A holistic mandala for exploring six key life dimensions — Spiritual, Emotional, Physical, Material, Professional, and Relational — through four lenses of self-awareness: what you want, who you are, what you have, and what you know.',
+		useCases: ['Holistic', 'Self-Assessment', '6 Domains', '4 Rings'],
+		keyQuestions: [
+			'How balanced is my life right now?',
+			'Which area needs the most attention?',
+			'What does a fulfilling life look like for me?',
+		],
 	},
 	initialCover: {
 		type: 'text-carousel',

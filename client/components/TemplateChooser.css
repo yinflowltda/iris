@@ -1,4 +1,11 @@
-.template-chooser-overlay {
+/* ═══════════════════════════════════════════════════════════════════════════
+   Template Chooser — Dark Slate Glassmorphic Modal
+   Matches chat sidebar and toolbar visual language.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Overlay ─────────────────────────────────────────────────────────────── */
+
+.tc-overlay {
 	position: fixed;
 	inset: 0;
 	z-index: 999999;
@@ -7,83 +14,100 @@
 	justify-content: center;
 	background-color: rgba(0, 0, 0, 0.6);
 	backdrop-filter: blur(8px);
+	-webkit-backdrop-filter: blur(8px);
 	opacity: 0;
 	pointer-events: none;
 	transition: opacity 0.25s ease;
 }
 
-.template-chooser-overlay[data-visible="true"] {
+.tc-overlay[data-visible="true"] {
 	opacity: 1;
 	pointer-events: auto;
 }
 
-.template-chooser {
+/* ── Modal container ─────────────────────────────────────────────────────── */
+
+.tc-modal {
 	display: flex;
 	flex-direction: column;
-	align-items: center;
-	gap: 32px;
-	max-width: 720px;
-	width: 100%;
-	padding: 48px 24px;
+	gap: 28px;
+	max-width: 960px;
+	max-height: 85vh;
+	width: calc(100% - 48px);
+	overflow-y: auto;
+	padding: 40px;
+	border-radius: 20px;
+	background: linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(30, 41, 59, 0.94));
+	backdrop-filter: blur(20px);
+	-webkit-backdrop-filter: blur(20px);
+	border: 1px solid rgba(255, 255, 255, 0.08);
 	transform: translateY(12px) scale(0.97);
 	transition: transform 0.3s ease;
+	scrollbar-width: thin;
+	scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
 }
 
-.template-chooser-overlay[data-visible="true"] .template-chooser {
+.tc-overlay[data-visible="true"] .tc-modal {
 	transform: translateY(0) scale(1);
 }
 
-.template-chooser-header {
+.tc-modal::-webkit-scrollbar {
+	width: 6px;
+}
+
+.tc-modal::-webkit-scrollbar-thumb {
+	background: rgba(255, 255, 255, 0.12);
+	border-radius: 3px;
+}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+
+.tc-header {
 	display: flex;
 	flex-direction: column;
-	align-items: center;
-	gap: 8px;
-	text-align: center;
+	gap: 6px;
+	padding-bottom: 20px;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.template-chooser-title {
+.tc-title {
 	margin: 0;
-	font-family: "Inter", sans-serif;
-	font-size: 28px;
-	font-weight: 700;
-	color: #fff;
-	letter-spacing: -0.02em;
+	font-family: "Source Sans 3", sans-serif;
+	font-size: 22px;
+	font-weight: 600;
+	color: #ffffff;
+	letter-spacing: -0.01em;
 }
 
-.template-chooser-subtitle {
+.tc-subtitle {
 	margin: 0;
-	font-family: "Inter", sans-serif;
+	font-family: "Source Sans 3", sans-serif;
 	font-size: 14px;
 	font-weight: 400;
-	color: rgba(255, 255, 255, 0.55);
+	color: #94a3b8;
 	line-height: 1.5;
 }
 
-.template-chooser-grid {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(200px, 280px));
-	gap: 16px;
-	width: 100%;
-	justify-content: center;
-}
+/* ── Grid ────────────────────────────────────────────────────────────────── */
 
-@media (max-width: 520px) {
-	.template-chooser-grid {
-		grid-template-columns: 1fr;
-	}
-}
-
-/* ---- Card base ---- */
-
-.template-card {
-	position: relative;
+.tc-grid {
 	display: flex;
 	flex-direction: column;
-	gap: 16px;
+	gap: 20px;
+	width: 100%;
+}
+
+/* ── Card base ───────────────────────────────────────────────────────────── */
+
+.tc-card {
+	position: relative;
+	display: flex;
+	flex-direction: row;
+	gap: 24px;
 	padding: 24px;
 	border-radius: 16px;
 	border: 1px solid rgba(255, 255, 255, 0.08);
-	background: rgba(255, 255, 255, 0.04);
+	background: rgba(255, 255, 255, 0.03);
 	cursor: default;
 	transition:
 		border-color 0.2s ease,
@@ -91,113 +115,256 @@
 		box-shadow 0.2s ease;
 }
 
-.template-card-icon {
-	width: 48px;
-	height: 48px;
-	border-radius: 12px;
+@media (max-width: 600px) {
+	.tc-card {
+		flex-direction: column;
+	}
+}
+
+/* ── Active card ─────────────────────────────────────────────────────────── */
+
+.tc-card--active {
+	cursor: pointer;
+}
+
+.tc-card--active:hover {
+	border-color: rgba(255, 255, 255, 0.15);
+	background: rgba(255, 255, 255, 0.06);
+	box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+}
+
+/* ── Disabled card ───────────────────────────────────────────────────────── */
+
+.tc-card--disabled {
+	opacity: 0.4;
+}
+
+/* ── Badge ───────────────────────────────────────────────────────────────── */
+
+.tc-badge {
+	position: absolute;
+	top: 16px;
+	right: 16px;
+	font-family: "Source Sans 3", sans-serif;
+	font-size: 11px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	padding: 4px 10px;
+	border-radius: 999px;
+	z-index: 1;
+}
+
+.tc-badge--soon {
+	background: rgba(255, 255, 255, 0.08);
+	color: rgba(255, 255, 255, 0.45);
+	border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* ── Preview area ────────────────────────────────────────────────────────── */
+
+.tc-preview {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	font-size: 24px;
 	flex-shrink: 0;
 }
 
-.template-card-body {
+/* ── Body ────────────────────────────────────────────────────────────────── */
+
+.tc-body {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	flex: 1;
+	min-width: 0;
+}
+
+.tc-name {
+	margin: 0;
+	font-family: "Source Sans 3", sans-serif;
+	font-size: 17px;
+	font-weight: 600;
+	color: #ffffff;
+}
+
+.tc-description {
+	margin: 0;
+	font-family: "Source Sans 3", sans-serif;
+	font-size: 13px;
+	font-weight: 400;
+	color: #e2e8f0;
+	line-height: 1.6;
+}
+
+/* ── Use-case pills ──────────────────────────────────────────────────────── */
+
+.tc-pills {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	padding-top: 2px;
+}
+
+.tc-pill {
+	display: inline-flex;
+	align-items: center;
+	padding: 4px 11px;
+	border-radius: 999px;
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	background: rgba(255, 255, 255, 0.04);
+	color: rgba(203, 213, 225, 0.8);
+	font-family: "Source Sans 3", sans-serif;
+	font-size: 11px;
+	font-weight: 500;
+	letter-spacing: 0.02em;
+}
+
+/* ── Key questions ───────────────────────────────────────────────────────── */
+
+.tc-questions {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	padding-top: 4px;
+}
+
+.tc-question {
+	margin: 0;
+	font-family: "Source Sans 3", sans-serif;
+	font-size: 12px;
+	font-weight: 400;
+	font-style: italic;
+	color: #94a3b8;
+	line-height: 1.5;
+}
+
+.tc-question::before {
+	content: "\201C";
+	color: rgba(251, 191, 36, 0.5);
+	margin-right: 2px;
+}
+
+.tc-question::after {
+	content: "\201D";
+	color: rgba(251, 191, 36, 0.5);
+	margin-left: 1px;
+}
+
+/* ── Expand toggle ───────────────────────────────────────────────────────── */
+
+.tc-expand-toggle {
+	appearance: none;
+	border: none;
+	background: none;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 6px 0;
+	font-family: "Source Sans 3", sans-serif;
+	font-size: 12px;
+	font-weight: 500;
+	color: #94a3b8;
+	cursor: pointer;
+	transition: color 0.15s ease;
+}
+
+.tc-expand-toggle:hover {
+	color: #e2e8f0;
+}
+
+.tc-expand-chevron {
+	font-size: 10px;
+	transition: transform 0.2s ease;
+}
+
+.tc-expand-chevron--open {
+	transform: rotate(180deg);
+}
+
+/* ── Structure breakdown ─────────────────────────────────────────────────── */
+
+.tc-structure {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	padding: 12px 14px;
+	border-radius: 10px;
+	background: rgba(255, 255, 255, 0.03);
+	border: 1px solid rgba(255, 255, 255, 0.05);
+	animation: tc-expand-in 0.25s ease;
+}
+
+@keyframes tc-expand-in {
+	from {
+		opacity: 0;
+		transform: translateY(-6px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.tc-structure-group {
 	display: flex;
 	flex-direction: column;
 	gap: 4px;
 }
 
-.template-card-name {
-	margin: 0;
-	font-family: "Inter", sans-serif;
-	font-size: 15px;
+.tc-structure-label {
+	font-family: "Source Sans 3", sans-serif;
+	font-size: 11px;
 	font-weight: 600;
-	color: #fff;
-}
-
-.template-card-description {
-	margin: 0;
-	font-family: "Inter", sans-serif;
-	font-size: 12px;
-	font-weight: 400;
-	color: rgba(255, 255, 255, 0.5);
-	line-height: 1.5;
-}
-
-/* ---- Active card ---- */
-
-.template-card--active {
-	border-color: hsl(214, 84%, 56%);
-	background: rgba(56, 132, 244, 0.08);
-	cursor: pointer;
-}
-
-.template-card--active:hover {
-	border-color: hsl(214, 84%, 64%);
-	background: rgba(56, 132, 244, 0.14);
-	box-shadow: 0 0 24px rgba(56, 132, 244, 0.12);
-}
-
-.template-card--active .template-card-icon {
-	background: hsl(214, 84%, 56%);
-	color: #fff;
-}
-
-/* ---- Disabled card ---- */
-
-.template-card--disabled {
-	opacity: 0.45;
-}
-
-.template-card--disabled .template-card-icon {
-	background: rgba(255, 255, 255, 0.06);
-	color: rgba(255, 255, 255, 0.3);
-}
-
-/* ---- Card badge ---- */
-
-.template-card-badge {
-	position: absolute;
-	top: 12px;
-	right: 12px;
-	font-family: "Inter", sans-serif;
-	font-size: 10px;
-	font-weight: 600;
+	color: rgba(251, 191, 36, 0.7);
 	text-transform: uppercase;
-	letter-spacing: 0.04em;
-	padding: 2px 8px;
+	letter-spacing: 0.08em;
+}
+
+.tc-structure-items {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+}
+
+.tc-structure-item {
+	display: inline-flex;
+	align-items: center;
+	padding: 3px 9px;
 	border-radius: 6px;
+	background: rgba(255, 255, 255, 0.05);
+	color: rgba(226, 232, 240, 0.75);
+	font-family: "Source Sans 3", sans-serif;
+	font-size: 11px;
+	font-weight: 400;
 }
 
-.template-card-badge--soon {
-	background: rgba(255, 255, 255, 0.08);
-	color: rgba(255, 255, 255, 0.4);
-}
+/* ── Start button ────────────────────────────────────────────────────────── */
 
-/* ---- Start button ---- */
-
-.template-card-start {
+.tc-start {
 	appearance: none;
-	border: 0;
-	font-family: "Inter", sans-serif;
+	border: none;
+	font-family: "Source Sans 3", sans-serif;
 	font-size: 13px;
 	font-weight: 600;
 	padding: 10px 0;
 	border-radius: 10px;
-	background: hsl(214, 84%, 56%);
-	color: #fff;
+	background: rgba(251, 191, 36, 0.15);
+	color: #fbbf24;
 	cursor: pointer;
+	width: 100%;
+	margin-top: 4px;
 	transition:
 		background 0.15s ease,
+		color 0.15s ease,
 		transform 0.1s ease;
-	width: 100%;
 }
 
-.template-card-start:hover {
-	background: hsl(214, 84%, 50%);
+.tc-start:hover {
+	background: rgba(251, 191, 36, 0.25);
+	color: #fcd34d;
 }
 
-.template-card-start:active {
+.tc-start:active {
 	transform: scale(0.98);
 }
