@@ -309,6 +309,30 @@ export const LIFE_TREE: TreeMapDefinition = {
 	description: LIFE_MAP.description,
 	// First child at 3 o'clock (bottom half starts at 3 o'clock going clockwise)
 	startAngle: Math.PI / 2,
+	radialBands: {
+		centerRadius: 0.1,
+		regions: [
+			{
+				// Bottom half: 6 domains (3 o'clock → 9 o'clock, clockwise)
+				angularRange: [Math.PI / 2, (3 * Math.PI) / 2],
+				bands: {
+					1: [0.1, 0.325], // Querer
+					2: [0.325, 0.55], // Ser
+					3: [0.55, 0.775], // Ter
+					4: [0.775, 1.0], // Saber
+				},
+			},
+			{
+				// Top half: temporal (9 o'clock → 3 o'clock, clockwise, wraps around)
+				angularRange: [(3 * Math.PI) / 2, (5 * Math.PI) / 2],
+				bands: {
+					1: [0.1, 0.55], // Day (large — will hold 5 sub-rings later)
+					2: [0.55, 0.775], // Week (aligned with Ter)
+					3: [0.775, 1.0], // Month (aligned with Saber)
+				},
+			},
+		],
+	},
 	root: {
 		id: LIFE_MAP.center.id,
 		label: LIFE_MAP.center.label,
