@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { LIFE_TREE } from '../../client/lib/frameworks/life-map'
 import { getCellBoundsFromTree } from '../../client/lib/mandala-geometry'
+import { computeSunburstLayout } from '../../client/lib/sunburst-layout'
 import type { TreeNodeDef } from '../../shared/types/MandalaTypes'
 
 function collectIds(node: TreeNodeDef): string[] {
@@ -123,5 +124,35 @@ describe('LIFE_TREE', () => {
 		const firstDomain = LIFE_TREE.root.children![0]
 		const querer = firstDomain.children![0]
 		expect(querer.question).toContain('want')
+	})
+
+	it('week ring y-band aligns with Ter ring y-band', () => {
+		const arcs = computeSunburstLayout(LIFE_TREE)
+		const terArc = arcs.find((a) => a.id === 'espiritual-ter')!
+		const weekArc = arcs.find((a) => a.id === 'flow-week1')!
+
+		// Week and Ter should occupy the same radial band
+		expect(weekArc.y0).toBeCloseTo(terArc.y0, 5)
+		expect(weekArc.y1).toBeCloseTo(terArc.y1, 5)
+	})
+
+	it('month ring y-band aligns with Saber ring y-band', () => {
+		const arcs = computeSunburstLayout(LIFE_TREE)
+		const saberArc = arcs.find((a) => a.id === 'espiritual-saber')!
+		const monthArc = arcs.find((a) => a.id === 'flow-january')!
+
+		// Month and Saber should occupy the same radial band
+		expect(monthArc.y0).toBeCloseTo(saberArc.y0, 5)
+		expect(monthArc.y1).toBeCloseTo(saberArc.y1, 5)
+	})
+
+	it('day ring is wider than a single bottom-half ring', () => {
+		const arcs = computeSunburstLayout(LIFE_TREE)
+		const quererArc = arcs.find((a) => a.id === 'espiritual-querer')!
+		const dayArc = arcs.find((a) => a.id === 'flow')!
+
+		const quererWidth = quererArc.y1 - quererArc.y0
+		const dayWidth = dayArc.y1 - dayArc.y0
+		expect(dayWidth).toBeGreaterThan(quererWidth)
 	})
 })
