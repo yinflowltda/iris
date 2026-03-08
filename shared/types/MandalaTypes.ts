@@ -66,6 +66,22 @@ export interface OverlayArc {
 	fraction: number
 }
 
+/** Defines custom radial band sizes for an angular region of the mandala */
+export interface RadialBandRegion {
+	/** Angular range [start, end] in radians (post-startAngle offset, may exceed 2π) */
+	angularRange: [number, number]
+	/** Map from visual depth (post-transparent-offset) → [y0, y1] ratios */
+	bands: Record<number, [number, number]>
+}
+
+/** Configuration for per-region radial band overrides */
+export interface RadialBandsConfig {
+	/** Radius ratio for the center circle (root y1). All depth-1 bands should start at this value. */
+	centerRadius: number
+	/** Per-region band definitions. Arcs not matching any region keep partition-computed values. */
+	regions: RadialBandRegion[]
+}
+
 export interface TreeMapDefinition {
 	id: string
 	name: string
@@ -77,6 +93,9 @@ export interface TreeMapDefinition {
 	 *  startNodeId identifies the first tree node whose angular position marks
 	 *  the start of the overlay region. */
 	overlayRing?: { startNodeId: string; endNodeId: string; arcs: OverlayArc[] }
+	/** Per-region radial band overrides. When set, y0/y1 values from d3 partition
+	 *  are replaced with explicit values based on visual depth and angular position. */
+	radialBands?: RadialBandsConfig
 }
 
 // ─── Shared state types ─────────────────────────────────────────────────────
