@@ -328,21 +328,6 @@ export function SunburstSvg({
 			aria-label={`${treeDef.name} Mandala`}
 		>
 			<defs>{arcDefs}</defs>
-			<text
-				x={cx}
-				y={cy - outerRadius - labelPadding * 0.5 + 50}
-				textAnchor="middle"
-				dominantBaseline="auto"
-				fontSize={18}
-				fontWeight={400}
-				fontFamily="Quicksand, sans-serif"
-				fill={colors.text}
-				pointerEvents={onTitlePointerDown ? 'all' : 'none'}
-				onPointerDown={onTitlePointerDown}
-				style={{ userSelect: 'none', cursor: onTitlePointerDown ? 'grab' : undefined }}
-			>
-				{treeDef.name}
-			</text>
 			<g transform={`translate(${cx},${cy})`}>{cellPaths}</g>
 			{centerCircle}
 			<g>{cellLabels}</g>
@@ -362,6 +347,21 @@ export function SunburstSvg({
 					</foreignObject>
 				</>
 			)}
+			<text
+				x={cx}
+				y={cy - outerRadius - labelPadding * 0.5 + 50}
+				textAnchor="middle"
+				dominantBaseline="auto"
+				fontSize={18}
+				fontWeight={400}
+				fontFamily="Quicksand, sans-serif"
+				fill={colors.text}
+				pointerEvents={onTitlePointerDown ? 'all' : 'none'}
+				onPointerDown={onTitlePointerDown}
+				style={{ userSelect: 'none', cursor: onTitlePointerDown ? 'grab' : undefined }}
+			>
+				{treeDef.name}
+			</text>
 		</svg>
 	)
 }
