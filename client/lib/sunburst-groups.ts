@@ -1,0 +1,43 @@
+import type { SunburstArc } from './sunburst-layout'
+
+export interface MergedArc extends SunburstArc {
+	memberIds: string[]
+}
+
+/**
+ * Merge adjacent arcs at the same depth with matching groupId into single visual arcs.
+ * Non-grouped arcs pass through with memberIds = [own id].
+ */
+export function mergeGroupArcs(arcs: SunburstArc[]): MergedArc[] {
+	const groups = new Map<string, SunburstArc[]>()
+	const ungrouped: SunburstArc[] = []
+
+	for (const arc of arcs) {
+		if (arc.groupId) {
+			const key = `${arc.depth}:${arc.groupId}`
+			const group = groups.get(key)
+			if (group) group.push(arc)
+			else groups.set(key, [arc])
+		} else {
+			ungrouped.push(arc)
+		}
+	}
+
+	const merged: MergedArc[] = ungrouped.map((a) => ({ ...a, memberIds: [a.id] }))
+
+	for (const [, group] of groups) {
+		const sorted = group.sort((a, b) => a.x0 - b.x0)
+		const first = sorted[0]
+		const last = sorted[sorted.length - 1]
+		merged.push({
+			...first,
+			id: first.groupId!,
+			label: first.label,
+			x0: first.x0,
+			x1: last.x1,
+			memberIds: sorted.map((a) => a.id),
+		})
+	}
+
+	return merged.sort((a, b) => a.depth - b.depth || a.x0 - b.x0)
+}

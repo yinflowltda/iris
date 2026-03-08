@@ -3,6 +3,8 @@ import type { ReactElement } from 'react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { MandalaState } from '../../shared/types/MandalaTypes'
 import { getFramework } from '../lib/frameworks/framework-registry'
+import type { MergedArc } from '../lib/sunburst-groups'
+import { mergeGroupArcs } from '../lib/sunburst-groups'
 import type { SunburstArc } from '../lib/sunburst-layout'
 import { computeSunburstLayout, isNodeInSubtree } from '../lib/sunburst-layout'
 import type { ArcAnimationState } from '../lib/sunburst-zoom'
@@ -128,117 +130,52 @@ export function SunburstSvg({
 		return isNodeInSubtree(treeDef.root, zoomedNodeId!, arcId)
 	}
 
+	// ── Compute merged arcs for grouped rendering ──────────────────────
+	// Apply animation to base arcs, then merge groups for visual rendering
+	const effectiveArcs: SunburstArc[] = arcs.map((arc) =>
+		animatingArcs?.has(arc.id) ? { ...arc, ...animatingArcs.get(arc.id)! } : arc,
+	)
+	const mergedArcs: MergedArc[] = mergeGroupArcs(effectiveArcs)
+
 	const cellPaths: ReactElement[] = []
 	const arcDefs: ReactElement[] = []
 	const cellLabels: ReactElement[] = []
 
+	// ── Transparent group labels (from raw arcs) ─────────────────────
 	for (const arc of arcs) {
-		// Skip root (rendered as center circle)
+		if (!arc.transparent) continue
 		if (rootArc && arc.id === rootArc.id) continue
 
-		// Use animating values if provided, otherwise use computed layout
 		const effectiveArc = animatingArcs?.has(arc.id)
 			? { ...arc, ...animatingArcs.get(arc.id)! }
 			: arc
 
-		// ── Transparent group nodes: label only, no cell fill ────────
-		if (arc.transparent) {
-			const sweep = effectiveArc.x1 - effectiveArc.x0
-			if (sweep < 0.15 || !showLabelForArc(arc.id)) continue
-
-			// Place label on the outermost edge of all descendants' rings
-			// Collect all descendant IDs, then find max y1
-			const descendantIds = new Set<string>()
-			function collectDescendants(parentId: string) {
-				for (const a of arcs) {
-					if (a.parentId === parentId && !descendantIds.has(a.id)) {
-						descendantIds.add(a.id)
-						collectDescendants(a.id)
-					}
-				}
-			}
-			collectDescendants(arc.id)
-			let maxChildY1 = effectiveArc.y1
-			for (const descId of descendantIds) {
-				const descArc = arcs.find((a) => a.id === descId)
-				if (!descArc) continue
-				const descEffective = animatingArcs?.has(descId)
-					? { ...descArc, ...animatingArcs.get(descId)! }
-					: descArc
-				if (descEffective.y1 > maxChildY1) maxChildY1 = descEffective.y1
-			}
-			const labelR = maxChildY1 * outerRadius + 6
-
-			const midAngle = (effectiveArc.x0 + effectiveArc.x1) / 2
-			const shouldFlip = midAngle > Math.PI / 2 && midAngle < (3 * Math.PI) / 2
-
-			const pathId = `sb-arc-${arc.id}`
-			const textArcD = describeTextArcRadians(
-				cx,
-				cy,
-				labelR,
-				effectiveArc.x0,
-				effectiveArc.x1,
-				shouldFlip,
-			)
-
-			arcDefs.push(<path key={pathId} id={pathId} d={textArcD} fill="none" stroke="none" />)
-
-			const fontSize = Math.max(7, Math.min(12, outerRadius * 0.03))
-			cellLabels.push(
-				<text
-					key={`label-${arc.id}`}
-					fontSize={fontSize}
-					fill={colors.text}
-					fillOpacity={0.5}
-					pointerEvents="none"
-					style={{
-						userSelect: 'none',
-						fontFamily: labelFont,
-						textTransform: 'uppercase',
-						letterSpacing: '0.15em',
-					}}
-				>
-					<textPath
-						href={`#${pathId}`}
-						startOffset="50%"
-						textAnchor="middle"
-						dominantBaseline="central"
-					>
-						{arc.label}
-					</textPath>
-				</text>,
-			)
-			continue
-		}
-
-		const isHovered = hoveredCell === arc.id
-		const pathD = arcGen(effectiveArc)
-		if (!pathD) continue
-
-		// ── Cell path ────────────────────────────────────────────────
-		cellPaths.push(
-			<path
-				key={arc.id}
-				d={pathD}
-				fill={isHovered ? colors.cellHoverFill : colors.cellFill}
-				stroke={colors.stroke}
-				strokeWidth={1}
-				style={{ transition: 'fill 0.15s ease' }}
-			/>,
-		)
-
-		// ── Label arc + text ─────────────────────────────────────────
 		const sweep = effectiveArc.x1 - effectiveArc.x0
 		if (sweep < 0.15 || !showLabelForArc(arc.id)) continue
 
-		const innerR = effectiveArc.y0 * outerRadius
-		const outerR = effectiveArc.y1 * outerRadius
-		const offset = Math.max(4.8, (outerR - innerR) * 0.15)
-		const labelR = outerR - offset
+		// Place label on the outermost edge of all descendants' rings
+		const descendantIds = new Set<string>()
+		function collectDescendants(parentId: string) {
+			for (const a of arcs) {
+				if (a.parentId === parentId && !descendantIds.has(a.id)) {
+					descendantIds.add(a.id)
+					collectDescendants(a.id)
+				}
+			}
+		}
+		collectDescendants(arc.id)
+		let maxChildY1 = effectiveArc.y1
+		for (const descId of descendantIds) {
+			const descArc = arcs.find((a) => a.id === descId)
+			if (!descArc) continue
+			const descEffective = animatingArcs?.has(descId)
+				? { ...descArc, ...animatingArcs.get(descId)! }
+				: descArc
+			if (descEffective.y1 > maxChildY1) maxChildY1 = descEffective.y1
+		}
+		const labelR = maxChildY1 * outerRadius + 6
 
 		const midAngle = (effectiveArc.x0 + effectiveArc.x1) / 2
-		// Flip if arc is in the left half (between PI/2 and 3*PI/2)
 		const shouldFlip = midAngle > Math.PI / 2 && midAngle < (3 * Math.PI) / 2
 
 		const pathId = `sb-arc-${arc.id}`
@@ -253,10 +190,85 @@ export function SunburstSvg({
 
 		arcDefs.push(<path key={pathId} id={pathId} d={textArcD} fill="none" stroke="none" />)
 
-		const fontSize = Math.max(4.93, Math.min(8.45, (outerR - innerR) * 0.155))
+		const fontSize = Math.max(7, Math.min(12, outerRadius * 0.03))
 		cellLabels.push(
 			<text
 				key={`label-${arc.id}`}
+				fontSize={fontSize}
+				fill={colors.text}
+				fillOpacity={0.5}
+				pointerEvents="none"
+				style={{
+					userSelect: 'none',
+					fontFamily: labelFont,
+					textTransform: 'uppercase',
+					letterSpacing: '0.15em',
+				}}
+			>
+				<textPath
+					href={`#${pathId}`}
+					startOffset="50%"
+					textAnchor="middle"
+					dominantBaseline="central"
+				>
+					{arc.label}
+				</textPath>
+			</text>,
+		)
+	}
+
+	// ── Visible cell arcs (from merged arcs) ─────────────────────────
+	for (const mArc of mergedArcs) {
+		// Skip root and transparent
+		if (rootArc && mArc.id === rootArc.id) continue
+		if (mArc.transparent) continue
+
+		const isHovered = hoveredCell
+			? mArc.memberIds.includes(hoveredCell) || hoveredCell === mArc.id
+			: false
+		const pathD = arcGen(mArc)
+		if (!pathD) continue
+
+		// ── Cell path ────────────────────────────────────────────────
+		cellPaths.push(
+			<path
+				key={mArc.id}
+				d={pathD}
+				fill={isHovered ? colors.cellHoverFill : colors.cellFill}
+				stroke={colors.stroke}
+				strokeWidth={1}
+				style={{ transition: 'fill 0.15s ease' }}
+			/>,
+		)
+
+		// ── Label arc + text ─────────────────────────────────────────
+		const sweep = mArc.x1 - mArc.x0
+		if (sweep < 0.15 || !showLabelForArc(mArc.memberIds[0])) continue
+
+		const innerR = mArc.y0 * outerRadius
+		const outerR = mArc.y1 * outerRadius
+		const offset = Math.max(4.8, (outerR - innerR) * 0.15)
+		const labelR = outerR - offset
+
+		const midAngle = (mArc.x0 + mArc.x1) / 2
+		const shouldFlip = midAngle > Math.PI / 2 && midAngle < (3 * Math.PI) / 2
+
+		const pathId = `sb-arc-${mArc.id}`
+		const textArcD = describeTextArcRadians(
+			cx,
+			cy,
+			labelR,
+			mArc.x0,
+			mArc.x1,
+			shouldFlip,
+		)
+
+		arcDefs.push(<path key={pathId} id={pathId} d={textArcD} fill="none" stroke="none" />)
+
+		const fontSize = Math.max(4.93, Math.min(8.45, (outerR - innerR) * 0.155))
+		cellLabels.push(
+			<text
+				key={`label-${mArc.id}`}
 				fontSize={fontSize}
 				fill={colors.text}
 				pointerEvents="none"
@@ -268,7 +280,7 @@ export function SunburstSvg({
 					textAnchor="middle"
 					dominantBaseline="central"
 				>
-					{arc.label}
+					{mArc.label}
 				</textPath>
 			</text>,
 		)

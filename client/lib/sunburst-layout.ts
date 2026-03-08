@@ -14,6 +14,7 @@ export interface SunburstArc {
 	transparent: boolean
 	parentId: string | null
 	hasChildren: boolean
+	groupId?: string
 }
 
 // ─── Main layout function ────────────────────────────────────────────────────
@@ -67,6 +68,7 @@ export function computeSunburstLayout(treeDef: TreeMapDefinition): SunburstArc[]
 			transparent: isTransparent,
 			parentId: node.parent?.data.id ?? null,
 			hasChildren: (node.data.children?.length ?? 0) > 0,
+			groupId: node.data.groupId,
 		})
 	}
 

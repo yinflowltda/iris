@@ -15,14 +15,14 @@ describe('LIFE_TREE', () => {
 		expect(LIFE_TREE.root.id).toBe('essencia')
 	})
 
-	it('has 14 children at depth 1 (6 domains + 8 days)', () => {
-		expect(LIFE_TREE.root.children).toHaveLength(14)
+	it('has 10 children at depth 1 (6 domains + 4 week groups)', () => {
+		expect(LIFE_TREE.root.children).toHaveLength(10)
 	})
 
-	it('contains 95 total IDs', () => {
-		// root(1) + 6 transparent domains(6) + 6×4 rings(24) + 8 days(8) + 8 week-slots(8) + 24 months(24) + 24 blocks(24) = 95
+	it('contains 99 total IDs', () => {
+		// root(1) + 6 transparent domains(6) + 6×4 rings(24) + 4 transparent week-groups(4) + 8 days(8) + 8 week-slots(8) + 24 months(24) + 24 blocks(24) = 99
 		const ids = collectIds(LIFE_TREE.root)
-		expect(ids).toHaveLength(95)
+		expect(ids).toHaveLength(99)
 	})
 
 	it('has all expected domain-ring cell IDs', () => {
@@ -67,24 +67,32 @@ describe('LIFE_TREE', () => {
 		}
 	})
 
-	it('top half: 8 temporal day chains with correct depth (4 visible rings)', () => {
-		const dayNodes = LIFE_TREE.root.children!.slice(6)
-		expect(dayNodes).toHaveLength(8)
+	it('top half: 4 transparent week groups each containing 2 day chains', () => {
+		const weekGroups = LIFE_TREE.root.children!.slice(6)
+		expect(weekGroups).toHaveLength(4)
 
-		for (const day of dayNodes) {
-			// day (ring 1)
-			expect(day.children).toHaveLength(1)
+		for (const weekGroup of weekGroups) {
+			expect(weekGroup.transparent).toBe(true)
+			expect(weekGroup.children).toHaveLength(2)
 
-			// week-slot (ring 2)
-			const weekSlot = day.children![0]
-			expect(weekSlot.id).toContain('week')
+			for (const day of weekGroup.children!) {
+				// day (ring 1)
+				expect(day.children).toHaveLength(1)
 
-			// 3 months (ring 3)
-			expect(weekSlot.children).toHaveLength(3)
-			for (const month of weekSlot.children!) {
-				// block leaf (ring 4)
-				expect(month.children).toHaveLength(1)
-				expect(month.children![0].id).toMatch(/-block$/)
+				// week-slot (ring 2) with groupId
+				const weekSlot = day.children![0]
+				expect(weekSlot.id).toContain('week')
+				expect(weekSlot.groupId).toBeTruthy()
+
+				// 3 months (ring 3) with groupId
+				expect(weekSlot.children).toHaveLength(3)
+				for (const month of weekSlot.children!) {
+					expect(month.groupId).toMatch(/^month-/)
+					// block leaf (ring 4) with groupId
+					expect(month.children).toHaveLength(1)
+					expect(month.children![0].id).toMatch(/-block$/)
+					expect(month.children![0].groupId).toMatch(/^phase-/)
+				}
 			}
 		}
 	})

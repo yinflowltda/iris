@@ -236,12 +236,14 @@ function buildDomainNode(slice: { id: string; label: string }): TreeNodeDef {
 }
 
 /**
- * Build a temporal day chain:
- * day (ring 1) → week-slot (ring 2) → 3 month branches (ring 3) → block leaf (ring 4)
+ * Build a temporal day node within a week group:
+ * day (ring 1) → week-slot (ring 2, groupId) → 3 month branches (ring 3, groupId) → block leaf (ring 4, groupId)
+ *
+ * The groupId system merges adjacent arcs at the same ring that belong to the same group,
+ * so each day's week-slot/month/block cells combine into single visual arcs.
  */
-function buildTemporalDayNode(dayIndex: number): TreeNodeDef {
+function buildTemporalDayNode(dayIndex: number, weekIndex: number): TreeNodeDef {
 	const day = DAYS[dayIndex]
-	const weekIndex = Math.floor(dayIndex / 2)
 	const week = WEEK_GROUPS[weekIndex]
 	const monthOffset = weekIndex * 3
 
@@ -254,11 +256,13 @@ function buildTemporalDayNode(dayIndex: number): TreeNodeDef {
 			id: `${day.id}-${monthName.toLowerCase()}`,
 			label: monthName,
 			...EMPTY_CONTENT,
+			groupId: `month-${monthIdx}`,
 			children: [
 				{
 					id: `${day.id}-${monthName.toLowerCase()}-block`,
 					label: block.label,
 					...EMPTY_CONTENT,
+					groupId: `phase-${block.id}`,
 				},
 			],
 		})
@@ -273,18 +277,39 @@ function buildTemporalDayNode(dayIndex: number): TreeNodeDef {
 				id: `${day.id}-${week.id}`,
 				label: week.label,
 				...EMPTY_CONTENT,
+				groupId: week.id,
 				children: monthChildren,
 			},
 		],
 	}
 }
 
+/**
+ * Build a transparent week group containing its 2 day children.
+ * Structure: week-group (transparent) → day nodes
+ */
+function buildWeekGroup(weekIndex: number): TreeNodeDef {
+	const week = WEEK_GROUPS[weekIndex]
+	const dayStart = weekIndex * 2
+	const dayChildren: TreeNodeDef[] = []
+	for (let d = 0; d < 2; d++) {
+		dayChildren.push(buildTemporalDayNode(dayStart + d, weekIndex))
+	}
+	return {
+		id: `${week.id}-group`,
+		label: week.label,
+		...EMPTY_CONTENT,
+		transparent: true,
+		children: dayChildren,
+	}
+}
+
 // Domain nodes for the bottom half (6 domains)
 const DOMAIN_NODES: TreeNodeDef[] = LIFE_MAP.slices.map((s) => buildDomainNode(s))
 
-// Temporal day nodes for the top half (8 days)
-const TEMPORAL_NODES: TreeNodeDef[] = Array.from({ length: 8 }, (_, i) =>
-	buildTemporalDayNode(i),
+// Temporal week groups for the top half (4 weeks × 2 days each = 8 days)
+const TEMPORAL_NODES: TreeNodeDef[] = Array.from({ length: 4 }, (_, i) =>
+	buildWeekGroup(i),
 )
 
 export const LIFE_TREE: TreeMapDefinition = {

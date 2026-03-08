@@ -49,6 +49,7 @@ export interface TreeNodeDef {
 	guidance: string
 	examples: string[]
 	weight?: number
+	groupId?: string
 	metadataSchema?: Record<string, 'string' | 'number' | 'boolean'>
 	children?: TreeNodeDef[]
 	transparent?: boolean
