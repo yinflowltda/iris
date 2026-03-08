@@ -118,8 +118,8 @@ export function computeSunburstLayout(treeDef: TreeMapDefinition): SunburstArc[]
 			parentId: node.parent?.data.id ?? null,
 			hasChildren: (node.data.children?.length ?? 0) > 0,
 			groupId: node.data.groupId,
-		hideLabel: node.data.hideLabel,
-		labelScale: node.data.labelScale,
+			hideLabel: node.data.hideLabel,
+			labelScale: node.data.labelScale,
 		})
 	}
 

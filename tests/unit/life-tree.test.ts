@@ -126,24 +126,33 @@ describe('LIFE_TREE', () => {
 		expect(querer.question).toContain('want')
 	})
 
-	it('week ring y-band aligns with Ter ring y-band', () => {
+	it('week ring outer aligns with Ter ring outer', () => {
 		const arcs = computeSunburstLayout(LIFE_TREE)
 		const terArc = arcs.find((a) => a.id === 'espiritual-ter')!
 		const weekArc = arcs.find((a) => a.id === 'flow-week1')!
 
-		// Week and Ter should occupy the same radial band
-		expect(weekArc.y0).toBeCloseTo(terArc.y0, 5)
+		// Week outer boundary matches Ter outer boundary
 		expect(weekArc.y1).toBeCloseTo(terArc.y1, 5)
 	})
 
-	it('month ring y-band aligns with Saber ring y-band', () => {
+	it('day ring outer is at midpoint of Ter band', () => {
+		const arcs = computeSunburstLayout(LIFE_TREE)
+		const terArc = arcs.find((a) => a.id === 'espiritual-ter')!
+		const dayArc = arcs.find((a) => a.id === 'flow')!
+
+		const terMidpoint = (terArc.y0 + terArc.y1) / 2
+		expect(dayArc.y1).toBeCloseTo(terMidpoint, 5)
+	})
+
+	it('month and overlay blocks split remaining space evenly', () => {
 		const arcs = computeSunburstLayout(LIFE_TREE)
 		const saberArc = arcs.find((a) => a.id === 'espiritual-saber')!
 		const monthArc = arcs.find((a) => a.id === 'flow-january')!
 
-		// Month and Saber should occupy the same radial band
+		// Month starts at Saber start, ends at midpoint of Saber band
 		expect(monthArc.y0).toBeCloseTo(saberArc.y0, 5)
-		expect(monthArc.y1).toBeCloseTo(saberArc.y1, 5)
+		const saberMidpoint = (saberArc.y0 + saberArc.y1) / 2
+		expect(monthArc.y1).toBeCloseTo(saberMidpoint, 5)
 	})
 
 	it('day ring is wider than a single bottom-half ring', () => {

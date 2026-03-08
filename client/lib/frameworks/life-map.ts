@@ -326,9 +326,9 @@ export const LIFE_TREE: TreeMapDefinition = {
 				// Top half: temporal (9 o'clock → 3 o'clock, clockwise, wraps around)
 				angularRange: [(3 * Math.PI) / 2, (5 * Math.PI) / 2],
 				bands: {
-					1: [0.1, 0.55], // Day (large — will hold 5 sub-rings later)
-					2: [0.55, 0.775], // Week (aligned with Ter)
-					3: [0.775, 1.0], // Month (aligned with Saber)
+					1: [0.1, 0.6625], // Day (outer = midpoint of Ter band)
+					2: [0.6625, 0.775], // Week (outer aligned with Ter outer)
+					3: [0.775, 0.8875], // Month (half of Saber band; blocks get 0.8875→1.0)
 				},
 			},
 		],
