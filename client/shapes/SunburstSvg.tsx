@@ -138,6 +138,11 @@ export function SunburstSvg({
 	)
 	const mergedArcs: MergedArc[] = mergeGroupArcs(effectiveArcs)
 
+	// Pre-compute week-slot IDs so we can distinguish month cells (rendered in Loop 3)
+	// from other hideLabel cells (day segments — should render as cells without labels)
+	const weekMergedArcs = mergedArcs.filter((a) => a.groupId && a.memberIds.length > 1)
+	const weekSlotIdSet = new Set(weekMergedArcs.flatMap((a) => a.memberIds))
+
 	const cellPaths: ReactElement[] = []
 	const arcDefs: ReactElement[] = []
 	const cellLabels: ReactElement[] = []
@@ -221,10 +226,12 @@ export function SunburstSvg({
 
 	// ── Visible cell arcs (from merged arcs) ─────────────────────────
 	for (const mArc of mergedArcs) {
-		// Skip root, transparent, and hideLabel cells (months rendered separately)
+		// Skip root and transparent cells
 		if (rootArc && mArc.id === rootArc.id) continue
 		if (mArc.transparent) continue
-		if (mArc.hideLabel) continue
+		// Skip month cells (hideLabel + child of week-slot) — they're rendered in Loop 3
+		// Other hideLabel cells (day segments) render as cells without labels
+		if (mArc.hideLabel && mArc.parentId != null && weekSlotIdSet.has(mArc.parentId)) continue
 
 		const isHovered = hoveredCell
 			? mArc.memberIds.includes(hoveredCell) || hoveredCell === mArc.id
@@ -250,7 +257,10 @@ export function SunburstSvg({
 
 		const innerR = mArc.y0 * outerRadius
 		const outerR = mArc.y1 * outerRadius
-		const offset = Math.max(4.8, (outerR - innerR) * 0.15)
+		// Cap offset at ~15% of a typical single band so labels in tall cells
+		// (e.g., Flow spanning 4 bands) align with labels in normal single-band cells
+		const maxOffset = outerRadius * 0.15 * 0.15
+		const offset = Math.max(4.8, Math.min((outerR - innerR) * 0.15, maxOffset))
 		const labelR = outerR - offset
 
 		const midAngle = (mArc.x0 + mArc.x1) / 2
@@ -298,9 +308,9 @@ export function SunburstSvg({
 	// Each merged week arc spans 3 months, each getting 1/3 of the week's angular width
 	// Rendered as single arcs (no per-day subdivision)
 	{
-		const weekArcs = mergedArcs.filter((a) => a.groupId && a.memberIds.length > 1)
-		// Get a sample hideLabel arc for y band
-		const sampleMonth = effectiveArcs.find((a) => a.hideLabel && !a.transparent)
+		const weekArcs = weekMergedArcs
+		// Get a sample month arc for y band — must be a child of a week-slot, not just any hideLabel arc
+		const sampleMonth = effectiveArcs.find((a) => a.hideLabel && a.parentId != null && weekSlotIdSet.has(a.parentId))
 		if (sampleMonth && weekArcs.length > 0) {
 			const monthY0 = sampleMonth.y0
 			const monthY1 = sampleMonth.y1

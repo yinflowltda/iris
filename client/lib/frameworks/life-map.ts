@@ -234,17 +234,25 @@ function buildDomainNode(slice: { id: string; label: string }): TreeNodeDef {
 	}
 }
 
+const DAY_SEGMENTS = [
+	{ id: 'dawn', label: 'Madrugada' },
+	{ id: 'morning', label: 'Manhã' },
+	{ id: 'afternoon', label: 'Tarde' },
+	{ id: 'night', label: 'Noite' },
+] as const
+
 /**
  * Build a temporal day node within a week group:
- * day (ring 1) → week-slot (ring 2, groupId) → 3 month branches (ring 3, groupId) → block leaf (ring 4, groupId)
+ * day (transparent+hideLabel) → dawn → morning → afternoon → night → week-slot (groupId) → months (hideLabel)
  *
- * The groupId system merges adjacent arcs at the same ring that belong to the same group,
- * so each day's week-slot/month/block cells combine into single visual arcs.
+ * Non-Flow days: morning segment carries the day name label; other segments are hideLabel.
+ * Flow: all 4 segments are hideLabel (no visible time subdivisions).
  */
 function buildTemporalDayNode(dayIndex: number, weekIndex: number): TreeNodeDef {
 	const day = DAYS[dayIndex]
 	const week = WEEK_GROUPS[weekIndex]
 	const monthOffset = weekIndex * 3
+	const isFlow = dayIndex === 0
 
 	const monthChildren: TreeNodeDef[] = []
 	for (let m = 0; m < 3; m++) {
@@ -258,19 +266,49 @@ function buildTemporalDayNode(dayIndex: number, weekIndex: number): TreeNodeDef 
 		})
 	}
 
+	const weekSlot: TreeNodeDef = {
+		id: `${day.id}-${week.id}`,
+		label: week.label,
+		...EMPTY_CONTENT,
+		groupId: week.id,
+		children: monthChildren,
+	}
+
+	if (isFlow) {
+		// Flow: single visible cell (no day segments), directly contains week → months
+		// Uses dedicated radial band region so band 1 spans the full segment area
+		return {
+			id: day.id,
+			label: day.label,
+			...EMPTY_CONTENT,
+			children: [weekSlot],
+		}
+	}
+
+	// Build segment chain from night (outermost) inward to dawn (innermost)
+	// dawn(vis1) → morning(vis2) → afternoon(vis3) → night(vis4) → week(vis5) → month(vis6)
+	let current: TreeNodeDef = weekSlot
+	for (let i = DAY_SEGMENTS.length - 1; i >= 0; i--) {
+		const seg = DAY_SEGMENTS[i]
+		const isNight = i === 3
+		current = {
+			id: `${day.id}-${seg.id}`,
+			// Night segment carries the day name; others have segment label but are hidden
+			label: isNight ? day.label : seg.label,
+			...EMPTY_CONTENT,
+			hideLabel: !isNight,
+			children: [current],
+		}
+	}
+
+	// Non-Flow: transparent + hideLabel wrapper (no visual cell, no group label)
 	return {
 		id: day.id,
 		label: day.label,
 		...EMPTY_CONTENT,
-		children: [
-			{
-				id: `${day.id}-${week.id}`,
-				label: week.label,
-				...EMPTY_CONTENT,
-				groupId: week.id,
-				children: monthChildren,
-			},
-		],
+		transparent: true,
+		hideLabel: true,
+		children: [current],
 	}
 }
 
@@ -323,12 +361,26 @@ export const LIFE_TREE: TreeMapDefinition = {
 				},
 			},
 			{
-				// Top half: temporal (9 o'clock → 3 o'clock, clockwise, wraps around)
-				angularRange: [(3 * Math.PI) / 2, (5 * Math.PI) / 2],
+				// Flow slice: single cell spanning all day-segment bands, then week + month
+				// Flow's day wrapper is visible (not transparent), segments are transparent
+				// → visualDepth 1 = Flow cell, 2 = Week, 3 = Month
+				angularRange: [(3 * Math.PI) / 2, (3 * Math.PI) / 2 + Math.PI / 8],
 				bands: {
-					1: [0.1, 0.6625], // Day (outer = midpoint of Ter band)
-					2: [0.6625, 0.775], // Week (outer aligned with Ter outer)
-					3: [0.775, 0.8875], // Month (half of Saber band; blocks get 0.8875→1.0)
+					1: [0.1, 0.6625], // Flow cell (spans dawn→night range)
+					2: [0.6625, 0.775], // Week
+					3: [0.775, 0.8875], // Month
+				},
+			},
+			{
+				// Top half (non-Flow): temporal days with 4 segments each
+				angularRange: [(3 * Math.PI) / 2 + Math.PI / 8, (5 * Math.PI) / 2],
+				bands: {
+					1: [0.1, 0.2406], // Dawn
+					2: [0.2406, 0.3813], // Morning
+					3: [0.3813, 0.5219], // Afternoon
+					4: [0.5219, 0.6625], // Night (day label here)
+					5: [0.6625, 0.775], // Week (outer aligned with Ter outer)
+					6: [0.775, 0.8875], // Month (half of Saber band)
 				},
 			},
 		],

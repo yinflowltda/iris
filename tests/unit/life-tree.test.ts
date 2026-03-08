@@ -21,11 +21,11 @@ describe('LIFE_TREE', () => {
 		expect(LIFE_TREE.root.children).toHaveLength(10)
 	})
 
-	it('contains 75 total IDs', () => {
-		// root(1) + 6 transparent domains(6) + 6×4 rings(24) + 4 transparent week-groups(4) + 8 days(8) + 8 week-slots(8) + 24 months(24) = 75
-		// (blocks are overlay arcs, not in the tree)
+	it('contains 103 total IDs', () => {
+		// root(1) + 6 transparent domains(6) + 6×4 rings(24) + 4 transparent week-groups(4)
+		// + 7 transparent days(7) + 1 flow day(1) + 7×4 day-segments(28) + 8 week-slots(8) + 24 months(24) = 103
 		const ids = collectIds(LIFE_TREE.root)
-		expect(ids).toHaveLength(75)
+		expect(ids).toHaveLength(103)
 	})
 
 	it('has all expected domain-ring cell IDs', () => {
@@ -70,7 +70,7 @@ describe('LIFE_TREE', () => {
 		}
 	})
 
-	it('top half: 4 transparent week groups each containing 2 day chains', () => {
+	it('top half: Flow is single cell, other days have 4-segment chains', () => {
 		const weekGroups = LIFE_TREE.root.children!.slice(6)
 		expect(weekGroups).toHaveLength(4)
 
@@ -79,20 +79,41 @@ describe('LIFE_TREE', () => {
 			expect(weekGroup.children).toHaveLength(2)
 
 			for (const day of weekGroup.children!) {
-				// day (ring 1)
+				const isFlow = day.id === 'flow'
 				expect(day.children).toHaveLength(1)
 
-				// week-slot (ring 2) with groupId
-				const weekSlot = day.children![0]
-				expect(weekSlot.id).toContain('week')
-				expect(weekSlot.groupId).toBeTruthy()
+				if (isFlow) {
+					// Flow: visible cell (not transparent, no segments)
+					expect(day.transparent).toBeUndefined()
+					// Direct child is the week-slot
+					const weekSlot = day.children![0]
+					expect(weekSlot.id).toContain('week')
+					expect(weekSlot.groupId).toBeTruthy()
+					expect(weekSlot.children).toHaveLength(3)
+				} else {
+					// Non-Flow: transparent + hideLabel wrapper with 4 segment chain
+					expect(day.transparent).toBe(true)
+					expect(day.hideLabel).toBe(true)
 
-				// 3 months (ring 3, leaves with hideLabel — blocks are overlay)
-				expect(weekSlot.children).toHaveLength(3)
-				for (const month of weekSlot.children!) {
-					expect(month.hideLabel).toBe(true)
-					// months are leaves (blocks rendered as overlay ring)
-					expect(month.children).toBeUndefined()
+					// dawn → morning → afternoon → night
+					let node = day.children![0]
+					expect(node.id).toMatch(/-dawn$/)
+					node = node.children![0]
+					expect(node.id).toMatch(/-morning$/)
+					node = node.children![0]
+					expect(node.id).toMatch(/-afternoon$/)
+					node = node.children![0]
+					expect(node.id).toMatch(/-night$/)
+
+					// Night segment carries the day label
+					expect(node.hideLabel).toBeFalsy()
+					expect(node.label).toBe(day.label)
+
+					// night's child is the week-slot with groupId
+					const weekSlot = node.children![0]
+					expect(weekSlot.id).toContain('week')
+					expect(weekSlot.groupId).toBeTruthy()
+					expect(weekSlot.children).toHaveLength(3)
 				}
 			}
 		}
@@ -101,7 +122,7 @@ describe('LIFE_TREE', () => {
 	it('getCellBoundsFromTree returns bounds for month cells', () => {
 		const center = { x: 400, y: 400 }
 		const outerRadius = 350
-		const bounds = getCellBoundsFromTree(LIFE_TREE, center, outerRadius, 'flow-january')
+		const bounds = getCellBoundsFromTree(LIFE_TREE, center, outerRadius, 'monday-january')
 		expect(bounds).not.toBeNull()
 		expect(bounds!.type).toBe('sector')
 	})
@@ -135,19 +156,20 @@ describe('LIFE_TREE', () => {
 		expect(weekArc.y1).toBeCloseTo(terArc.y1, 5)
 	})
 
-	it('day ring outer is at midpoint of Ter band', () => {
+	it('day segments outer (night) is at midpoint of Ter band', () => {
 		const arcs = computeSunburstLayout(LIFE_TREE)
 		const terArc = arcs.find((a) => a.id === 'espiritual-ter')!
-		const dayArc = arcs.find((a) => a.id === 'flow')!
+		// Use monday-night since Flow has no segments
+		const nightArc = arcs.find((a) => a.id === 'monday-night')!
 
 		const terMidpoint = (terArc.y0 + terArc.y1) / 2
-		expect(dayArc.y1).toBeCloseTo(terMidpoint, 5)
+		expect(nightArc.y1).toBeCloseTo(terMidpoint, 5)
 	})
 
 	it('month and overlay blocks split remaining space evenly', () => {
 		const arcs = computeSunburstLayout(LIFE_TREE)
 		const saberArc = arcs.find((a) => a.id === 'espiritual-saber')!
-		const monthArc = arcs.find((a) => a.id === 'flow-january')!
+		const monthArc = arcs.find((a) => a.id === 'monday-january')!
 
 		// Month starts at Saber start, ends at midpoint of Saber band
 		expect(monthArc.y0).toBeCloseTo(saberArc.y0, 5)
@@ -155,13 +177,24 @@ describe('LIFE_TREE', () => {
 		expect(monthArc.y1).toBeCloseTo(saberMidpoint, 5)
 	})
 
-	it('day ring is wider than a single bottom-half ring', () => {
+	it('Flow cell spans from center to night boundary', () => {
+		const arcs = computeSunburstLayout(LIFE_TREE)
+		const flowArc = arcs.find((a) => a.id === 'flow')!
+		const nightArc = arcs.find((a) => a.id === 'monday-night')!
+
+		// Flow cell inner = center radius, outer = night outer boundary
+		expect(flowArc.y0).toBeCloseTo(0.1, 5)
+		expect(flowArc.y1).toBeCloseTo(nightArc.y1, 5)
+	})
+
+	it('combined day segments span is wider than a single bottom-half ring', () => {
 		const arcs = computeSunburstLayout(LIFE_TREE)
 		const quererArc = arcs.find((a) => a.id === 'espiritual-querer')!
-		const dayArc = arcs.find((a) => a.id === 'flow')!
+		const dawnArc = arcs.find((a) => a.id === 'monday-dawn')!
+		const nightArc = arcs.find((a) => a.id === 'monday-night')!
 
 		const quererWidth = quererArc.y1 - quererArc.y0
-		const dayWidth = dayArc.y1 - dayArc.y0
-		expect(dayWidth).toBeGreaterThan(quererWidth)
+		const daySpan = nightArc.y1 - dawnArc.y0
+		expect(daySpan).toBeGreaterThan(quererWidth)
 	})
 })

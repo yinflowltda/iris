@@ -5,7 +5,9 @@ export interface MergedArc extends SunburstArc {
 }
 
 /**
- * Merge adjacent arcs at the same depth with matching groupId into single visual arcs.
+ * Merge adjacent arcs at the same radial band with matching groupId into single visual arcs.
+ * Uses y-band position (not tree depth) so arcs at different tree depths but the same
+ * radial band merge correctly (e.g., Flow's week-slot at depth 2 with Monday's at depth 5).
  * Non-grouped arcs pass through with memberIds = [own id].
  */
 export function mergeGroupArcs(arcs: SunburstArc[]): MergedArc[] {
@@ -14,7 +16,7 @@ export function mergeGroupArcs(arcs: SunburstArc[]): MergedArc[] {
 
 	for (const arc of arcs) {
 		if (arc.groupId) {
-			const key = `${arc.depth}:${arc.groupId}`
+			const key = `${arc.y0.toFixed(4)}:${arc.groupId}`
 			const group = groups.get(key)
 			if (group) group.push(arc)
 			else groups.set(key, [arc])
