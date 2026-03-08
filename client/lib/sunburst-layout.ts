@@ -1,5 +1,5 @@
 import { hierarchy, partition } from 'd3-hierarchy'
-import type { TreeMapDefinition, TreeNodeDef } from '../../shared/types/MandalaTypes'
+import type { TreeMapDefinition, TreeNodeDef, RadialBandRegion } from '../../shared/types/MandalaTypes'
 import { mergeGroupArcs } from './sunburst-groups'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -18,6 +18,31 @@ export interface SunburstArc {
 	groupId?: string
 	hideLabel?: boolean
 	labelScale?: number
+}
+
+/**
+ * Find the region that an arc belongs to based on its angular midpoint.
+ * Returns undefined if no region matches (arc keeps partition-computed values).
+ */
+function findRegionForAngle(
+	angle: number,
+	regions: RadialBandRegion[],
+): RadialBandRegion | undefined {
+	const PI2 = 2 * Math.PI
+	const normalized = ((angle % PI2) + PI2) % PI2
+	for (const region of regions) {
+		const [start, end] = region.angularRange
+		const normStart = ((start % PI2) + PI2) % PI2
+		const normEnd = ((end % PI2) + PI2) % PI2
+		if (normStart < normEnd) {
+			// Normal range (no wrap)
+			if (normalized >= normStart && normalized < normEnd) return region
+		} else {
+			// Wraps around 2π
+			if (normalized >= normStart || normalized < normEnd) return region
+		}
+	}
+	return undefined
 }
 
 // ─── Main layout function ────────────────────────────────────────────────────
@@ -53,17 +78,38 @@ export function computeSunburstLayout(treeDef: TreeMapDefinition): SunburstArc[]
 
 		// Adjust for transparent nodes: shift up by offset bands
 		const bandSize = 1 / maxDepth
-		const adjustedY0 = rawY0 - offset * bandSize
-		const adjustedY1 = rawY1 - offset * bandSize
+		let adjustedY0 = rawY0 - offset * bandSize
+		let adjustedY1 = rawY1 - offset * bandSize
 
 		// Apply angular offset and wrap to [0, 2π]
 		const x0 = (((node.x0 + angleOffset) % PI2) + PI2) % PI2
 		const x1 = x0 + (node.x1 - node.x0)
 
+		const visualDepth = node.depth - offset
+
+		// Radial band remapping: override y0/y1 with explicit band definitions
+		if (treeDef.radialBands) {
+			if (visualDepth === 0) {
+				// Root always gets [0, centerRadius]
+				adjustedY0 = 0
+				adjustedY1 = treeDef.radialBands.centerRadius
+			} else {
+				const midAngle = (x0 + x1) / 2
+				const region = findRegionForAngle(midAngle, treeDef.radialBands.regions)
+				if (region) {
+					const band = region.bands[visualDepth]
+					if (band) {
+						adjustedY0 = band[0]
+						adjustedY1 = band[1]
+					}
+				}
+			}
+		}
+
 		arcs.push({
 			id: node.data.id,
 			label: node.data.label,
-			depth: node.depth - offset,
+			depth: visualDepth,
 			x0,
 			x1,
 			y0: adjustedY0,
