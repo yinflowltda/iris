@@ -17,6 +17,12 @@ export interface FrameworkTemplateConfig {
 	icon: string
 	description: string
 	active: boolean
+	/** Curated longer description for the chooser modal */
+	longDescription?: string
+	/** Use-case pill labels */
+	useCases?: string[]
+	/** Key guiding questions shown in the chooser */
+	keyQuestions?: string[]
 }
 
 export interface FrameworkEntry {
