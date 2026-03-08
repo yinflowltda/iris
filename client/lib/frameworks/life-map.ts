@@ -193,4 +193,15 @@ registerFramework({
 		description: 'See how different areas of your life are doing at a glance.',
 		active: true,
 	},
+	initialCover: {
+		type: 'text-carousel',
+		slides: [
+			'How balanced is my life right now?',
+			'Which area of my life needs the most attention?',
+			'What does a fulfilling life look like for me?',
+			'Where am I thriving and where am I stuck?',
+			'What would change if I lived more intentionally?',
+		],
+		intervalMs: 5000,
+	},
 })

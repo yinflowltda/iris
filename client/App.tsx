@@ -57,6 +57,7 @@ import {
 	TldrawAgentAppProvider,
 } from './agent/TldrawAgentAppProvider'
 import { ChatPanel } from './components/ChatPanel'
+import { MandalaCoverContext } from './components/MandalaCoverContext'
 import { ChatPanelFallback } from './components/ChatPanelFallback'
 import { CustomHelperButtons } from './components/CustomHelperButtons'
 import { AgentViewportBoundsHighlights } from './components/highlights/AgentViewportBoundsHighlights'
@@ -313,6 +314,36 @@ function App() {
 	const [showTemplate, setShowTemplate] = useState(SHOW_TEMPLATE_CHOOSER)
 	const [chatOpen, setChatOpen] = useState(false)
 	const toggleChat = useCallback(() => setChatOpen((v) => !v), [])
+	const chatInputRef = useRef<HTMLTextAreaElement>(null)
+
+	const handleCoverSlideClick = useCallback(
+		(slideText: string) => {
+			if (!app) return
+			const agent = app.agents.getAgent()
+			if (!agent) return
+
+			// Send as a real user message so the agent processes and responds
+			agent.interrupt({
+				input: {
+					agentMessages: [slideText],
+					bounds: agent.editor.getViewportPageBounds(),
+					source: 'user',
+					contextItems: agent.context.getItems(),
+				},
+			})
+
+			// Open chat sidebar
+			if (!chatOpen) {
+				toggleChat()
+			}
+
+			// Focus chat input (defer so sidebar renders)
+			requestAnimationFrame(() => {
+				chatInputRef.current?.focus()
+			})
+		},
+		[app, chatOpen, toggleChat],
+	)
 	const handleUnmount = useCallback(() => {
 		setApp(null)
 	}, [])
@@ -570,6 +601,9 @@ function App() {
 					w: size,
 					h: size,
 					state: makeEmptyState(framework.definition),
+					cover: framework.initialCover
+						? { active: true, content: framework.initialCover }
+						: null,
 				},
 			})
 
@@ -616,39 +650,41 @@ function App() {
 	}, [app])
 
 	return (
-		<ChatPanelContext.Provider value={{ chatOpen, toggleChat }}>
-			<TldrawUiToastsProvider>
-				<div className="tldraw-agent-container">
-					<div className="tldraw-canvas">
-						<Tldraw
-							persistenceKey="tldraw-agent-demo"
-							options={options}
-							shapeUtils={shapeUtils}
-							tools={tools}
-							overrides={overrides}
-							components={components}
-							textOptions={textOptions}
-						>
-							<TldrawAgentAppProvider onMount={setApp} onUnmount={handleUnmount} />
-						</Tldraw>
+		<MandalaCoverContext.Provider value={{ onCoverSlideClick: handleCoverSlideClick }}>
+			<ChatPanelContext.Provider value={{ chatOpen, toggleChat }}>
+				<TldrawUiToastsProvider>
+					<div className="tldraw-agent-container">
+						<div className="tldraw-canvas">
+							<Tldraw
+								persistenceKey="tldraw-agent-demo"
+								options={options}
+								shapeUtils={shapeUtils}
+								tools={tools}
+								overrides={overrides}
+								components={components}
+								textOptions={textOptions}
+							>
+								<TldrawAgentAppProvider onMount={setApp} onUnmount={handleUnmount} />
+							</Tldraw>
+						</div>
+						<div className={`agent-chat-slot${chatOpen ? ' agent-chat-slot--open' : ''}`}>
+							<ErrorBoundary fallback={ChatPanelFallback}>
+								{app && (
+									<TldrawAgentAppContextProvider app={app}>
+										<ChatPanel inputRef={chatInputRef} />
+									</TldrawAgentAppContextProvider>
+								)}
+							</ErrorBoundary>
+						</div>
+						<TemplateChooser
+							visible={showTemplate}
+							onSelectTemplate={handleSelectTemplate}
+							onRequestClose={() => setShowTemplate(false)}
+						/>
 					</div>
-					<div className={`agent-chat-slot${chatOpen ? ' agent-chat-slot--open' : ''}`}>
-						<ErrorBoundary fallback={ChatPanelFallback}>
-							{app && (
-								<TldrawAgentAppContextProvider app={app}>
-									<ChatPanel />
-								</TldrawAgentAppContextProvider>
-							)}
-						</ErrorBoundary>
-					</div>
-					<TemplateChooser
-						visible={showTemplate}
-						onSelectTemplate={handleSelectTemplate}
-						onRequestClose={() => setShowTemplate(false)}
-					/>
-				</div>
-			</TldrawUiToastsProvider>
-		</ChatPanelContext.Provider>
+				</TldrawUiToastsProvider>
+			</ChatPanelContext.Provider>
+		</MandalaCoverContext.Provider>
 	)
 }
 

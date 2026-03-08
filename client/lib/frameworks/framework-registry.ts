@@ -1,5 +1,5 @@
 import type { Editor, TLShapeId } from 'tldraw'
-import type { MapDefinition, TreeMapDefinition } from '../../../shared/types/MandalaTypes'
+import type { CoverContent, MapDefinition, TreeMapDefinition } from '../../../shared/types/MandalaTypes'
 import type { MandalaShape } from '../../shapes/MandalaShapeUtil'
 
 export interface FrameworkVisualConfig {
@@ -24,6 +24,7 @@ export interface FrameworkEntry {
 	treeDefinition?: TreeMapDefinition
 	visual: FrameworkVisualConfig
 	template: FrameworkTemplateConfig
+	initialCover?: CoverContent
 }
 
 const registry = new Map<string, FrameworkEntry>()
