@@ -75,6 +75,8 @@ function buildSliceCells(sliceId: string) {
 	}))
 }
 
+const EMPTY_CONTENT = { question: '', guidance: '', examples: [] as string[] }
+
 // ─── Temporal constants (top half) ───────────────────────────────────────────
 
 const DAYS = [
@@ -86,14 +88,14 @@ const DAYS = [
 	{ id: 'friday', label: 'Friday' },
 	{ id: 'saturday', label: 'Saturday' },
 	{ id: 'sunday', label: 'Sunday' },
-]
+] as const
 
 const WEEK_GROUPS = [
 	{ id: 'week1', label: 'Week 1' },
 	{ id: 'week2', label: 'Week 2' },
 	{ id: 'week3', label: 'Week 3' },
 	{ id: 'week4', label: 'Week 4' },
-]
+] as const
 
 const MONTHS = [
 	'January',
@@ -108,7 +110,7 @@ const MONTHS = [
 	'October',
 	'November',
 	'December',
-]
+] as const
 
 const MONTH_TO_BLOCK: Record<number, { id: string; label: string }> = {
 	0: { id: '0-6', label: '0-6' },
@@ -149,28 +151,28 @@ export const LIFE_MAP: MapDefinition = {
 		{
 			id: 'espiritual',
 			label: 'Espiritual',
-			startAngle: 330,
-			endAngle: 30,
+			startAngle: 90,
+			endAngle: 120,
 			cells: buildSliceCells('espiritual'),
 		},
 		{
 			id: 'mental',
 			label: 'Mental',
-			startAngle: 30,
-			endAngle: 90,
+			startAngle: 120,
+			endAngle: 150,
 			cells: buildSliceCells('mental'),
 		},
 		{
 			id: 'fisico',
 			label: 'Físico',
-			startAngle: 90,
-			endAngle: 150,
+			startAngle: 150,
+			endAngle: 180,
 			cells: buildSliceCells('fisico'),
 		},
 		{
 			id: 'material',
 			label: 'Material',
-			startAngle: 150,
+			startAngle: 180,
 			endAngle: 210,
 			cells: buildSliceCells('material'),
 		},
@@ -178,14 +180,14 @@ export const LIFE_MAP: MapDefinition = {
 			id: 'profissional',
 			label: 'Profissional',
 			startAngle: 210,
-			endAngle: 270,
+			endAngle: 240,
 			cells: buildSliceCells('profissional'),
 		},
 		{
 			id: 'pessoal',
 			label: 'Pessoal',
-			startAngle: 270,
-			endAngle: 330,
+			startAngle: 240,
+			endAngle: 270,
 			cells: buildSliceCells('pessoal'),
 		},
 	],
@@ -198,7 +200,7 @@ export const LIFE_MAP: MapDefinition = {
  * Wrapped in a transparent group node for the domain label.
  */
 function buildDomainChain(sliceId: string): TreeNodeDef {
-	const ringIds = ['querer', 'ser', 'ter', 'saber'] as const
+	const ringIds = RING_DEFS.map((r) => r.id)
 
 	// Build from leaf (saber) inward to querer
 	let current: TreeNodeDef | undefined
@@ -227,9 +229,7 @@ function buildDomainNode(slice: { id: string; label: string }): TreeNodeDef {
 	return {
 		id: slice.id,
 		label: slice.label,
-		question: '',
-		guidance: '',
-		examples: [],
+		...EMPTY_CONTENT,
 		transparent: true,
 		children: [buildDomainChain(slice.id)],
 	}
@@ -253,16 +253,12 @@ function buildTemporalDayNode(dayIndex: number): TreeNodeDef {
 		monthChildren.push({
 			id: `${day.id}-${monthName.toLowerCase()}`,
 			label: monthName,
-			question: '',
-			guidance: '',
-			examples: [],
+			...EMPTY_CONTENT,
 			children: [
 				{
 					id: `${day.id}-${monthName.toLowerCase()}-block`,
 					label: block.label,
-					question: '',
-					guidance: '',
-					examples: [],
+					...EMPTY_CONTENT,
 				},
 			],
 		})
@@ -271,16 +267,12 @@ function buildTemporalDayNode(dayIndex: number): TreeNodeDef {
 	return {
 		id: day.id,
 		label: day.label,
-		question: '',
-		guidance: '',
-		examples: [],
+		...EMPTY_CONTENT,
 		children: [
 			{
 				id: `${day.id}-${week.id}`,
 				label: week.label,
-				question: '',
-				guidance: '',
-				examples: [],
+				...EMPTY_CONTENT,
 				children: monthChildren,
 			},
 		],
@@ -288,14 +280,7 @@ function buildTemporalDayNode(dayIndex: number): TreeNodeDef {
 }
 
 // Domain nodes for the bottom half (6 domains)
-const DOMAIN_NODES: TreeNodeDef[] = [
-	{ id: 'espiritual', label: 'Espiritual' },
-	{ id: 'mental', label: 'Mental' },
-	{ id: 'fisico', label: 'Físico' },
-	{ id: 'material', label: 'Material' },
-	{ id: 'profissional', label: 'Profissional' },
-	{ id: 'pessoal', label: 'Pessoal' },
-].map((d) => buildDomainNode(d))
+const DOMAIN_NODES: TreeNodeDef[] = LIFE_MAP.slices.map((s) => buildDomainNode(s))
 
 // Temporal day nodes for the top half (8 days)
 const TEMPORAL_NODES: TreeNodeDef[] = Array.from({ length: 8 }, (_, i) =>
