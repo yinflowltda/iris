@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { LIFE_TREE } from '../../client/lib/frameworks/life-map'
+import { getCellBoundsFromTree } from '../../client/lib/mandala-geometry'
 import type { TreeNodeDef } from '../../shared/types/MandalaTypes'
 
 function collectIds(node: TreeNodeDef): string[] {
@@ -19,10 +20,11 @@ describe('LIFE_TREE', () => {
 		expect(LIFE_TREE.root.children).toHaveLength(10)
 	})
 
-	it('contains 99 total IDs', () => {
-		// root(1) + 6 transparent domains(6) + 6×4 rings(24) + 4 transparent week-groups(4) + 8 days(8) + 8 week-slots(8) + 24 months(24) + 24 blocks(24) = 99
+	it('contains 75 total IDs', () => {
+		// root(1) + 6 transparent domains(6) + 6×4 rings(24) + 4 transparent week-groups(4) + 8 days(8) + 8 week-slots(8) + 24 months(24) = 75
+		// (blocks are overlay arcs, not in the tree)
 		const ids = collectIds(LIFE_TREE.root)
-		expect(ids).toHaveLength(99)
+		expect(ids).toHaveLength(75)
 	})
 
 	it('has all expected domain-ring cell IDs', () => {
@@ -84,17 +86,31 @@ describe('LIFE_TREE', () => {
 				expect(weekSlot.id).toContain('week')
 				expect(weekSlot.groupId).toBeTruthy()
 
-				// 3 months (ring 3) with groupId
+				// 3 months (ring 3, leaves with hideLabel — blocks are overlay)
 				expect(weekSlot.children).toHaveLength(3)
 				for (const month of weekSlot.children!) {
-					expect(month.groupId).toMatch(/^month-/)
-					// block leaf (ring 4) with groupId
-					expect(month.children).toHaveLength(1)
-					expect(month.children![0].id).toMatch(/-block$/)
-					expect(month.children![0].groupId).toMatch(/^phase-/)
+					expect(month.hideLabel).toBe(true)
+					// months are leaves (blocks rendered as overlay ring)
+					expect(month.children).toBeUndefined()
 				}
 			}
 		}
+	})
+
+	it('getCellBoundsFromTree returns bounds for month cells', () => {
+		const center = { x: 400, y: 400 }
+		const outerRadius = 350
+		const bounds = getCellBoundsFromTree(LIFE_TREE, center, outerRadius, 'flow-january')
+		expect(bounds).not.toBeNull()
+		expect(bounds!.type).toBe('sector')
+	})
+
+	it('getCellBoundsFromTree returns bounds for overlay block cells', () => {
+		const center = { x: 400, y: 400 }
+		const outerRadius = 350
+		const bounds = getCellBoundsFromTree(LIFE_TREE, center, outerRadius, 'phase-0-7')
+		expect(bounds).not.toBeNull()
+		expect(bounds!.type).toBe('sector')
 	})
 
 	it('reuses question/guidance/examples from RING_CONTENT', () => {

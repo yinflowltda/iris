@@ -112,20 +112,19 @@ const MONTHS = [
 	'December',
 ] as const
 
-const MONTH_TO_BLOCK: Record<number, { id: string; label: string }> = {
-	0: { id: '0-6', label: '0-6' },
-	1: { id: '0-6', label: '0-6' },
-	2: { id: '7-13', label: '7-13' },
-	3: { id: '14-20', label: '14-20' },
-	4: { id: '21-27', label: '21-27' },
-	5: { id: '28-34', label: '28-34' },
-	6: { id: '35-41', label: '35-41' },
-	7: { id: '35-41', label: '35-41' },
-	8: { id: '35-41', label: '35-41' },
-	9: { id: '42-48', label: '42-48' },
-	10: { id: '42-48', label: '42-48' },
-	11: { id: '42-48', label: '42-48' },
-}
+/** 10 seven-year life phase blocks rendered as an overlay at ring 4 */
+const LIFE_PHASE_BLOCKS = [
+	{ id: 'phase-0-7', label: '0–7', fraction: 0.1 },
+	{ id: 'phase-7-14', label: '7–14', fraction: 0.1 },
+	{ id: 'phase-14-21', label: '14–21', fraction: 0.1 },
+	{ id: 'phase-21-28', label: '21–28', fraction: 0.1 },
+	{ id: 'phase-28-35', label: '28–35', fraction: 0.1 },
+	{ id: 'phase-35-42', label: '35–42', fraction: 0.1 },
+	{ id: 'phase-42-49', label: '42–49', fraction: 0.1 },
+	{ id: 'phase-49-56', label: '49–56', fraction: 0.1 },
+	{ id: 'phase-56-63', label: '56–63', fraction: 0.1 },
+	{ id: 'phase-63-70+', label: '63–70+', fraction: 0.1 },
+]
 
 // ─── MapDefinition (legacy flat format) ──────────────────────────────────────
 
@@ -251,20 +250,11 @@ function buildTemporalDayNode(dayIndex: number, weekIndex: number): TreeNodeDef 
 	for (let m = 0; m < 3; m++) {
 		const monthIdx = monthOffset + m
 		const monthName = MONTHS[monthIdx]
-		const block = MONTH_TO_BLOCK[monthIdx]
 		monthChildren.push({
 			id: `${day.id}-${monthName.toLowerCase()}`,
 			label: monthName,
 			...EMPTY_CONTENT,
-			groupId: `month-${monthIdx}`,
-			children: [
-				{
-					id: `${day.id}-${monthName.toLowerCase()}-block`,
-					label: block.label,
-					...EMPTY_CONTENT,
-					groupId: `phase-${block.id}`,
-				},
-			],
+			hideLabel: true,
 		})
 	}
 
@@ -300,6 +290,7 @@ function buildWeekGroup(weekIndex: number): TreeNodeDef {
 		label: week.label,
 		...EMPTY_CONTENT,
 		transparent: true,
+		hideLabel: true,
 		children: dayChildren,
 	}
 }
@@ -328,6 +319,12 @@ export const LIFE_TREE: TreeMapDefinition = {
 			...DOMAIN_NODES,
 			...TEMPORAL_NODES,
 		],
+	},
+	// 10 seven-year life phase blocks as an overlay at ring 4
+	overlayRing: {
+		startNodeId: TEMPORAL_NODES[0].children![0].id, // first day (flow)
+		endNodeId: TEMPORAL_NODES[TEMPORAL_NODES.length - 1].children![1].id, // last day (sunday)
+		arcs: LIFE_PHASE_BLOCKS,
 	},
 }
 

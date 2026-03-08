@@ -334,13 +334,19 @@ export class MandalaShapeUtil extends ShapeUtil<MandalaShape> {
 
 		if (cellId) {
 			if (shape.props.zoomMode === 'focus') {
-				// Focus zoom: update zoomedNodeId, SunburstSvg animates the arcs
-				const newZoomedId = shape.props.zoomedNodeId === cellId ? null : cellId
-				this.editor.updateShape<MandalaShape>({
-					id: shape.id,
-					type: 'mandala',
-					props: { zoomedNodeId: newZoomedId },
-				})
+				// Focus zoom: only zoom to cells that exist in the tree
+				const framework = getFramework(shape.props.frameworkId)
+				const isTreeNode = framework.treeDefinition
+					? findTreeNode(framework.treeDefinition.root, cellId) !== null
+					: false
+				if (isTreeNode) {
+					const newZoomedId = shape.props.zoomedNodeId === cellId ? null : cellId
+					this.editor.updateShape<MandalaShape>({
+						id: shape.id,
+						type: 'mandala',
+						props: { zoomedNodeId: newZoomedId },
+					})
+				}
 			} else {
 				// Navigate zoom: camera zooms to the cell bounds (default behavior)
 				const outerR = computeMandalaOuterRadius(shape.props.w, shape.props.h)

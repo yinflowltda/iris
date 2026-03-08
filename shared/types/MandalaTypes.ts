@@ -53,6 +53,15 @@ export interface TreeNodeDef {
 	metadataSchema?: Record<string, 'string' | 'number' | 'boolean'>
 	children?: TreeNodeDef[]
 	transparent?: boolean
+	hideLabel?: boolean
+}
+
+/** An overlay arc rendered at the outermost ring, independent of the tree structure */
+export interface OverlayArc {
+	id: string
+	label: string
+	/** Angular fraction of the overlay region (0-1). Arcs are laid out sequentially. */
+	fraction: number
 }
 
 export interface TreeMapDefinition {
@@ -62,6 +71,10 @@ export interface TreeMapDefinition {
 	root: TreeNodeDef
 	/** Angular offset (radians) applied to all arcs to rotate the layout */
 	startAngle?: number
+	/** Overlay arcs rendered at the outermost empty ring band.
+	 *  startNodeId identifies the first tree node whose angular position marks
+	 *  the start of the overlay region. */
+	overlayRing?: { startNodeId: string; endNodeId: string; arcs: OverlayArc[] }
 }
 
 // ─── Shared state types ─────────────────────────────────────────────────────

@@ -144,6 +144,7 @@ export function SunburstSvg({
 	// ── Transparent group labels (from raw arcs) ─────────────────────
 	for (const arc of arcs) {
 		if (!arc.transparent) continue
+		if (arc.hideLabel) continue
 		if (rootArc && arc.id === rootArc.id) continue
 
 		const effectiveArc = animatingArcs?.has(arc.id)
@@ -219,9 +220,10 @@ export function SunburstSvg({
 
 	// ── Visible cell arcs (from merged arcs) ─────────────────────────
 	for (const mArc of mergedArcs) {
-		// Skip root and transparent
+		// Skip root, transparent, and hideLabel cells (months rendered separately)
 		if (rootArc && mArc.id === rootArc.id) continue
 		if (mArc.transparent) continue
+		if (mArc.hideLabel) continue
 
 		const isHovered = hoveredCell
 			? mArc.memberIds.includes(hoveredCell) || hoveredCell === mArc.id
@@ -243,7 +245,7 @@ export function SunburstSvg({
 
 		// ── Label arc + text ─────────────────────────────────────────
 		const sweep = mArc.x1 - mArc.x0
-		if (sweep < 0.15 || !showLabelForArc(mArc.memberIds[0])) continue
+		if (sweep < 0.15 || mArc.hideLabel || !showLabelForArc(mArc.memberIds[0])) continue
 
 		const innerR = mArc.y0 * outerRadius
 		const outerR = mArc.y1 * outerRadius
@@ -265,7 +267,11 @@ export function SunburstSvg({
 
 		arcDefs.push(<path key={pathId} id={pathId} d={textArcD} fill="none" stroke="none" />)
 
-		const fontSize = Math.max(4.93, Math.min(8.45, (outerR - innerR) * 0.155))
+		// Cap font size by both radial band height and arc length
+		const arcLen = ((mArc.x1 - mArc.x0) * (innerR + outerR)) / 2
+		const charWidth = 0.55 // approximate char width as fraction of font size
+		const maxFontByArc = (arcLen / Math.max(mArc.label.length, 1)) / charWidth
+		const fontSize = Math.max(4.5, Math.min(8.45, (outerR - innerR) * 0.155, maxFontByArc))
 		cellLabels.push(
 			<text
 				key={`label-${mArc.id}`}
@@ -284,6 +290,185 @@ export function SunburstSvg({
 				</textPath>
 			</text>,
 		)
+	}
+
+	// ── Month cells + labels: compute from merged week arcs ──────────────
+	// Each merged week arc spans 3 months, each getting 1/3 of the week's angular width
+	// Rendered as single arcs (no per-day subdivision)
+	{
+		const weekArcs = mergedArcs.filter((a) => a.groupId && a.memberIds.length > 1)
+		// Get a sample hideLabel arc for y band
+		const sampleMonth = effectiveArcs.find((a) => a.hideLabel && !a.transparent)
+		if (sampleMonth && weekArcs.length > 0) {
+			const monthY0 = sampleMonth.y0
+			const monthY1 = sampleMonth.y1
+			const innerR = monthY0 * outerRadius
+			const outerR = monthY1 * outerRadius
+
+			for (const weekArc of weekArcs) {
+				const firstMemberId = weekArc.memberIds[0]
+
+				// Find month children of this week-slot
+				const monthArcs = effectiveArcs.filter((a) => a.parentId === firstMemberId && a.hideLabel)
+				if (monthArcs.length === 0) continue
+
+				const monthsPerWeek = monthArcs.length // 3
+				const weekSweep = weekArc.x1 - weekArc.x0
+				const monthSweep = weekSweep / monthsPerWeek
+
+				// Sort months by angle to get correct order
+				monthArcs.sort((a, b) => a.x0 - b.x0)
+
+				for (let m = 0; m < monthsPerWeek; m++) {
+					const monthX0 = weekArc.x0 + m * monthSweep
+					const monthX1 = monthX0 + monthSweep
+
+					// ── Cell path (single merged month arc) ─────────────
+					const monthCellArc = { x0: monthX0, x1: monthX1, y0: monthY0, y1: monthY1, id: monthArcs[m].id, label: monthArcs[m].label, depth: monthArcs[m].depth, transparent: false, parentId: null, hasChildren: false }
+					const pathD = arcGen(monthCellArc)
+					if (pathD) {
+						const isHovered = hoveredCell === monthArcs[m].id
+						cellPaths.push(
+							<path
+								key={`month-cell-${weekArc.id}-${m}`}
+								d={pathD}
+								fill={isHovered ? colors.cellHoverFill : colors.cellFill}
+								stroke={colors.stroke}
+								strokeWidth={1}
+								style={{ transition: 'fill 0.15s ease' }}
+							/>,
+						)
+					}
+
+					// ── Label ───────────────────────────────────────────
+					const labelOffset = Math.max(4.8, (outerR - innerR) * 0.15)
+					const labelR = outerR - labelOffset
+					const midAngle = (monthX0 + monthX1) / 2
+					const shouldFlip = midAngle > Math.PI / 2 && midAngle < (3 * Math.PI) / 2
+
+					const pathId = `sb-month-${weekArc.id}-${m}`
+					const textArcD = describeTextArcRadians(cx, cy, labelR, monthX0, monthX1, shouldFlip)
+					arcDefs.push(<path key={pathId} id={pathId} d={textArcD} fill="none" stroke="none" />)
+
+					const arcLen = (monthSweep * (innerR + outerR)) / 2
+					const charW = 0.55
+					const maxFontByArc = (arcLen / Math.max(monthArcs[m].label.length, 1)) / charW
+					const fontSize = Math.max(4.5, Math.min(8.45, (outerR - innerR) * 0.155, maxFontByArc))
+					cellLabels.push(
+						<text
+							key={`month-label-${weekArc.id}-${m}`}
+							fontSize={fontSize}
+							fill={colors.text}
+							pointerEvents="none"
+							style={{ userSelect: 'none', fontFamily: labelFont }}
+						>
+							<textPath
+								href={`#${pathId}`}
+								startOffset="50%"
+								textAnchor="middle"
+								dominantBaseline="central"
+							>
+								{monthArcs[m].label}
+							</textPath>
+						</text>,
+					)
+				}
+			}
+		}
+	}
+
+	// ── Overlay ring (e.g., life phase blocks) ──────────────────────────
+	if (treeDef.overlayRing) {
+		const overlay = treeDef.overlayRing
+		const startArc = effectiveArcs.find((a) => a.id === overlay.startNodeId)
+		const endArc = effectiveArcs.find((a) => a.id === overlay.endNodeId)
+		if (startArc && endArc) {
+			const regionX0 = startArc.x0
+			const regionX1 = endArc.x1
+			// Handle wrapping around 2π
+			const regionSweep =
+				regionX1 >= regionX0 ? regionX1 - regionX0 : regionX1 + 2 * Math.PI - regionX0
+
+			// Find the y band: use the outermost ring that has content in other halves
+			// (one band beyond the deepest leaf in the overlay region)
+			const leafArcs = effectiveArcs.filter((a) => !a.hasChildren && !a.transparent)
+			const regionLeaves = leafArcs.filter((a) => {
+				// Check if arc is in the overlay region (handles wrapping)
+				if (regionX0 <= regionX1) return a.x0 >= regionX0 && a.x1 <= regionX1
+				return a.x0 >= regionX0 || a.x1 <= regionX1
+			})
+			const nonRegionLeaves = leafArcs.filter((a) => {
+				if (regionX0 <= regionX1) return a.x0 < regionX0 || a.x1 > regionX1
+				return a.x0 < regionX0 && a.x1 > regionX1
+			})
+			const regionMaxY = regionLeaves.length > 0 ? Math.max(...regionLeaves.map((a) => a.y1)) : 0.667
+			const outerMaxY = nonRegionLeaves.length > 0 ? Math.max(...nonRegionLeaves.map((a) => a.y1)) : 0.833
+			const overlayY0 = regionMaxY
+			const overlayY1 = outerMaxY
+
+			let cursor = regionX0
+			for (const oArc of overlay.arcs) {
+				const arcSweep = oArc.fraction * regionSweep
+				const arcX0 = cursor
+				const arcX1 = cursor + arcSweep
+				cursor = arcX1
+
+				const pathD = arcGen({
+					x0: arcX0, x1: arcX1, y0: overlayY0, y1: overlayY1,
+					id: oArc.id, label: oArc.label, depth: 0, transparent: false,
+					parentId: null, hasChildren: false,
+				})
+				if (!pathD) continue
+
+				const isHovered = hoveredCell === oArc.id
+				cellPaths.push(
+					<path
+						key={`overlay-${oArc.id}`}
+						d={pathD}
+						fill={isHovered ? colors.cellHoverFill : colors.cellFill}
+						stroke={colors.stroke}
+						strokeWidth={1}
+						style={{ transition: 'fill 0.15s ease' }}
+					/>,
+				)
+
+				// Label
+				if (arcSweep >= 0.08) {
+					const innerR = overlayY0 * outerRadius
+					const outerR = overlayY1 * outerRadius
+					const labelOffset = Math.max(4.8, (outerR - innerR) * 0.15)
+					const labelR = outerR - labelOffset
+					const midAngle = (arcX0 + arcX1) / 2
+					const shouldFlip = midAngle > Math.PI / 2 && midAngle < (3 * Math.PI) / 2
+					const pathId = `sb-overlay-${oArc.id}`
+					const textArcD = describeTextArcRadians(cx, cy, labelR, arcX0, arcX1, shouldFlip)
+					arcDefs.push(<path key={pathId} id={pathId} d={textArcD} fill="none" stroke="none" />)
+
+					const arcLen = (arcSweep * (innerR + outerR)) / 2
+					const charW = 0.55
+					const maxFontByArc = (arcLen / Math.max(oArc.label.length, 1)) / charW
+					const fontSize = Math.max(4.5, Math.min(8.45, (outerR - innerR) * 0.155, maxFontByArc))
+					cellLabels.push(
+						<text
+							key={`overlay-label-${oArc.id}`}
+							fontSize={fontSize}
+							fill={colors.text}
+							pointerEvents="none"
+							style={{ userSelect: 'none', fontFamily: labelFont }}
+						>
+							<textPath
+								href={`#${pathId}`}
+								startOffset="50%"
+								textAnchor="middle"
+								dominantBaseline="central"
+							>
+								{oArc.label}
+							</textPath>
+						</text>,
+					)
+				}
+			}
+		}
 	}
 
 	// ── Center circle ────────────────────────────────────────────────────

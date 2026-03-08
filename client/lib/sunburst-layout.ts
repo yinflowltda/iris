@@ -1,5 +1,6 @@
 import { hierarchy, partition } from 'd3-hierarchy'
 import type { TreeMapDefinition, TreeNodeDef } from '../../shared/types/MandalaTypes'
+import { mergeGroupArcs } from './sunburst-groups'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -15,6 +16,7 @@ export interface SunburstArc {
 	parentId: string | null
 	hasChildren: boolean
 	groupId?: string
+	hideLabel?: boolean
 }
 
 // ─── Main layout function ────────────────────────────────────────────────────
@@ -69,6 +71,7 @@ export function computeSunburstLayout(treeDef: TreeMapDefinition): SunburstArc[]
 			parentId: node.parent?.data.id ?? null,
 			hasChildren: (node.data.children?.length ?? 0) > 0,
 			groupId: node.data.groupId,
+		hideLabel: node.data.hideLabel,
 		})
 	}
 
@@ -111,6 +114,106 @@ function computeMaxVisualDepth(root: TreeNodeDef): number {
 function getMaxTreeDepth(node: TreeNodeDef): number {
 	if (!node.children || node.children.length === 0) return 1
 	return 1 + Math.max(...node.children.map(getMaxTreeDepth))
+}
+
+// ─── Full arc set (includes computed month positions + overlay arcs) ─────────
+
+/**
+ * Produce a complete arc array where every visual cell is at its correct position.
+ * - hideLabel month arcs are repositioned to their visual locations (1/3 of merged week width)
+ * - Overlay ring arcs (e.g., life phase blocks) are included
+ *
+ * This is the single source of truth for cell positions. All hit-testing, bounds,
+ * and snap logic should use this instead of raw computeSunburstLayout().
+ */
+export function computeFullArcSet(treeDef: TreeMapDefinition): SunburstArc[] {
+	const baseArcs = computeSunburstLayout(treeDef)
+	const merged = mergeGroupArcs(baseArcs)
+
+	// Build result: start with all non-hideLabel arcs unchanged
+	const result: SunburstArc[] = []
+	const hideLabelsById = new Map<string, SunburstArc>()
+
+	for (const arc of baseArcs) {
+		if (arc.hideLabel) {
+			hideLabelsById.set(arc.id, arc)
+		} else {
+			result.push(arc)
+		}
+	}
+
+	// Reposition hideLabel arcs (months) to their visual positions
+	const weekArcs = merged.filter((a) => a.groupId && a.memberIds.length > 1)
+	for (const weekArc of weekArcs) {
+		const firstMemberId = weekArc.memberIds[0]
+		const monthArcs = baseArcs.filter((a) => a.parentId === firstMemberId && a.hideLabel)
+		if (monthArcs.length === 0) continue
+
+		const weekSweep = weekArc.x1 - weekArc.x0
+		const monthSweep = weekSweep / monthArcs.length
+		monthArcs.sort((a, b) => a.x0 - b.x0)
+
+		for (let m = 0; m < monthArcs.length; m++) {
+			const base = monthArcs[m]
+			hideLabelsById.delete(base.id) // mark as handled
+			result.push({
+				...base,
+				x0: weekArc.x0 + m * monthSweep,
+				x1: weekArc.x0 + (m + 1) * monthSweep,
+			})
+		}
+	}
+
+	// Any remaining hideLabel arcs that weren't month children — pass through
+	for (const arc of hideLabelsById.values()) {
+		result.push(arc)
+	}
+
+	// Add overlay ring arcs
+	if (treeDef.overlayRing) {
+		const overlay = treeDef.overlayRing
+		const startArc = baseArcs.find((a) => a.id === overlay.startNodeId)
+		const endArc = baseArcs.find((a) => a.id === overlay.endNodeId)
+		if (startArc && endArc) {
+			const regionX0 = startArc.x0
+			const regionX1 = endArc.x1
+			const regionSweep =
+				regionX1 >= regionX0 ? regionX1 - regionX0 : regionX1 + 2 * Math.PI - regionX0
+
+			// Compute overlay y band
+			const leafArcs = baseArcs.filter((a) => !a.hasChildren && !a.transparent)
+			const regionLeaves = leafArcs.filter((a) => {
+				if (regionX0 <= regionX1) return a.x0 >= regionX0 && a.x1 <= regionX1
+				return a.x0 >= regionX0 || a.x1 <= regionX1
+			})
+			const nonRegionLeaves = leafArcs.filter((a) => {
+				if (regionX0 <= regionX1) return a.x0 < regionX0 || a.x1 > regionX1
+				return a.x0 < regionX0 && a.x1 > regionX1
+			})
+			const overlayY0 = regionLeaves.length > 0 ? Math.max(...regionLeaves.map((a) => a.y1)) : 0.667
+			const overlayY1 = nonRegionLeaves.length > 0 ? Math.max(...nonRegionLeaves.map((a) => a.y1)) : 0.833
+
+			let cursor = regionX0
+			for (const oArc of overlay.arcs) {
+				const arcSweep = oArc.fraction * regionSweep
+				result.push({
+					id: oArc.id,
+					label: oArc.label,
+					depth: Math.max(...baseArcs.map((a) => a.depth)) + 1,
+					x0: cursor,
+					x1: cursor + arcSweep,
+					y0: overlayY0,
+					y1: overlayY1,
+					transparent: false,
+					parentId: null,
+					hasChildren: false,
+				})
+				cursor += arcSweep
+			}
+		}
+	}
+
+	return result
 }
 
 // ─── Helper functions ────────────────────────────────────────────────────────

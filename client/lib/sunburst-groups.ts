@@ -27,16 +27,33 @@ export function mergeGroupArcs(arcs: SunburstArc[]): MergedArc[] {
 
 	for (const [, group] of groups) {
 		const sorted = group.sort((a, b) => a.x0 - b.x0)
-		const first = sorted[0]
-		const last = sorted[sorted.length - 1]
-		merged.push({
-			...first,
-			id: first.groupId!,
-			label: first.label,
-			x0: first.x0,
-			x1: last.x1,
-			memberIds: sorted.map((a) => a.id),
-		})
+
+		// Split into contiguous runs (arcs touching each other)
+		const runs: SunburstArc[][] = [[sorted[0]]]
+		for (let i = 1; i < sorted.length; i++) {
+			const prev = sorted[i - 1]
+			const curr = sorted[i]
+			// Check if contiguous (allowing small floating-point gaps)
+			if (Math.abs(curr.x0 - prev.x1) < 0.001) {
+				runs[runs.length - 1].push(curr)
+			} else {
+				runs.push([curr])
+			}
+		}
+
+		for (let r = 0; r < runs.length; r++) {
+			const run = runs[r]
+			const first = run[0]
+			const last = run[run.length - 1]
+			merged.push({
+				...first,
+				id: runs.length === 1 ? first.groupId! : `${first.groupId!}-${r}`,
+				label: first.label,
+				x0: first.x0,
+				x1: last.x1,
+				memberIds: run.map((a) => a.id),
+			})
+		}
 	}
 
 	return merged.sort((a, b) => a.depth - b.depth || a.x0 - b.x0)

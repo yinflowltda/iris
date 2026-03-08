@@ -4,7 +4,7 @@ import type {
 	Point2d,
 	TreeMapDefinition,
 } from '../../shared/types/MandalaTypes'
-import { computeSunburstLayout, getAllTreeNodeIds } from './sunburst-layout'
+import { computeFullArcSet, computeSunburstLayout, getAllTreeNodeIds } from './sunburst-layout'
 
 const DEG_TO_RAD = Math.PI / 180
 const RAD_TO_DEG = 180 / Math.PI
@@ -281,7 +281,7 @@ export function getCellAtPointFromTree(
 
 	if (distance > outerRadius) return null
 
-	const arcs = computeSunburstLayout(treeDef)
+	const arcs = computeFullArcSet(treeDef)
 	const ratio = distance / outerRadius
 
 	// Check root first
@@ -296,7 +296,6 @@ export function getCellAtPointFromTree(
 	for (const arc of arcs) {
 		if (arc.transparent || arc.depth === 0) continue
 		if (ratio >= arc.y0 && ratio <= arc.y1) {
-			// Handle angle wrapping: check if angle is in [x0, x1]
 			if (isD3AngleInRange(angle, arc.x0, arc.x1)) {
 				return arc.id
 			}
@@ -324,7 +323,7 @@ export function getCellBoundsFromTree(
 	outerRadius: number,
 	cellId: string,
 ): CellBounds | null {
-	const arcs = computeSunburstLayout(treeDef)
+	const arcs = computeFullArcSet(treeDef)
 	const arc = arcs.find((a) => a.id === cellId)
 	if (!arc) return null
 
@@ -336,20 +335,28 @@ export function getCellBoundsFromTree(
 		}
 	}
 
-	// Convert d3 angles (0=top, clockwise, radians) to CellBounds (0=right, CCW, degrees)
-	const startAngleDeg = d3AngleToCellBoundsDeg(arc.x0)
-	const endAngleDeg = d3AngleToCellBoundsDeg(arc.x1)
+	return d3ArcToCellBounds(center, outerRadius, arc.x0, arc.x1, arc.y0, arc.y1)
+}
 
-	// d3 goes clockwise, CellBounds goes counterclockwise,
-	// so x0 (d3 start) maps to end in CellBounds, and x1 maps to start
-	const midD3 = (arc.x0 + arc.x1) / 2
+/** Convert d3 arc coordinates to CellBounds sector format */
+function d3ArcToCellBounds(
+	center: Point2d,
+	outerRadius: number,
+	x0: number,
+	x1: number,
+	y0: number,
+	y1: number,
+): SectorCellBounds {
+	const startAngleDeg = d3AngleToCellBoundsDeg(x0)
+	const endAngleDeg = d3AngleToCellBoundsDeg(x1)
+	const midD3 = (x0 + x1) / 2
 	const midAngleDeg = d3AngleToCellBoundsDeg(midD3)
 
 	return {
 		type: 'sector',
 		center: { ...center },
-		innerRadius: arc.y0 * outerRadius,
-		outerRadius: arc.y1 * outerRadius,
+		innerRadius: y0 * outerRadius,
+		outerRadius: y1 * outerRadius,
 		startAngle: endAngleDeg,
 		endAngle: startAngleDeg,
 		midAngle: midAngleDeg,
