@@ -15,43 +15,43 @@ describe('LIFE_TREE', () => {
 		expect(LIFE_TREE.root.id).toBe('essencia')
 	})
 
-	it('has 6 children at depth 1 (one per domain)', () => {
-		expect(LIFE_TREE.root.children).toHaveLength(6)
+	it('has 14 children at depth 1 (6 domains + 8 days)', () => {
+		expect(LIFE_TREE.root.children).toHaveLength(14)
 	})
 
-	it('contains 25 total IDs (1 root + 6 domains × 4 rings)', () => {
+	it('contains 95 total IDs', () => {
+		// root(1) + 6 transparent domains(6) + 6×4 rings(24) + 8 days(8) + 8 week-slots(8) + 24 months(24) + 24 blocks(24) = 95
 		const ids = collectIds(LIFE_TREE.root)
-		expect(ids).toHaveLength(25)
+		expect(ids).toHaveLength(95)
 	})
 
 	it('has all expected domain-ring cell IDs', () => {
 		const ids = new Set(collectIds(LIFE_TREE.root))
-		const domains = ['espiritual', 'emocional', 'fisico', 'material', 'profissional', 'relacional']
+		const domains = ['espiritual', 'mental', 'fisico', 'material', 'profissional', 'pessoal']
 		const rings = ['querer', 'ser', 'ter', 'saber']
 
 		expect(ids.has('essencia')).toBe(true)
 		for (const domain of domains) {
+			expect(ids.has(domain)).toBe(true) // transparent wrapper
 			for (const ring of rings) {
 				expect(ids.has(`${domain}-${ring}`)).toBe(true)
 			}
 		}
 	})
 
-	it('has equal weights for all domain children (default/undefined)', () => {
-		const children = LIFE_TREE.root.children!
-		// All children should have the same weight (or all undefined = equal)
-		const weights = children.map((c) => c.weight)
-		const allSame = weights.every((w) => w === weights[0])
-		expect(allSame).toBe(true)
-	})
-
-	it('each domain forms a chain of 4 rings: querer → ser → ter → saber', () => {
-		for (const domain of LIFE_TREE.root.children!) {
-			// domain child is querer
-			expect(domain.id).toMatch(/-querer$/)
+	it('bottom half: 6 domain transparent wrappers each contain querer→ser→ter→saber chain', () => {
+		const domainNodes = LIFE_TREE.root.children!.slice(0, 6)
+		for (const domain of domainNodes) {
+			// Domain is a transparent wrapper
+			expect(domain.transparent).toBe(true)
 			expect(domain.children).toHaveLength(1)
 
-			const ser = domain.children![0]
+			// Its single child is querer
+			const querer = domain.children![0]
+			expect(querer.id).toMatch(/-querer$/)
+			expect(querer.children).toHaveLength(1)
+
+			const ser = querer.children![0]
 			expect(ser.id).toMatch(/-ser$/)
 			expect(ser.children).toHaveLength(1)
 
@@ -62,6 +62,30 @@ describe('LIFE_TREE', () => {
 			const saber = ter.children![0]
 			expect(saber.id).toMatch(/-saber$/)
 			expect(saber.children).toBeUndefined()
+			// Leaf saber has weight:4
+			expect(saber.weight).toBe(4)
+		}
+	})
+
+	it('top half: 8 temporal day chains with correct depth (4 visible rings)', () => {
+		const dayNodes = LIFE_TREE.root.children!.slice(6)
+		expect(dayNodes).toHaveLength(8)
+
+		for (const day of dayNodes) {
+			// day (ring 1)
+			expect(day.children).toHaveLength(1)
+
+			// week-slot (ring 2)
+			const weekSlot = day.children![0]
+			expect(weekSlot.id).toContain('week')
+
+			// 3 months (ring 3)
+			expect(weekSlot.children).toHaveLength(3)
+			for (const month of weekSlot.children!) {
+				// block leaf (ring 4)
+				expect(month.children).toHaveLength(1)
+				expect(month.children![0].id).toMatch(/-block$/)
+			}
 		}
 	})
 
@@ -71,8 +95,9 @@ describe('LIFE_TREE', () => {
 		expect(LIFE_TREE.root.guidance).toBeTruthy()
 		expect(LIFE_TREE.root.examples.length).toBeGreaterThan(0)
 
-		// Spot-check a ring node
-		const querer = LIFE_TREE.root.children![0]
+		// Spot-check a ring node (first domain's querer, inside transparent wrapper)
+		const firstDomain = LIFE_TREE.root.children![0]
+		const querer = firstDomain.children![0]
 		expect(querer.question).toContain('want')
 	})
 })

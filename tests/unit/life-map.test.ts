@@ -38,14 +38,14 @@ describe('Life Map definition', () => {
 		expect(LIFE_MAP.center.radiusRatio).toBeLessThan(1)
 	})
 
-	it('slices cover exactly 360 degrees', () => {
+	it('slices cover the bottom half (180 degrees)', () => {
 		let totalSweep = 0
 		for (const slice of LIFE_MAP.slices) {
 			let sweep = slice.endAngle - slice.startAngle
 			if (sweep <= 0) sweep += 360
 			totalSweep += sweep
 		}
-		expect(totalSweep).toBe(360)
+		expect(totalSweep).toBe(180)
 	})
 
 	it('all cell IDs follow the domain-ring pattern', () => {
@@ -70,19 +70,18 @@ describe('Life Map definition', () => {
 		}
 	})
 
-	it('no slice angles overlap', () => {
+	it('adjacent slices share boundary angles (no gaps or overlaps)', () => {
 		const slices = LIFE_MAP.slices.map((s) => ({
 			id: s.id,
 			start: s.startAngle,
 			end: s.endAngle,
 		}))
 
-		for (let i = 0; i < slices.length; i++) {
+		// Check adjacent slices are contiguous (not wrapping around full circle)
+		for (let i = 0; i < slices.length - 1; i++) {
 			const current = slices[i]
-			const next = slices[(i + 1) % slices.length]
-			const currentEnd = current.end % 360
-			const nextStart = next.start % 360
-			expect(currentEnd).toBe(nextStart)
+			const next = slices[i + 1]
+			expect(current.end).toBe(next.start)
 		}
 	})
 
@@ -111,11 +110,11 @@ describe('Life Map definition', () => {
 		const ids = LIFE_MAP.slices.map((s) => s.id)
 		expect(ids).toEqual([
 			'espiritual',
-			'emocional',
+			'mental',
 			'fisico',
 			'material',
 			'profissional',
-			'relacional',
+			'pessoal',
 		])
 	})
 })
