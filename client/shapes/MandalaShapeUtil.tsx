@@ -205,6 +205,52 @@ function MandalaInteractive({ shape }: { shape: MandalaShape }) {
 		[editor, shape.id],
 	)
 
+	// Manual drag from title
+	const dragRef = useRef<{
+		startClientX: number
+		startClientY: number
+		startShapeX: number
+		startShapeY: number
+	} | null>(null)
+
+	const handleTitlePointerDown = useCallback(
+		(e: React.PointerEvent) => {
+			e.stopPropagation()
+			const currentShape = editor.getShape<MandalaShape>(shape.id)
+			if (!currentShape) return
+
+			dragRef.current = {
+				startClientX: e.clientX,
+				startClientY: e.clientY,
+				startShapeX: currentShape.x,
+				startShapeY: currentShape.y,
+			}
+
+			const onPointerMove = (ev: PointerEvent) => {
+				if (!dragRef.current) return
+				const zoom = editor.getZoomLevel()
+				const dx = (ev.clientX - dragRef.current.startClientX) / zoom
+				const dy = (ev.clientY - dragRef.current.startClientY) / zoom
+				editor.updateShape({
+					id: shape.id,
+					type: 'mandala',
+					x: dragRef.current.startShapeX + dx,
+					y: dragRef.current.startShapeY + dy,
+				})
+			}
+
+			const onPointerUp = () => {
+				dragRef.current = null
+				document.removeEventListener('pointermove', onPointerMove)
+				document.removeEventListener('pointerup', onPointerUp)
+			}
+
+			document.addEventListener('pointermove', onPointerMove)
+			document.addEventListener('pointerup', onPointerUp)
+		},
+		[editor, shape.id],
+	)
+
 	return (
 		<div style={{ position: 'relative', width: shape.props.w, height: shape.props.h }}>
 			<SunburstSvg
@@ -215,6 +261,7 @@ function MandalaInteractive({ shape }: { shape: MandalaShape }) {
 				hoveredCell={hoveredCell}
 				zoomedNodeId={shape.props.zoomedNodeId}
 				onZoomComplete={handleZoomComplete}
+				onTitlePointerDown={handleTitlePointerDown}
 				coverContent={
 					shape.props.cover?.active && shape.props.cover.content ? (
 						<MandalaCover
@@ -278,13 +325,12 @@ export class MandalaShapeUtil extends ShapeUtil<MandalaShape> {
 	}
 
 	override onClick(shape: MandalaShape) {
-		// Deselect any shapes before zooming so the camera animation
-		// doesn't get interpreted as a drag on selected shapes.
-		this.editor.selectNone()
-
 		setActiveMandalaId(shape.id)
 		const pagePoint = this.editor.inputs.currentPagePoint
 		const cellId = getLocalCellFromPage(this.editor, shape, pagePoint)
+
+		// Always deselect to prevent tldraw's native drag-from-anywhere behavior
+		this.editor.selectNone()
 
 		if (cellId) {
 			if (shape.props.zoomMode === 'focus') {
@@ -377,6 +423,14 @@ export class MandalaShapeUtil extends ShapeUtil<MandalaShape> {
 	}
 
 	override hideRotateHandle() {
+		return true
+	}
+
+	override hideSelectionBoundsBg() {
+		return true
+	}
+
+	override hideSelectionBoundsFg() {
 		return true
 	}
 }
