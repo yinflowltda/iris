@@ -6,14 +6,18 @@ import type {
 import { registerFramework } from './framework-registry'
 
 /**
- * Life Map (Mapa da Vida) — based on the Yinflow reference SVG.
+ * Life Map (Mapa da Vida)
  *
- * Structure: 6 life domains × 4 rings + center = 25 cells
+ * Two-half structure:
+ * - Bottom half (3→9 o'clock): 6 life domains × 4 rings (Querer/Ser/Ter/Saber)
+ * - Top half (9→3 o'clock): Temporal calendar — 8 days → week-slots → months → 7-year blocks
  *
- * Domains: Espiritual, Emocional, Físico, Material, Profissional, Relacional
+ * Domains: Espiritual, Mental, Físico, Material, Profissional, Pessoal
  * Rings (center → outer): Querer, Ser, Ter, Saber
  * Center: Essência (Essence/Self)
  */
+
+// ─── Ring definitions (bottom half: life domains) ────────────────────────────
 
 const RING_DEFS = [
 	{ id: 'querer', label: 'Querer', innerRatio: 0.1, outerRatio: 0.325 },
@@ -71,6 +75,58 @@ function buildSliceCells(sliceId: string) {
 	}))
 }
 
+// ─── Temporal constants (top half) ───────────────────────────────────────────
+
+const DAYS = [
+	{ id: 'flow', label: 'Flow' },
+	{ id: 'monday', label: 'Monday' },
+	{ id: 'tuesday', label: 'Tuesday' },
+	{ id: 'wednesday', label: 'Wednesday' },
+	{ id: 'thursday', label: 'Thursday' },
+	{ id: 'friday', label: 'Friday' },
+	{ id: 'saturday', label: 'Saturday' },
+	{ id: 'sunday', label: 'Sunday' },
+]
+
+const WEEK_GROUPS = [
+	{ id: 'week1', label: 'Week 1' },
+	{ id: 'week2', label: 'Week 2' },
+	{ id: 'week3', label: 'Week 3' },
+	{ id: 'week4', label: 'Week 4' },
+]
+
+const MONTHS = [
+	'January',
+	'February',
+	'March',
+	'April',
+	'May',
+	'June',
+	'July',
+	'August',
+	'September',
+	'October',
+	'November',
+	'December',
+]
+
+const MONTH_TO_BLOCK: Record<number, { id: string; label: string }> = {
+	0: { id: '0-6', label: '0-6' },
+	1: { id: '0-6', label: '0-6' },
+	2: { id: '7-13', label: '7-13' },
+	3: { id: '14-20', label: '14-20' },
+	4: { id: '21-27', label: '21-27' },
+	5: { id: '28-34', label: '28-34' },
+	6: { id: '35-41', label: '35-41' },
+	7: { id: '35-41', label: '35-41' },
+	8: { id: '35-41', label: '35-41' },
+	9: { id: '42-48', label: '42-48' },
+	10: { id: '42-48', label: '42-48' },
+	11: { id: '42-48', label: '42-48' },
+}
+
+// ─── MapDefinition (legacy flat format) ──────────────────────────────────────
+
 export const LIFE_MAP: MapDefinition = {
 	id: 'life-map',
 	name: 'Life Map',
@@ -98,11 +154,11 @@ export const LIFE_MAP: MapDefinition = {
 			cells: buildSliceCells('espiritual'),
 		},
 		{
-			id: 'emocional',
-			label: 'Emocional',
+			id: 'mental',
+			label: 'Mental',
 			startAngle: 30,
 			endAngle: 90,
-			cells: buildSliceCells('emocional'),
+			cells: buildSliceCells('mental'),
 		},
 		{
 			id: 'fisico',
@@ -126,19 +182,21 @@ export const LIFE_MAP: MapDefinition = {
 			cells: buildSliceCells('profissional'),
 		},
 		{
-			id: 'relacional',
-			label: 'Relacional',
+			id: 'pessoal',
+			label: 'Pessoal',
 			startAngle: 270,
 			endAngle: 330,
-			cells: buildSliceCells('relacional'),
+			cells: buildSliceCells('pessoal'),
 		},
 	],
 }
 
 // ─── Tree-based definition (sunburst renderer) ──────────────────────────────
 
-const DOMAIN_SLICES = LIFE_MAP.slices
-
+/**
+ * Build a domain's ring chain: querer → ser → ter → saber (leaf with weight:4).
+ * Wrapped in a transparent group node for the domain label.
+ */
 function buildDomainChain(sliceId: string): TreeNodeDef {
 	const ringIds = ['querer', 'ser', 'ter', 'saber'] as const
 
@@ -148,12 +206,15 @@ function buildDomainChain(sliceId: string): TreeNodeDef {
 		const ringId = ringIds[i]
 		const content = RING_CONTENT[ringId]
 		const ringDef = RING_DEFS[i]
+		const isLeaf = i === ringIds.length - 1
 		const node: TreeNodeDef = {
 			id: `${sliceId}-${ringId}`,
 			label: ringDef.label,
 			question: content.question,
 			guidance: content.guidance,
 			examples: content.examples,
+			// Leaf gets weight:4 so 6 domains × 4 = 24 units (matches top half)
+			...(isLeaf ? { weight: 4 } : {}),
 			...(current ? { children: [current] } : {}),
 		}
 		current = node
@@ -161,17 +222,102 @@ function buildDomainChain(sliceId: string): TreeNodeDef {
 	return current!
 }
 
+/** Wrap a domain's ring chain in a transparent group node so the domain label renders. */
+function buildDomainNode(slice: { id: string; label: string }): TreeNodeDef {
+	return {
+		id: slice.id,
+		label: slice.label,
+		question: '',
+		guidance: '',
+		examples: [],
+		transparent: true,
+		children: [buildDomainChain(slice.id)],
+	}
+}
+
+/**
+ * Build a temporal day chain:
+ * day (ring 1) → week-slot (ring 2) → 3 month branches (ring 3) → block leaf (ring 4)
+ */
+function buildTemporalDayNode(dayIndex: number): TreeNodeDef {
+	const day = DAYS[dayIndex]
+	const weekIndex = Math.floor(dayIndex / 2)
+	const week = WEEK_GROUPS[weekIndex]
+	const monthOffset = weekIndex * 3
+
+	const monthChildren: TreeNodeDef[] = []
+	for (let m = 0; m < 3; m++) {
+		const monthIdx = monthOffset + m
+		const monthName = MONTHS[monthIdx]
+		const block = MONTH_TO_BLOCK[monthIdx]
+		monthChildren.push({
+			id: `${day.id}-${monthName.toLowerCase()}`,
+			label: monthName,
+			question: '',
+			guidance: '',
+			examples: [],
+			children: [
+				{
+					id: `${day.id}-${monthName.toLowerCase()}-block`,
+					label: block.label,
+					question: '',
+					guidance: '',
+					examples: [],
+				},
+			],
+		})
+	}
+
+	return {
+		id: day.id,
+		label: day.label,
+		question: '',
+		guidance: '',
+		examples: [],
+		children: [
+			{
+				id: `${day.id}-${week.id}`,
+				label: week.label,
+				question: '',
+				guidance: '',
+				examples: [],
+				children: monthChildren,
+			},
+		],
+	}
+}
+
+// Domain nodes for the bottom half (6 domains)
+const DOMAIN_NODES: TreeNodeDef[] = [
+	{ id: 'espiritual', label: 'Espiritual' },
+	{ id: 'mental', label: 'Mental' },
+	{ id: 'fisico', label: 'Físico' },
+	{ id: 'material', label: 'Material' },
+	{ id: 'profissional', label: 'Profissional' },
+	{ id: 'pessoal', label: 'Pessoal' },
+].map((d) => buildDomainNode(d))
+
+// Temporal day nodes for the top half (8 days)
+const TEMPORAL_NODES: TreeNodeDef[] = Array.from({ length: 8 }, (_, i) =>
+	buildTemporalDayNode(i),
+)
+
 export const LIFE_TREE: TreeMapDefinition = {
 	id: 'life-map',
 	name: LIFE_MAP.name,
 	description: LIFE_MAP.description,
+	// First child at 3 o'clock (bottom half starts at 3 o'clock going clockwise)
+	startAngle: Math.PI / 2,
 	root: {
 		id: LIFE_MAP.center.id,
 		label: LIFE_MAP.center.label,
 		question: LIFE_MAP.center.question,
 		guidance: LIFE_MAP.center.guidance,
 		examples: LIFE_MAP.center.examples,
-		children: DOMAIN_SLICES.map((slice) => buildDomainChain(slice.id)),
+		children: [
+			...DOMAIN_NODES,
+			...TEMPORAL_NODES,
+		],
 	},
 }
 
