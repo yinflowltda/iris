@@ -11,6 +11,7 @@ export interface LayoutItem {
 // Cell boundaries (mandala lines) already provide visual separation,
 // so edge padding can be minimal. Inter-item gap only prevents overlap.
 const EDGE_PAD = 14
+const EDGE_PAD_RATIO = 0.12 // fraction of radial depth used as padding (capped at EDGE_PAD)
 const ITEM_GAP = 2
 
 export function computeCellContentLayout(bounds: CellBounds, itemCount: number): LayoutItem[] {
@@ -94,7 +95,9 @@ function tryBandLayout(
 	const { innerRadius, outerRadius, startAngle, center } = bounds
 	const radialDepth = outerRadius - innerRadius
 
-	const availableRadial = radialDepth - 2 * EDGE_PAD - Math.max(0, bandCount - 1) * ITEM_GAP
+	// Use proportional padding for small cells, capped at EDGE_PAD for large ones
+	const edgePad = Math.min(EDGE_PAD, radialDepth * EDGE_PAD_RATIO)
+	const availableRadial = radialDepth - 2 * edgePad - Math.max(0, bandCount - 1) * ITEM_GAP
 	if (availableRadial <= 0) return { items: [], minDiameter: 0 }
 	const bandHeight = availableRadial / bandCount
 
@@ -107,9 +110,9 @@ function tryBandLayout(
 		const n = itemsPerBand[b]
 		if (n === 0) continue
 
-		const bandCenterR = innerRadius + EDGE_PAD + bandHeight / 2 + b * (bandHeight + ITEM_GAP)
+		const bandCenterR = innerRadius + edgePad + bandHeight / 2 + b * (bandHeight + ITEM_GAP)
 
-		const edgeAngularPad = EDGE_PAD / bandCenterR
+		const edgeAngularPad = edgePad / bandCenterR
 		const effectiveSweepRad = sweepRad - 2 * edgeAngularPad
 		if (effectiveSweepRad <= 0) return { items: [], minDiameter: 0 }
 

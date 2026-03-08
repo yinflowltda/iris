@@ -17,6 +17,7 @@ export interface SunburstArc {
 	hasChildren: boolean
 	groupId?: string
 	hideLabel?: boolean
+	labelScale?: number
 }
 
 // ─── Main layout function ────────────────────────────────────────────────────
@@ -72,6 +73,7 @@ export function computeSunburstLayout(treeDef: TreeMapDefinition): SunburstArc[]
 			hasChildren: (node.data.children?.length ?? 0) > 0,
 			groupId: node.data.groupId,
 		hideLabel: node.data.hideLabel,
+		labelScale: node.data.labelScale,
 		})
 	}
 

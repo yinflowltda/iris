@@ -54,6 +54,8 @@ export interface TreeNodeDef {
 	children?: TreeNodeDef[]
 	transparent?: boolean
 	hideLabel?: boolean
+	/** Scale factor for the label font size (default 1.0). Use 0.5 for half-size labels. */
+	labelScale?: number
 }
 
 /** An overlay arc rendered at the outermost ring, independent of the tree structure */

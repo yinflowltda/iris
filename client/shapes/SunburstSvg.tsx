@@ -110,6 +110,7 @@ export function SunburstSvg({
 	const size = Math.min(w, h)
 	const labelPadding = Math.max(20, size * 0.05)
 	const outerRadius = (size - labelPadding * 2) / 2
+	const globalLabelScale = 0.65
 	const cx = w / 2
 	const cy = h / 2
 
@@ -191,7 +192,7 @@ export function SunburstSvg({
 
 		arcDefs.push(<path key={pathId} id={pathId} d={textArcD} fill="none" stroke="none" />)
 
-		const fontSize = Math.max(7, Math.min(12, outerRadius * 0.03))
+		const fontSize = Math.max(7, Math.min(12, outerRadius * 0.03)) * globalLabelScale
 		cellLabels.push(
 			<text
 				key={`label-${arc.id}`}
@@ -271,7 +272,8 @@ export function SunburstSvg({
 		const arcLen = ((mArc.x1 - mArc.x0) * (innerR + outerR)) / 2
 		const charWidth = 0.55 // approximate char width as fraction of font size
 		const maxFontByArc = (arcLen / Math.max(mArc.label.length, 1)) / charWidth
-		const fontSize = Math.max(4.5, Math.min(8.45, (outerR - innerR) * 0.155, maxFontByArc))
+		const baseFontSize = Math.max(4.5, Math.min(8.45, (outerR - innerR) * 0.155, maxFontByArc))
+		const fontSize = baseFontSize * globalLabelScale * (mArc.labelScale ?? 1)
 		cellLabels.push(
 			<text
 				key={`label-${mArc.id}`}
@@ -353,7 +355,7 @@ export function SunburstSvg({
 					const arcLen = (monthSweep * (innerR + outerR)) / 2
 					const charW = 0.55
 					const maxFontByArc = (arcLen / Math.max(monthArcs[m].label.length, 1)) / charW
-					const fontSize = Math.max(4.5, Math.min(8.45, (outerR - innerR) * 0.155, maxFontByArc))
+					const fontSize = Math.max(4.5, Math.min(8.45, (outerR - innerR) * 0.155, maxFontByArc)) * globalLabelScale
 					cellLabels.push(
 						<text
 							key={`month-label-${weekArc.id}-${m}`}
@@ -447,7 +449,7 @@ export function SunburstSvg({
 					const arcLen = (arcSweep * (innerR + outerR)) / 2
 					const charW = 0.55
 					const maxFontByArc = (arcLen / Math.max(oArc.label.length, 1)) / charW
-					const fontSize = Math.max(4.5, Math.min(8.45, (outerR - innerR) * 0.155, maxFontByArc))
+					const fontSize = Math.max(4.5, Math.min(8.45, (outerR - innerR) * 0.155, maxFontByArc)) * globalLabelScale
 					cellLabels.push(
 						<text
 							key={`overlay-label-${oArc.id}`}
@@ -478,10 +480,10 @@ export function SunburstSvg({
 		? (animatedRoot?.y1 ?? rootArc.y1) * outerRadius
 		: outerRadius * 0.15
 	const centerLabel = rootArc?.label ?? treeDef.root.label
-	const centerFontSize = Math.max(10, Math.min(16, outerRadius * 0.045))
+	const centerFontSize = Math.max(10, Math.min(16, outerRadius * 0.045)) * globalLabelScale
 
 	// Hide root label when zoomed to a non-root cell
-	const showRootLabel = !isZoomedNonRoot
+	const showRootLabel = false
 
 	const centerCircle = (
 		<g key="center">
