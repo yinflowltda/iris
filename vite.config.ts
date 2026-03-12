@@ -47,6 +47,9 @@ export default defineConfig(() => {
 			cloudflare(),
 			react(),
 		],
+		optimizeDeps: {
+			exclude: ['@huggingface/transformers'],
+		},
 		server: {
 			proxy: {
 				'/openai-proxy': {

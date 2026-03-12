@@ -12,3 +12,10 @@ function isExplicitlyDisabled(value: string | undefined): boolean {
  */
 export const MODEL_SELECTION_ENABLED =
 	import.meta.env.DEV && !isExplicitlyDisabled(import.meta.env.VITE_MODEL_SELECTION_ENABLED)
+
+/**
+ * Gate for browser-side Prisma embedding model.
+ *
+ * Disabled by default. Enable via VITE_PRISMA_ENABLED=1.
+ */
+export const PRISMA_ENABLED = import.meta.env.VITE_PRISMA_ENABLED === '1'
