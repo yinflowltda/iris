@@ -57,6 +57,13 @@ SP5: Consent UI + Monitoring (user-facing + observability)
 - All operations run in Web Worker (non-blocking)
 - WASM binary < 5MB gzipped
 
+**Real-world validation (browser):**
+This is the riskiest SP — WASM modules often fail at load time, memory limits, or Worker message serialization in ways unit tests don't catch.
+- **Dev-browser test:** Load the app at localhost:5173, open browser console, call `window.ckks.encrypt(new Float32Array(4096))` → verify it returns a ciphertext blob without hanging the UI. Then `window.ckks.decrypt(blob)` → verify values match within ε.
+- **Homomorphic add test:** `ckks.add(ct1, ct2)` in console → decrypt → compare to plaintext sum.
+- **UI freeze check:** While encryption is running (144K floats), drag a note on the canvas — it must stay responsive (proves Web Worker isolation works).
+- **Memory check:** Run `performance.memory` before/after encrypting 144K floats 5 times. WASM heap should not grow unboundedly.
+
 **Open questions:**
 - OpenFHE WASM vs. building from Lattigo (Go→WASM) vs. SEAL (Microsoft) — recommend OpenFHE for maturity
 - Whether to use pre-built WASM from `openfhe-wasm` npm or compile from source
@@ -87,6 +94,9 @@ SP5: Consent UI + Monitoring (user-facing + observability)
 - `clipAndNoise(delta, C, σ)` returns DP-protected delta
 - Privacy accountant warns when budget approaches threshold
 - Composable with SP1's encryption (clip+noise first, then encrypt)
+
+**Real-world validation:**
+Low risk — pure math, no browser APIs. Unit tests are sufficient. No browser test needed.
 
 ---
 
@@ -119,6 +129,12 @@ SP5: Consent UI + Monitoring (user-facing + observability)
 - Clients can poll for new round availability
 - DO never possesses secret key material
 
+**Real-world validation:**
+Medium risk — DOs have quirks (alarm limits, memory caps, cold starts).
+- **Manual curl test:** After deploying to staging, run `curl POST /fl/rounds/open` → verify round opens. Then `curl POST /fl/rounds/{id}/submit` with a mock ciphertext payload → verify it's accepted and stored.
+- **R2 verification:** Check R2 bucket via Cloudflare dashboard — encrypted checkpoint blob should appear after round closes.
+- **Timeout test:** Open a round with K=3, submit only 1 delta, wait for timeout → verify round closes gracefully and no aggregate is published.
+
 ---
 
 ## SP4: FFA-LoRA Training + FL Client
@@ -149,6 +165,12 @@ SP5: Consent UI + Monitoring (user-facing + observability)
 - After aggregation, client decrypts and applies updated weights
 - Model quality improves after FL rounds (measured on held-out examples)
 
+**Real-world validation (browser — this is the big E2E test):**
+Highest risk — this wires everything together. The key test is: does the full round actually improve the model?
+- **Two-tab FL round:** Open two browser tabs, each with a different mandala. Add 5+ notes to each. Open browser console in both, trigger `window.fl.participateInRound()`. Verify both tabs encrypt and upload. Wait for aggregation. Verify both tabs receive and decrypt the aggregate.
+- **Quality check:** Before the FL round, note classification accuracy on tab 1. After receiving the aggregate (which includes tab 2's training signal), check if accuracy on previously unseen notes improved or stayed stable. This is the "does FL actually help?" validation.
+- **Fallback test:** Kill network mid-upload on one tab → verify it retries or degrades gracefully without corrupting local state.
+
 ---
 
 ## SP5: Consent UI + Monitoring
@@ -177,6 +199,10 @@ SP5: Consent UI + Monitoring (user-facing + observability)
 - EU compliance: explicit consent required
 - Admin can view round health metrics
 - No FL traffic when user opts out
+
+**Real-world validation (browser):**
+- **User test:** Open the app → Settings → verify the FL toggle is visible with clear explanation text. Toggle off → open Network tab → trigger a round → confirm zero FL network requests.
+- **GDPR test:** Set locale to a EU country → verify the consent flow shows explicit opt-in (not pre-checked nudge).
 
 ---
 
