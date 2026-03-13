@@ -63,6 +63,7 @@ import { CustomHelperButtons } from './components/CustomHelperButtons'
 import { AgentViewportBoundsHighlights } from './components/highlights/AgentViewportBoundsHighlights'
 import { AllContextHighlights } from './components/highlights/ContextHighlights'
 import { CellSuggestionOverlay } from './components/CellSuggestionOverlay'
+import { EdgeTypePicker } from './components/EdgeTypePicker'
 import { TemplateChooser } from './components/TemplateChooser'
 import { setActiveMandalaId } from './lib/frameworks/active-framework'
 import './lib/frameworks/emotions-map'
@@ -70,6 +71,7 @@ import './lib/frameworks/life-map'
 import { getFramework } from './lib/frameworks/framework-registry'
 import { makeEmptyState } from './lib/mandala-geometry'
 import { findNonOverlappingPosition } from './lib/mandala-placement'
+import { registerArrowBindingDetector } from './lib/mandala-arrow-binding'
 import { registerMandalaSnapEffect } from './lib/mandala-snap'
 import { applyNodulePaletteToThemes } from './lib/nodule-color-palette'
 import { CircularNoteShapeUtil } from './shapes/CircularNoteShapeUtil'
@@ -413,6 +415,7 @@ function App() {
 		})
 
 		const cleanupSnap = registerMandalaSnapEffect(app.editor)
+		const cleanupArrowBinding = registerArrowBindingDetector(app.editor)
 
 		const cleanupMandalaSelection = app.editor.sideEffects.registerBeforeChangeHandler(
 			'instance_page_state',
@@ -461,6 +464,7 @@ function App() {
 		return () => {
 			cleanupProgress()
 			cleanupSnap()
+			cleanupArrowBinding()
 			cleanupMandalaSelection()
 			cleanupDoubleClickNote()
 		}
@@ -644,6 +648,7 @@ function App() {
 							<AgentViewportBoundsHighlights />
 							<AllContextHighlights />
 							<CellSuggestionOverlay />
+							<EdgeTypePicker />
 						</TldrawAgentAppContextProvider>
 					)}
 				</>
