@@ -130,6 +130,17 @@ export interface SessionStatePart {
 	frameworkId: string
 }
 
+export interface SemanticSearchPart {
+	type: 'semanticSearch'
+	query: string
+	results: {
+		textSnippet: string
+		cellId: string
+		cellLabel: string
+		similarity: number
+	}[]
+}
+
 export interface PrismaContextPart {
 	type: 'prismaContext'
 	noteClassifications: {
@@ -589,6 +600,23 @@ export const DebugPartDefinition: PromptPartDefinition<DebugPart> = {
 export const SessionStatePartDefinition: PromptPartDefinition<SessionStatePart> = {
 	type: 'sessionState',
 	// No buildContent - this is metadata for the worker, not content for the model
+}
+
+// SemanticSearch - RAG over mandala notes, ranked by relevance to the user's query
+export const SemanticSearchPartDefinition: PromptPartDefinition<SemanticSearchPart> = {
+	type: 'semanticSearch',
+	priority: -42, // after Prisma context (-45), before screenshot (-40)
+	buildContent(part: SemanticSearchPart) {
+		if (part.results.length === 0) return []
+
+		const lines = [
+			`[RELEVANT NOTES]: The following notes from the map are most relevant to "${part.query.slice(0, 60)}":`,
+		]
+		for (const r of part.results) {
+			lines.push(`  "${r.textSnippet}" (${r.cellLabel}, relevance: ${r.similarity.toFixed(2)})`)
+		}
+		return [lines.join('\n')]
+	},
 }
 
 // PrismaContext - Prisma's note classification context for the model
