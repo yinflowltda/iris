@@ -89,7 +89,7 @@ describe('collectAnchorCells', () => {
 		expect(cells).toHaveLength(25)
 		const ids = cells.map((c) => c.id)
 		// Root
-		expect(ids).toContain('essencia')
+		expect(ids).toContain('proposito')
 		// Spot-check domain cells
 		expect(ids).toContain('espiritual-querer')
 		expect(ids).toContain('mental-ser')

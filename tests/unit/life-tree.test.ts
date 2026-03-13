@@ -13,8 +13,8 @@ function collectIds(node: TreeNodeDef): string[] {
 }
 
 describe('LIFE_TREE', () => {
-	it('has root id "essencia"', () => {
-		expect(LIFE_TREE.root.id).toBe('essencia')
+	it('has root id "proposito"', () => {
+		expect(LIFE_TREE.root.id).toBe('proposito')
 	})
 
 	it('has 10 children at depth 1 (6 domains + 4 week groups)', () => {
@@ -33,7 +33,7 @@ describe('LIFE_TREE', () => {
 		const domains = ['espiritual', 'mental', 'fisico', 'material', 'profissional', 'pessoal']
 		const rings = ['querer', 'ser', 'ter', 'saber']
 
-		expect(ids.has('essencia')).toBe(true)
+		expect(ids.has('proposito')).toBe(true)
 		for (const domain of domains) {
 			expect(ids.has(domain)).toBe(true) // transparent wrapper
 			for (const ring of rings) {

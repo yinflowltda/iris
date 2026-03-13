@@ -14,7 +14,7 @@ import { registerFramework } from './framework-registry'
  *
  * Domains: Espiritual, Mental, Físico, Material, Profissional, Pessoal
  * Rings (center → outer): Querer, Ser, Ter, Saber
- * Center: Essência (Essence/Self)
+ * Center: Propósito (Purpose/Focus)
  */
 
 // ─── Ring definitions (bottom half: life domains) ────────────────────────────
@@ -134,16 +134,17 @@ export const LIFE_MAP: MapDefinition = {
 	description:
 		'A holistic mandala for exploring six key life dimensions through four lenses of self-awareness — Querer (desire), Ser (being), Ter (having), and Saber (knowing).',
 	center: {
-		id: 'essencia',
-		label: 'Essência',
+		id: 'proposito',
+		label: 'Propósito',
 		radiusRatio: 0.1,
-		question: 'What is your essence — the core of who you are beyond roles and titles?',
+		question:
+			'What is the driving reason behind your current choices? What are you working toward in this period of your life?',
 		guidance:
-			'Help the user connect with their deepest sense of self. This is the anchor that holds all life dimensions together.',
+			'Help the user articulate the focused intention that gives direction to everything on this map. Life maps are scoped to a 3-6 month horizon.',
 		examples: [
-			'Curiosity and compassion',
-			'A seeker of truth and beauty',
-			'Someone who values growth above comfort',
+			'Transition to a new city and establish a new life there',
+			'Build a sustainable freelance career',
+			'Recover from burnout and find work-life balance',
 		],
 	},
 	slices: [
@@ -404,7 +405,7 @@ export const LIFE_TREE: TreeMapDefinition = {
 		{
 			id: 'grounds',
 			label: 'grounds',
-			fromCells: ['essencia'],
+			fromCells: ['proposito'],
 			toCells: quererCells,
 			empiricalBasis:
 				'Values-based motivation: core values anchor authentic desires (Schwartz, 1992)',
@@ -514,7 +515,7 @@ registerFramework({
 		description: 'See how different areas of your life are doing at a glance.',
 		active: true,
 		longDescription:
-			'A holistic mandala for exploring six key life dimensions — Spiritual, Emotional, Physical, Material, Professional, and Relational — through four lenses of self-awareness: what you want, who you are, what you have, and what you know.',
+			'A holistic mandala for exploring six key life dimensions — Spiritual, Mental, Physical, Material, Professional, and Personal — through four lenses of self-awareness: what you want, who you are, what you have, and what you know.',
 		useCases: ['Holistic', 'Self-Assessment', '6 Domains', '4 Rings'],
 		keyQuestions: [
 			'How balanced is my life right now?',
