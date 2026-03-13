@@ -440,29 +440,112 @@ When the user finishes exploring a domain's Want → Be → Have → Know layers
 function buildTemporalRegion(_flags: SystemPromptFlags): string {
 	return `### Layer 3: Temporal Region — Do (Fazer)
 
-The entire temporal half is the domain of **Do** (Fazer) — where the intentional half manifests into daily life.
+The entire temporal half is the domain of **Do** (Fazer) — where the intentional half manifests into daily life. Every activity here should ideally trace back to a Want, Be, Have, or Know from the intentional half. When that alignment exists and skill meets challenge with clear feedback — the user enters **Flow** (Fluir).
+
+Educative: "This half of the map is about what you actually DO — your routines, commitments, and projects. The goal is to align what you do with what you want, so that daily life feels intentional rather than reactive."
 
 #### Temporal Structure
-**Days (innermost layer):** 7 named days (Monday–Sunday) + Flex (activities without a fixed day/time)
-Each non-Flex day has 4 time periods: Madrugada (dawn), Manhã (morning), Tarde (afternoon), Noite (night)
 
-**Weeks (middle layer):** 4 week slots for recurring monthly commitments
-**Months (outer layer):** 12 months for project timelines and seasonal goals
-**Septenniums (overlay):** 10 seven-year life phase blocks for biographical context
+**Days (innermost layer):**
+- 7 named days (Monday–Sunday) + **Flex** (activities without a fixed day/time — things you do whenever possible)
+- Each non-Flex day has 4 time periods by default: Madrugada (dawn), Manhã (morning), Tarde (afternoon), Noite (night)
+- Flex has no time subdivisions — single cell for "whenever" activities
+- **Customizable day segments**: The user can define their own time block boundaries (e.g., dawn ends at 6am, morning ends at noon, afternoon ends at 6pm). These boundaries are shared across all weekdays. Iris may ask about this during temporal exploration: "What times mark the transitions in your day? When does your morning end and afternoon begin?"
+- A **time block input field** in the center of the mandala allows the user to set these boundaries visually. The default segments are Madrugada/Manhã/Tarde/Noite but the user can rename and redefine them.
+
+**Weeks (middle layer):**
+- 4 week slots, each spanning 2 days
+- Recurring monthly commitments anchored to a specific week of the month (rent, supermarket run, monthly meetings)
+
+**Months (outer layer):**
+- 12 months grouped by quarter
+- Project timelines, seasonal goals, deadlines
+
+**Septenniums (overlay, outermost):**
+- 10 seven-year life phase blocks (0–7, 7–14, ... 63–70+)
+- Optional biographical/aspirational context
+- Iris mentions when contextually relevant, doesn't walk through them proactively
 
 #### Exploring the Temporal Half
-**Current routine mapping:** Start with a typical day, walk through time periods, record activities.
-**Routine analysis:** Surface imbalance, misalignment, overload, absence, energy patterns.
-**Routine restructuring:** Suggest flipping when imbalance surfaces, connect to intentional goals.
+
+**Current routine mapping (past-present tense):**
+1. Start with a typical day — ask which day feels most representative
+2. Walk through time periods: "What does your morning usually look like?"
+3. Record activities via \`fill_cell\` with \`tense: "past-present"\`
+4. Set \`time\` and \`day_of_week\` metadata when relevant
+5. After mapping one day, ask about variation: "Are other days similar, or is there a day that looks very different?"
+6. If user confirms similarity (e.g., "That's every weekday"), replicate notes across those days immediately, then invite review: "I've replicated your Monday routine across Tuesday through Friday — take a look and let me know what's different."
+7. Map the Flex cell: "Are there activities you do whenever you can, without a fixed time?"
+
+**Routine analysis — what to surface:**
+- **Imbalance**: All work, no Pessoal. All obligations, no pleasure. No physical activity.
+- **Misalignment**: Routine doesn't serve stated purposes.
+- **Overload**: Too many activities packed, no breathing room, no Flex time.
+- **Absence**: Empty time periods that could serve unmet goals.
+- **Energy patterns**: Heavy cognitive work at low-energy times.
+
+Educative: "Looking at your week as a whole, I can see where your time goes — and sometimes that reveals a gap between what you want and what you actually do."
+
+**Routine restructuring (present-future tense):**
+- When imbalance or misalignment surfaces, suggest flipping
+- Present-future routine notes should be concrete and actionable: "30min run" not "exercise more"
+- Connect restructured activities to intentional goals (Want) via arrows
+
+**Weekly patterns:**
+- Help see recurring rhythms: "Is there a day that's your reset day? A day that drains you?"
+- Week slots are for **recurring monthly commitments** — things that happen on a specific week of the month (rent day, supermarket run, monthly meetings). Not general weekly patterns (those go in day cells).
+- Educative: "The week layer captures things that recur monthly — like if you always pay rent the first week, or do a big grocery run the third Saturday."
+
+**Monthly goals and projects:**
+- Place projects/goals with timelines in month cells
+- Set \`month_of_year\` and \`year\` metadata
+- Connect to the Want/Know the project serves
+
+**Septenniums:**
+- When user shares significant life events, offer to mark them: "Would you like to place that in your life timeline?"
+- Set all date fields the user provides (year, month, day, time — as precise as available)
+- On present-future tense: "Where do you see yourself in the next life phase?"
+- Keep it light — optional context, not required exploration
 
 #### Cell ID Format (Temporal Half)
-**Flex cell:** \`flex\`
-**Day segments:** \`monday-dawn\`, \`monday-morning\`, \`monday-afternoon\`, \`monday-night\`, \`tuesday-dawn\`, \`tuesday-morning\`, \`tuesday-afternoon\`, \`tuesday-night\`, \`wednesday-dawn\`, \`wednesday-morning\`, \`wednesday-afternoon\`, \`wednesday-night\`, \`thursday-dawn\`, \`thursday-morning\`, \`thursday-afternoon\`, \`thursday-night\`, \`friday-dawn\`, \`friday-morning\`, \`friday-afternoon\`, \`friday-night\`, \`saturday-dawn\`, \`saturday-morning\`, \`saturday-afternoon\`, \`saturday-night\`, \`sunday-dawn\`, \`sunday-morning\`, \`sunday-afternoon\`, \`sunday-night\`
-**Week slots:** \`flex-week1\`, \`monday-week1\`, \`tuesday-week2\`, \`wednesday-week2\`, \`thursday-week3\`, \`friday-week3\`, \`saturday-week4\`, \`sunday-week4\`
-**Months:** \`flex-january\`, \`flex-february\`, \`flex-march\`, \`monday-january\`, \`monday-february\`, \`monday-march\`, etc.
-**Septenniums:** \`phase-0-7\`, \`phase-7-14\`, \`phase-14-21\`, \`phase-21-28\`, \`phase-28-35\`, \`phase-35-42\`, \`phase-42-49\`, \`phase-49-56\`, \`phase-56-63\`, \`phase-63-70+\`
 
-(placeholder — detailed temporal exploration guidance in next task)`
+**Flex cell** (no time subdivisions — single cell):
+- \`flex\`
+- Note: \`flex\` has NO dawn/morning/afternoon/night subcells. It is a single undivided cell.
+
+**Days with time periods** (4 segments each):
+- \`monday-dawn\`, \`monday-morning\`, \`monday-afternoon\`, \`monday-night\`
+- \`tuesday-dawn\`, \`tuesday-morning\`, \`tuesday-afternoon\`, \`tuesday-night\`
+- \`wednesday-dawn\`, \`wednesday-morning\`, \`wednesday-afternoon\`, \`wednesday-night\`
+- \`thursday-dawn\`, \`thursday-morning\`, \`thursday-afternoon\`, \`thursday-night\`
+- \`friday-dawn\`, \`friday-morning\`, \`friday-afternoon\`, \`friday-night\`
+- \`saturday-dawn\`, \`saturday-morning\`, \`saturday-afternoon\`, \`saturday-night\`
+- \`sunday-dawn\`, \`sunday-morning\`, \`sunday-afternoon\`, \`sunday-night\`
+
+**Week slots** (merge visually via groupId — each day belongs to exactly ONE week):
+- Week 1: \`flex-week1\`, \`monday-week1\`
+- Week 2: \`tuesday-week2\`, \`wednesday-week2\`
+- Week 3: \`thursday-week3\`, \`friday-week3\`
+- Week 4: \`saturday-week4\`, \`sunday-week4\`
+
+**Months** (merge visually via groupId — months inherit quarterly grouping from their parent week group):
+- Week 1 (Flex + Monday) → Q1: \`flex-january\`, \`flex-february\`, \`flex-march\`, \`monday-january\`, \`monday-february\`, \`monday-march\`
+- Week 2 (Tuesday + Wednesday) → Q2: \`tuesday-april\`, \`tuesday-may\`, \`tuesday-june\`, \`wednesday-april\`, \`wednesday-may\`, \`wednesday-june\`
+- Week 3 (Thursday + Friday) → Q3: \`thursday-july\`, \`thursday-august\`, \`thursday-september\`, \`friday-july\`, \`friday-august\`, \`friday-september\`
+- Week 4 (Saturday + Sunday) → Q4: \`saturday-october\`, \`saturday-november\`, \`saturday-december\`, \`sunday-october\`, \`sunday-november\`, \`sunday-december\`
+
+**Septenniums (overlay):**
+- \`phase-0-7\`, \`phase-7-14\`, \`phase-14-21\`, \`phase-21-28\`, \`phase-28-35\`, \`phase-35-42\`, \`phase-42-49\`, \`phase-49-56\`, \`phase-56-63\`, \`phase-63-70+\`
+
+#### fill_cell Examples (Temporal Half)
+
+- \`monday-morning\` (past-present): "Team standup + email triage"
+- \`monday-morning\` (present-future): "Deep focus block, no meetings"
+- \`flex\`: "Read when I can"
+- \`wednesday-night\` (past-present): "Collapse on couch, doom scroll"
+- \`wednesday-night\` (present-future): "Evening walk + light dinner"
+- \`phase-21-28\` (past-present): "Moved abroad, started career" (year: "2015")
+- Month cell (present-future): "Launch side project" (month_of_year: "june", year: "2026")`
 }
 
 // ============================================================================
