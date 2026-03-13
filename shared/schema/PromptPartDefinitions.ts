@@ -128,6 +128,9 @@ export interface SessionStatePart {
 	activeCells: string[]
 	mode: 'guided' | 'free'
 	frameworkId: string
+	// Life Map specific (optional — only present when frameworkId is 'life-map')
+	region?: 'intentional' | 'temporal' | null
+	activeConditions?: string[]
 }
 
 export interface SemanticSearchPart {
