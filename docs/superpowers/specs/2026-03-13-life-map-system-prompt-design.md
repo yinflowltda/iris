@@ -233,7 +233,17 @@ The intentional half (domains/QSTS) and temporal half (routine/calendar) are dee
 
 #### Mandala Actions
 
-**`highlight_cell`**: Always highlight the cell while discussing it.
+**`highlight_cell` → `fill_cell` sequencing (HARD REQUIREMENT):**
+Every time content is recorded in a cell, `highlight_cell` MUST be called for that cell IMMEDIATELY BEFORE `fill_cell`. This is a strict sequencing requirement. The sequence is always:
+1. `think` (plan the content and tense)
+2. `highlight_cell` (highlight the target cell)
+3. `fill_cell` (record the content)
+4. `set_metadata` (set tense and other metadata)
+5. `create_arrow` if applicable (after both endpoints exist)
+
+Never call `fill_cell` without a preceding `highlight_cell` for the same cell in the same response.
+
+When doing multi-cell extraction (filling several cells from rich content), each cell still gets its own `highlight_cell` → `fill_cell` pair in sequence.
 
 **`fill_cell`**:
 - Write concise labels (a few words), not full sentences. No trailing period.
@@ -241,7 +251,12 @@ The intentional half (domains/QSTS) and temporal half (routine/calendar) are dee
 - After multi-cell extraction, invite review: "I captured several things from what you shared — take a look."
 - For routine replication: when user confirms days are similar, replicate notes across those days without asking permission per cell, then invite review.
 
-**`create_arrow`**: Connect related elements. Announce what you're connecting and why. Create after both endpoints exist.
+**`create_arrow`**:
+- Parameters: `sourceElementId` (where arrow starts), `targetElementId` (where arrow points), `color` ("black" | "green" | "red")
+- Connect related elements. Announce what you're connecting and why.
+- Create only AFTER both source and target elements exist via `fill_cell`.
+- Each call connects exactly one source to one target.
+- One element can have multiple arrows.
 
 **`set_metadata`**: Set metadata fields as content is placed. Always set `tense`. Set date fields to maximum precision available.
 
@@ -352,7 +367,7 @@ When the user finishes a domain's QSTS exploration:
 
 #### Cell ID Format (Intentional Half)
 
-`{domain}-{ring}`:
+`{domain}-{layer}`:
 - `espiritual-querer`, `espiritual-ser`, `espiritual-ter`, `espiritual-saber`
 - `mental-querer`, `mental-ser`, `mental-ter`, `mental-saber`
 - `fisico-querer`, `fisico-ser`, `fisico-ter`, `fisico-saber`
@@ -442,16 +457,30 @@ Educative: "Looking at your week as a whole, I can see where your time goes — 
 
 #### Cell ID Format (Temporal Half)
 
-**Days with time periods:**
+**Flex cell** (no time subdivisions — single cell):
+- `flow` (referred to as "Flex" in user-facing text)
+- Note: `flow` has NO dawn/morning/afternoon/night subcells. It is a single undivided cell.
+
+**Days with time periods** (4 segments each):
 - `monday-dawn`, `monday-morning`, `monday-afternoon`, `monday-night`
-- Same pattern for tuesday through sunday
-- `flex` (the Flex cell — activities without fixed day/time)
+- `tuesday-dawn`, `tuesday-morning`, `tuesday-afternoon`, `tuesday-night`
+- `wednesday-dawn`, `wednesday-morning`, `wednesday-afternoon`, `wednesday-night`
+- `thursday-dawn`, `thursday-morning`, `thursday-afternoon`, `thursday-night`
+- `friday-dawn`, `friday-morning`, `friday-afternoon`, `friday-night`
+- `saturday-dawn`, `saturday-morning`, `saturday-afternoon`, `saturday-night`
+- `sunday-dawn`, `sunday-morning`, `sunday-afternoon`, `sunday-night`
 
-**Week slots** (merge visually via groupId):
-- `{day}-week1`, `{day}-week2`, `{day}-week3`, `{day}-week4`
+**Week slots** (merge visually via groupId — each day belongs to exactly ONE week):
+- Week 1: `flow-week1`, `monday-week1`
+- Week 2: `tuesday-week2`, `wednesday-week2`
+- Week 3: `thursday-week3`, `friday-week3`
+- Week 4: `saturday-week4`, `sunday-week4`
 
-**Months** (merge visually via groupId):
-- `{day}-january`, `{day}-february`, ... through december
+**Months** (merge visually via groupId — each day maps to exactly 3 months):
+- Flow + Monday → `flow-january`, `flow-february`, `flow-march`, `monday-january`, `monday-february`, `monday-march`
+- Tuesday + Wednesday → `tuesday-april`, `tuesday-may`, `tuesday-june`, `wednesday-april`, `wednesday-may`, `wednesday-june`
+- Thursday + Friday → `thursday-july`, `thursday-august`, `thursday-september`, `friday-july`, `friday-august`, `friday-september`
+- Saturday + Sunday → `saturday-october`, `saturday-november`, `saturday-december`, `sunday-october`, `sunday-november`, `sunday-december`
 
 **Septenniums (overlay):**
 - `phase-0-7`, `phase-7-14`, `phase-14-21`, `phase-21-28`, `phase-28-35`, `phase-35-42`, `phase-42-49`, `phase-49-56`, `phase-56-63`, `phase-63-70+`
@@ -460,7 +489,7 @@ Educative: "Looking at your week as a whole, I can see where your time goes — 
 
 - `monday-morning` (past-present): "Team standup + email triage"
 - `monday-morning` (present-future): "Deep focus block, no meetings"
-- `flex`: "Read when I can"
+- `flow` (Flex): "Read when I can"
 - `wednesday-night` (past-present): "Collapse on couch, doom scroll"
 - `wednesday-night` (present-future): "Evening walk + light dinner"
 - `phase-21-28` (past-present): "Moved abroad, started career" (year: "2015")
@@ -486,17 +515,17 @@ Set `condition` metadata on relevant notes.
 
 **Intentional adjustments:**
 - Explore triggers across dimensions — anxiety often cuts across multiple domains
-- Físico: somatic symptoms (tension, sleep disruption, appetite changes)
-- Pessoal: social avoidance or relationship strain
-- Profissional: concentration issues, avoidance patterns, low productivity
-- Ter: existing stress management strategies (or their absence)
-- Saber: whether user understands anxiety's mechanism (psychoeducation opportunity)
+- `fisico-ter`: somatic symptoms (tension, sleep disruption, appetite changes)
+- `pessoal-ser`: social avoidance or relationship strain patterns
+- `profissional-ser`: concentration issues, avoidance patterns, low productivity
+- `{dimension}-ter`: existing stress management strategies (or their absence)
+- `{dimension}-saber`: whether user understands anxiety's mechanism (psychoeducation opportunity)
 
 **Temporal adjustments:**
-- Daily activity distribution causing overload
-- Absence of relaxation/recovery slots
+- Daily activity distribution causing overload (check day segments for packed schedules)
+- Absence of relaxation/recovery slots (look for empty Noite or Flex cells)
 - Avoidance patterns (empty slots where activity should be)
-- Present-future: help insert stress management activities, balance routine
+- Present-future: help insert stress management activities in specific time slots, balance routine
 
 #### Overlay: Chronic Stress
 
@@ -621,7 +650,7 @@ When the user is pouring out content (especially via voice), Iris does NOT inter
 | Resource, skill, relationship, asset | `{domain}-ter` | "I have..." → past-present; "I'd like to have..." → present-future |
 | Knowledge, learning, wisdom | `{domain}-saber` | "I know..." → past-present; "I need to learn..." → present-future |
 | Daily activity, habit, commitment | Day/time cell | "I usually..." → past-present; "I'd like to start..." → present-future |
-| Flexible/unscheduled activity | `flex` | Either tense based on context |
+| Flexible/unscheduled activity | `flow` (Flex) | Either tense based on context |
 | Life event, biographical fact | Septennium cell | Typically past-present |
 | Project, goal, deadline | Month cell | Typically present-future |
 | Core identity statement | `essencia` | Either tense |
@@ -669,7 +698,11 @@ Then: "I picked up several things from what you shared and placed them across yo
 - `pessoal-querer`, `pessoal-ser`, `pessoal-ter`, `pessoal-saber`
 
 ### Temporal Half
-- `flex`
+
+**Flex cell** (no subcells):
+- `flow`
+
+**Day segments** (7 days × 4 segments = 28 cells):
 - `monday-dawn`, `monday-morning`, `monday-afternoon`, `monday-night`
 - `tuesday-dawn`, `tuesday-morning`, `tuesday-afternoon`, `tuesday-night`
 - `wednesday-dawn`, `wednesday-morning`, `wednesday-afternoon`, `wednesday-night`
@@ -677,9 +710,26 @@ Then: "I picked up several things from what you shared and placed them across yo
 - `friday-dawn`, `friday-morning`, `friday-afternoon`, `friday-night`
 - `saturday-dawn`, `saturday-morning`, `saturday-afternoon`, `saturday-night`
 - `sunday-dawn`, `sunday-morning`, `sunday-afternoon`, `sunday-night`
-- Week slots: `{day}-week1` through `{day}-week4` (merge via groupId)
-- Months: `{day}-january` through `{day}-december` (merge via groupId)
-- Septenniums: `phase-0-7` through `phase-63-70+`
+
+**Week slots** (8 cells, merge in pairs via groupId):
+- `flow-week1`, `monday-week1`
+- `tuesday-week2`, `wednesday-week2`
+- `thursday-week3`, `friday-week3`
+- `saturday-week4`, `sunday-week4`
+
+**Months** (24 cells, merge in groups via groupId):
+- `flow-january`, `flow-february`, `flow-march`
+- `monday-january`, `monday-february`, `monday-march`
+- `tuesday-april`, `tuesday-may`, `tuesday-june`
+- `wednesday-april`, `wednesday-may`, `wednesday-june`
+- `thursday-july`, `thursday-august`, `thursday-september`
+- `friday-july`, `friday-august`, `friday-september`
+- `saturday-october`, `saturday-november`, `saturday-december`
+- `sunday-october`, `sunday-november`, `sunday-december`
+
+**Septenniums** (10 overlay cells):
+- `phase-0-7`, `phase-7-14`, `phase-14-21`, `phase-21-28`, `phase-28-35`
+- `phase-35-42`, `phase-42-49`, `phase-49-56`, `phase-56-63`, `phase-63-70+`
 
 ## Implementation Notes
 
@@ -692,27 +742,52 @@ Add `'life-map'` to `SELF_CONTAINED_FRAMEWORKS` set in `buildSystemPrompt.ts`. T
 
 ### Region-Based Loading
 
-Extend `SessionStatePart` or create a new `LifeMapSessionState` type to track:
-- `region`: "intentional" | "temporal" | null (for free mode or initial state)
-- `activeConditions`: string[] (condition overlay IDs currently active)
-- `mode`: "guided" | "free"
+Create a new `LifeMapSessionState` type (separate from `SessionStatePart` which uses `currentStep` for the emotions map's linear 0-9 step flow):
 
-The `buildLifeMapSection` function loads:
-- Base layer (always)
-- Region layer (based on `region`)
-- Condition overlays (based on `activeConditions`)
-- Free mode rules (when `mode === "free"`)
+```typescript
+interface LifeMapSessionState {
+  mode: 'guided' | 'free'
+  region: 'intentional' | 'temporal' | null  // null = initial state or free mode
+  activeConditions: string[]  // e.g., ['anxiety', 'insomnia']
+  frameworkId: 'life-map'
+  filledCells: string[]
+  activeCells: string[]
+}
+```
 
-### Flex Cell Rename
+The `buildLifeMapSection` function signature:
 
-The code uses `flow` as the cell ID. The prompt refers to it as **Flex** in all user-facing text. A code rename from `flow` to `flex` should be coordinated but is not blocking — the prompt can map the concept regardless of internal ID.
+```typescript
+function buildLifeMapSection(
+  flags: SystemPromptFlags,
+  sessionState?: LifeMapSessionState,
+): string
+```
+
+Loading logic:
+- **No session state** → full prompt (all layers, backwards-compatible)
+- **`mode: "guided"`** → base layer + region layer (based on `region`) + condition overlays (based on `activeConditions`)
+- **`mode: "free"`** → base layer + free mode rules + condition overlays
+- **`region: null`** (initial state) → base layer only (Step 0 framing)
+
+Unlike the emotions map's fine-grained step loading (current ± 1 step), the Life Map uses coarser region-based loading. This is appropriate because the Life Map's exploration within a region is fluid (any domain, any layer, any order), whereas the emotions map's CBT flow is sequential. The token savings come from excluding the entire other region's guidance, plus excluding inactive condition overlays.
+
+### Flex Cell Naming
+
+The cell ID is `flow` in the code and prompt (used in `fill_cell`, `highlight_cell`, etc.). In user-facing conversation, Iris refers to it as **Flex** to avoid confusion with the Fluir (Flow) concept — the 6th verb and overarching goal of the Yinflow methodology. A future code rename from `flow` to `flex` may be considered but is not required — the prompt handles the distinction via user-facing language.
 
 ### Feature Dependencies
 
-- **Flippable notes**: Requires new `tense` metadata field on notes, plus UI for flipping individual notes and bulk toggle. This is a new feature not yet built.
-- **Bulk flip toggle**: UI feature — flip all notes to past-present or present-future at once.
-- **Condition overlay loading**: Requires session state tracking for active conditions.
+**MVP (required for prompt to function):**
+- **Tense metadata field**: Add `tense` to element metadata schema for life-map cells. Without this, the flippable notes concept degrades to label-only differentiation.
+- **Self-contained framework registration**: Add `'life-map'` to `SELF_CONTAINED_FRAMEWORKS` and implement `buildLifeMapSection` with region-based loading.
 - **Routine replication**: Iris creates notes on multiple cells from a single user confirmation — the `fill_cell` action already supports this.
+
+**Post-MVP (enhances but not blocking):**
+- **Flippable notes UI**: Visual flip interaction for individual notes (tap to see other tense). Until built, both tenses coexist as separate notes in the same cell, distinguished by `tense` metadata.
+- **Bulk flip toggle**: UI toggle to flip all notes between past-present and present-future at once.
+- **Condition overlay loading**: Requires `LifeMapSessionState` tracking for active conditions. Until built, full prompt includes all condition overlays (higher token cost but functional).
+- **Code rename `flow` → `flex`**: Optional. The prompt handles the distinction via user-facing language.
 
 ### Future Chore
 
