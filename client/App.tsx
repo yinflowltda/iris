@@ -462,7 +462,7 @@ function App() {
 			},
 		)
 
-		// Expose CKKS service on window for browser testing
+		// Expose services on window for browser testing
 		const ckks = CkksService.getInstance()
 		;(window as any).ckks = ckks
 
