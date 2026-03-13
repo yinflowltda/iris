@@ -52,7 +52,7 @@ export const CreateArrowActionUtil = registerActionUtil(
 				(a) =>
 					a.sourceElementId === action.sourceElementId &&
 					a.targetElementId === action.targetElementId &&
-					a.color === action.color,
+					(a.edgeTypeId ? a.edgeTypeId === action.edgeTypeId : a.color === action.color),
 			)
 			if (duplicate) return
 
@@ -132,6 +132,7 @@ export const CreateArrowActionUtil = registerActionUtil(
 				sourceElementId: action.sourceElementId,
 				targetElementId: action.targetElementId,
 				color: action.color,
+				edgeTypeId: action.edgeTypeId,
 			}
 
 			editor.updateShape({

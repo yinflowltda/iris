@@ -454,11 +454,12 @@ export const CreateArrowAction = z
 		targetElementId: SimpleShapeIdSchema,
 		color: z.enum(['black', 'green', 'red']),
 		label: z.string().max(30).optional(),
+		edgeTypeId: z.string().optional(),
 	})
 	.meta({
 		title: 'Create Arrow',
 		description:
-			'Creates a directional color-coded arrow between two mandala elements. Color semantics: black = factual link, green = supports/sustains, red = contradicts. Both source and target must be existing elements created via fill_cell.',
+			'Creates a directional arrow between two mandala notes. Use edgeTypeId to specify the relationship type from the map\'s edge schema (e.g., "triggers", "shapes", "drives", "supports", "contradicts"). Color semantics: black = factual link, green = supports/sustains, red = contradicts. Both source and target must be existing elements.',
 		_systemPromptCategory: 'edit',
 	})
 
