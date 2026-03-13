@@ -1,10 +1,10 @@
+import type { TLShapeId } from 'tldraw'
 import { describe, expect, it, vi } from 'vitest'
 import {
 	extractNoteDescriptors,
 	getTreeDefFromMandala,
 } from '../../../client/lib/prisma/use-note-classifier'
 import type { MandalaState } from '../../../shared/types/MandalaTypes'
-import type { TLShapeId } from 'tldraw'
 
 // ─── Mock embedding service (required by transitive import) ─────────────────
 

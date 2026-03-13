@@ -1,13 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { clearAnchorCache } from '../../../client/lib/prisma/cell-anchors'
 import {
 	classifyNote,
 	classifyNoteBatch,
-	findCurrentCell,
 	type EmbedFn,
+	findCurrentCell,
 	type NoteDescriptor,
 } from '../../../client/lib/prisma/note-classifier'
-import { clearAnchorCache } from '../../../client/lib/prisma/cell-anchors'
-import type { TreeMapDefinition, MandalaState } from '../../../shared/types/MandalaTypes'
+import type { MandalaState, TreeMapDefinition } from '../../../shared/types/MandalaTypes'
 
 // ─── Mock embedding service ─────────────────────────────────────────────────
 
