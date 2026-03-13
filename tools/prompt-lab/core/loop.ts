@@ -52,23 +52,22 @@ export async function runLoop(options: LoopOptions): Promise<LabReport & { runId
 	let bestAverage = -1
 
 	for (let i = 1; i <= maxIterations; i++) {
-		// Run all scenarios with the current prompt and score them
-		const results = await Promise.all(
-			scenarios.map(async (scenario) => {
-				const conversation = await runConversation({
-					scenario,
-					agentClient,
-					userClient,
-					systemPrompt: currentPrompt,
-				})
-				const score = await scoreConversation({
-					conversation,
-					frameworkConfig,
-					judgeClient,
-				})
-				return { conversation, score }
-			}),
-		)
+		// Run scenarios sequentially to avoid overwhelming the API proxy
+		const results: { conversation: Awaited<ReturnType<typeof runConversation>>; score: Awaited<ReturnType<typeof scoreConversation>> }[] = []
+		for (const scenario of scenarios) {
+			const conversation = await runConversation({
+				scenario,
+				agentClient,
+				userClient,
+				systemPrompt: currentPrompt,
+			})
+			const score = await scoreConversation({
+				conversation,
+				frameworkConfig,
+				judgeClient,
+			})
+			results.push({ conversation, score })
+		}
 
 		const scores = results.map((r) => r.score)
 

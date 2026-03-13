@@ -1,5 +1,5 @@
 import { createOpenAI } from '@ai-sdk/openai'
-import { generateText } from 'ai'
+import { streamText } from 'ai'
 import type { ApiClientConfig } from './types'
 
 export interface GenerateInput {
@@ -32,7 +32,7 @@ export function createApiClient(config: ApiClientConfig): ApiClient {
 		async generate(input: GenerateInput): Promise<GenerateOutput> {
 			const start = Date.now()
 
-			const result = await generateText({
+			const result = streamText({
 				model: provider.chat(config.model),
 				system: input.systemPrompt,
 				messages: input.messages.map((m) => ({
@@ -43,13 +43,15 @@ export function createApiClient(config: ApiClientConfig): ApiClient {
 				temperature: input.temperature,
 			})
 
+			const text = await result.text
+			const usage = await result.usage
 			const durationMs = Date.now() - start
 
 			return {
-				text: result.text,
+				text,
 				usage: {
-					promptTokens: result.usage.promptTokens,
-					completionTokens: result.usage.completionTokens,
+					promptTokens: usage.promptTokens,
+					completionTokens: usage.completionTokens,
 				},
 				durationMs,
 			}
