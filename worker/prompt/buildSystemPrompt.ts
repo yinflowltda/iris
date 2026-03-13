@@ -16,7 +16,7 @@ const frameworkPromptBuilders: Record<
 }
 
 /** Frameworks that provide their own comprehensive instructions, replacing generic intro/rules */
-const SELF_CONTAINED_FRAMEWORKS = new Set(['emotions-map'])
+const SELF_CONTAINED_FRAMEWORKS = new Set(['emotions-map', 'life-map'])
 
 /**
  * Build the system prompt for the agent.
