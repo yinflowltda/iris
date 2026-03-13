@@ -71,6 +71,7 @@ import './lib/frameworks/life-map'
 import { getFramework } from './lib/frameworks/framework-registry'
 import { makeEmptyState } from './lib/mandala-geometry'
 import { findNonOverlappingPosition } from './lib/mandala-placement'
+import { CkksService } from './lib/prisma/ckks-service'
 import { registerArrowBindingDetector } from './lib/mandala-arrow-binding'
 import { registerMandalaSnapEffect } from './lib/mandala-snap'
 import { applyNodulePaletteToThemes } from './lib/nodule-color-palette'
@@ -460,6 +461,10 @@ function App() {
 				})
 			},
 		)
+
+		// Expose CKKS service on window for browser testing
+		const ckks = CkksService.getInstance()
+		;(window as any).ckks = ckks
 
 		return () => {
 			cleanupProgress()
