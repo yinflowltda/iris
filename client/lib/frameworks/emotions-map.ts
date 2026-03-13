@@ -146,6 +146,96 @@ export const EMOTIONS_TREE: TreeMapDefinition = {
 	description: EMOTIONS_MAP.description,
 	// Center present at 12 o'clock: offset by half of present's sweep (120° = 2π/3)
 	startAngle: -Math.PI / 3,
+	edgeTypes: [
+		{
+			id: 'triggers',
+			label: 'triggers',
+			fromCells: ['past-events'],
+			toCells: ['past-thoughts-emotions'],
+			empiricalBasis:
+				'CBT: Activating events trigger automatic thoughts and emotional responses (Beck, 1979)',
+			suggestWhen: 'User describes a situation and its emotional impact',
+			color: 'black',
+		},
+		{
+			id: 'shapes',
+			label: 'shapes',
+			fromCells: ['past-thoughts-emotions'],
+			toCells: ['present-beliefs'],
+			empiricalBasis:
+				'CBT: Repeated automatic thoughts crystallize into core beliefs (Beck, 1979; Young, 1990)',
+			suggestWhen: 'User connects past thought patterns to current beliefs',
+			color: 'black',
+		},
+		{
+			id: 'drives',
+			label: 'drives',
+			fromCells: ['present-beliefs'],
+			toCells: ['present-behaviors'],
+			empiricalBasis: 'CBT: Core beliefs activate compensatory behavioral strategies (Beck, 2011)',
+			suggestWhen: 'User describes how a belief leads to specific behaviors',
+			color: 'black',
+		},
+		{
+			id: 'supports',
+			label: 'supports',
+			fromCells: ['evidence'],
+			toCells: ['present-beliefs', 'future-beliefs'],
+			empiricalBasis:
+				'CBT: Evidence evaluation is central to cognitive restructuring (Burns, 1980)',
+			suggestWhen: 'User finds evidence that confirms a belief',
+			color: 'green',
+		},
+		{
+			id: 'contradicts',
+			label: 'contradicts',
+			fromCells: ['evidence'],
+			toCells: ['present-beliefs', 'future-beliefs'],
+			empiricalBasis: 'CBT: Disconfirming evidence challenges maladaptive beliefs (Padesky, 1994)',
+			suggestWhen: 'User finds evidence that challenges a belief',
+			color: 'red',
+		},
+		{
+			id: 'evolves-into',
+			label: 'evolves into',
+			fromCells: ['present-beliefs'],
+			toCells: ['future-beliefs'],
+			empiricalBasis:
+				'CBT: Cognitive restructuring transforms maladaptive beliefs into adaptive alternatives (Beck, 2011)',
+			suggestWhen: 'User is reframing a negative belief into a healthier one',
+			color: 'green',
+		},
+		{
+			id: 'motivates',
+			label: 'motivates',
+			fromCells: ['future-beliefs'],
+			toCells: ['future-events'],
+			empiricalBasis:
+				'CBT: Behavioral experiments and action plans flow from restructured beliefs (Bennett-Levy et al., 2004)',
+			suggestWhen: 'User plans actions based on new beliefs',
+			color: 'green',
+		},
+		{
+			id: 'echoes',
+			label: 'echoes',
+			fromCells: ['past-events'],
+			toCells: ['future-events'],
+			empiricalBasis:
+				'CBT: Past experiences inform future expectations, goals, and avoidance patterns (Ehlers & Clark, 2000)',
+			suggestWhen: 'User connects a past experience to future plans or fears',
+			color: 'black',
+		},
+		{
+			id: 'reinforces',
+			label: 'reinforces',
+			fromCells: ['present-behaviors'],
+			toCells: ['present-beliefs'],
+			empiricalBasis:
+				'CBT: Behavioral patterns maintain or modify belief systems through feedback loops (Salkovskis, 1991)',
+			suggestWhen: 'User notices their behavior strengthening or weakening a belief',
+			color: 'black',
+		},
+	],
 	root: {
 		id: center.id,
 		label: center.label,
