@@ -5,6 +5,7 @@
 
 import type { TreeMapDefinition } from '../../../shared/types/MandalaTypes'
 import { collectAnchorCells, composeAnchorText } from './cell-anchors'
+import { EdgePredictor, type EdgePrediction, type EdgePredictorWeights } from './edge-predictor'
 import { PrismaEmbeddingService } from './embedding-service'
 import { dot, ProjectionHead } from './projection-head'
 
@@ -13,6 +14,15 @@ import { dot, ProjectionHead } from './projection-head'
 export interface PlacementExample {
 	noteText: string
 	cellId: string
+	timestamp: number
+}
+
+export interface ArrowExample {
+	srcNoteText: string
+	tgtNoteText: string
+	srcCellId: string
+	tgtCellId: string
+	edgeTypeId: string
 	timestamp: number
 }
 
@@ -25,6 +35,8 @@ export interface TrainerState {
 	projectionWeights: ReturnType<ProjectionHead['serialize']>
 	anchors: Record<string, number[]>
 	examples: PlacementExample[]
+	arrowExamples?: ArrowExample[]
+	edgePredictorWeights?: EdgePredictorWeights
 	trainStepCount: number
 }
 
@@ -125,6 +137,8 @@ export class LocalPrismaTrainer {
 	private _head: ProjectionHead
 	private _anchors: TrainableAnchors
 	private _examples: PlacementExample[] = []
+	private _arrowExamples: ArrowExample[] = []
+	private _edgePredictor: EdgePredictor | null = null
 	private _trainStepCount = 0
 	private _mapId: string
 	private _initialized = false
@@ -143,8 +157,16 @@ export class LocalPrismaTrainer {
 		return this._anchors
 	}
 
+	get edgePredictor(): EdgePredictor | null {
+		return this._edgePredictor
+	}
+
 	get exampleCount(): number {
 		return this._examples.length
+	}
+
+	get arrowExampleCount(): number {
+		return this._arrowExamples.length
 	}
 
 	get trainStepCount(): number {
@@ -169,6 +191,12 @@ export class LocalPrismaTrainer {
 			const embedding = await service.embed(text)
 			this._anchors.vectors.set(cell.id, new Float32Array(embedding))
 		}
+
+		// Initialize edge predictor if the map has edge types
+		if (treeDef.edgeTypes && treeDef.edgeTypes.length > 0) {
+			this._edgePredictor = new EdgePredictor(treeDef.edgeTypes)
+		}
+
 		this._initialized = true
 	}
 
@@ -192,9 +220,50 @@ export class LocalPrismaTrainer {
 		})
 	}
 
+	/** Record an arrow creation as a training example for the edge predictor. */
+	addArrow(
+		srcNoteText: string,
+		tgtNoteText: string,
+		srcCellId: string,
+		tgtCellId: string,
+		edgeTypeId: string,
+	): void {
+		if (!srcNoteText.trim() || !tgtNoteText.trim()) return
+		this._arrowExamples.push({
+			srcNoteText: srcNoteText.trim(),
+			tgtNoteText: tgtNoteText.trim(),
+			srcCellId,
+			tgtCellId,
+			edgeTypeId,
+			timestamp: Date.now(),
+		})
+	}
+
+	/**
+	 * Predict edge types for a pair of notes.
+	 * Returns empty if edge predictor not initialized or cell pair has no valid edges.
+	 */
+	async predictEdge(
+		srcNoteText: string,
+		tgtNoteText: string,
+		srcCellId: string,
+		tgtCellId: string,
+		topK = 3,
+	): Promise<EdgePrediction[]> {
+		if (!this._edgePredictor) return []
+		const service = PrismaEmbeddingService.getInstance()
+		const srcEmb = await service.embed(srcNoteText)
+		const tgtEmb = await service.embed(tgtNoteText)
+		return this._edgePredictor.predict(srcEmb, tgtEmb, srcCellId, tgtCellId, topK)
+	}
+
 	/** Check if we have enough examples to train. */
 	canTrain(): boolean {
-		return this._initialized && this._examples.length >= MIN_EXAMPLES_TO_TRAIN
+		return (
+			this._initialized &&
+			(this._examples.length >= MIN_EXAMPLES_TO_TRAIN ||
+				this._arrowExamples.length >= MIN_EXAMPLES_TO_TRAIN)
+		)
 	}
 
 	/**
@@ -276,6 +345,31 @@ export class LocalPrismaTrainer {
 			this._trainStepCount++
 		}
 
+		// Also train edge predictor if we have arrow examples
+		if (this._edgePredictor && this._arrowExamples.length >= MIN_EXAMPLES_TO_TRAIN) {
+			const arrowTextToEmb = new Map<string, Float32Array>()
+			for (const ex of this._arrowExamples) {
+				if (!arrowTextToEmb.has(ex.srcNoteText)) {
+					arrowTextToEmb.set(ex.srcNoteText, await service.embed(ex.srcNoteText))
+				}
+				if (!arrowTextToEmb.has(ex.tgtNoteText)) {
+					arrowTextToEmb.set(ex.tgtNoteText, await service.embed(ex.tgtNoteText))
+				}
+			}
+
+			const edgeExamples = this._arrowExamples.map((ex) => ({
+				srcEmbedding: arrowTextToEmb.get(ex.srcNoteText)!,
+				tgtEmbedding: arrowTextToEmb.get(ex.tgtNoteText)!,
+				srcCellId: ex.srcCellId,
+				tgtCellId: ex.tgtCellId,
+				edgeTypeId: ex.edgeTypeId,
+			}))
+
+			for (let step = 0; step < steps; step++) {
+				this._edgePredictor.train(edgeExamples, LEARNING_RATE)
+			}
+		}
+
 		return { loss: totalLoss / stepsRun, stepsRun }
 	}
 
@@ -305,20 +399,36 @@ export class LocalPrismaTrainer {
 			projectionWeights: this._head.serialize(),
 			anchors,
 			examples: this._examples,
+			arrowExamples: this._arrowExamples,
+			edgePredictorWeights: this._edgePredictor?.serialize(),
 			trainStepCount: this._trainStepCount,
 		}
 	}
 
 	/** Restore trainer state from persistence. */
-	static deserialize(mapId: string, data: TrainerState): LocalPrismaTrainer {
+	static deserialize(
+		mapId: string,
+		data: TrainerState,
+		treeDef?: TreeMapDefinition,
+	): LocalPrismaTrainer {
 		const trainer = new LocalPrismaTrainer(mapId)
 		trainer._head = ProjectionHead.deserialize(data.projectionWeights)
 		for (const [cellId, arr] of Object.entries(data.anchors)) {
 			trainer._anchors.vectors.set(cellId, new Float32Array(arr))
 		}
 		trainer._examples = data.examples
+		trainer._arrowExamples = data.arrowExamples ?? []
 		trainer._trainStepCount = data.trainStepCount
 		trainer._initialized = true
+
+		// Restore edge predictor if we have weights and edge types
+		const edgeTypes = treeDef?.edgeTypes
+		if (data.edgePredictorWeights && edgeTypes && edgeTypes.length > 0) {
+			trainer._edgePredictor = EdgePredictor.deserialize(data.edgePredictorWeights, edgeTypes)
+		} else if (edgeTypes && edgeTypes.length > 0) {
+			trainer._edgePredictor = new EdgePredictor(edgeTypes)
+		}
+
 		return trainer
 	}
 

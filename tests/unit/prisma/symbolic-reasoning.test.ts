@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { EMOTIONS_TREE } from '../../../client/lib/frameworks/emotions-map'
+import { LIFE_TREE } from '../../../client/lib/frameworks/life-map'
 import {
 	analyzeCoverage,
 	analyzeGaps,
@@ -289,5 +290,37 @@ describe('analyzeKnowledgeGraph', () => {
 		const result = analyzeKnowledgeGraph([], STATE, EMOTIONS_TREE)
 		// With 5 filled cells and 0 arrows, there should be several gaps
 		expect(result.gaps.length).toBeGreaterThan(0)
+	})
+
+	it('uses real Life Map edge types', () => {
+		expect(LIFE_TREE.edgeTypes).toBeDefined()
+		expect(LIFE_TREE.edgeTypes!.length).toBe(8)
+
+		// Verify ring progression chain: shapes, determines, enables, informs
+		const ids = LIFE_TREE.edgeTypes!.map((e) => e.id)
+		expect(ids).toContain('shapes')
+		expect(ids).toContain('determines')
+		expect(ids).toContain('enables')
+		expect(ids).toContain('informs')
+		expect(ids).toContain('grounds')
+		expect(ids).toContain('depends-on')
+		expect(ids).toContain('conflicts-with')
+		expect(ids).toContain('planned-in')
+	})
+
+	it('detects Life Map gaps with filled ring cells', () => {
+		const lifeState: MandalaState = {
+			'espiritual-querer': { status: 'filled', contentShapeIds: ['n1' as any] },
+			'espiritual-ser': { status: 'filled', contentShapeIds: ['n2' as any] },
+			'mental-querer': { status: 'filled', contentShapeIds: ['n3' as any] },
+		}
+
+		const result = analyzeKnowledgeGraph([], lifeState, LIFE_TREE)
+		// shapes: querer→ser should show gaps for espiritual (filled→filled)
+		const shapesGaps = result.gaps.filter((g) => g.edgeTypeId === 'shapes')
+		expect(shapesGaps.some((g) => g.fromCellId === 'espiritual-querer')).toBe(true)
+		// depends-on: cross-domain gaps between all filled cells
+		const dependsGaps = result.gaps.filter((g) => g.edgeTypeId === 'depends-on')
+		expect(dependsGaps.length).toBeGreaterThan(0)
 	})
 })
