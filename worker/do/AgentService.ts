@@ -41,7 +41,6 @@ export class AgentService {
 			const provider = createOpenAI({
 				baseURL,
 				apiKey: this.env.OPENAI_COMPATIBLE_API_KEY || 'not-needed',
-				compatibility: 'compatible',
 			})
 			return provider.chat(modelDefinition.id)
 		}

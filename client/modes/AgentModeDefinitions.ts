@@ -48,6 +48,7 @@ import { MessagesPartUtil } from '../parts/MessagesPartUtil'
 import { ModelNamePartUtil } from '../parts/ModelNamePartUtil'
 import { ModePartUtil } from '../parts/ModePartUtil'
 import { PeripheralShapesPartUtil } from '../parts/PeripheralShapesPartUtil'
+import { PrismaContextPartUtil } from '../parts/PrismaContextPartUtil'
 import { ScreenshotPartUtil } from '../parts/ScreenshotPartUtil'
 import { SelectedShapesPartUtil } from '../parts/SelectedShapesPartUtil'
 import { SessionStatePartUtil } from '../parts/SessionStatePartUtil'
@@ -199,6 +200,7 @@ export const AGENT_MODE_DEFINITIONS = [
 			ModePartUtil.type,
 			DebugPartUtil.type,
 			SessionStatePartUtil.type,
+			PrismaContextPartUtil.type,
 			ModelNamePartUtil.type,
 			MessagesPartUtil.type,
 			DataPartUtil.type,

@@ -20,6 +20,7 @@ import {
 	getCellBoundsFromArcs,
 	getCellBoundsFromTree,
 } from './mandala-geometry'
+import { emitPlacement } from './prisma/placement-events'
 import { computeSunburstLayout, isNodeInSubtree } from './sunburst-layout'
 import type { ArcAnimationState } from './sunburst-zoom'
 import { computeZoomTargets } from './sunburst-zoom'
@@ -176,7 +177,15 @@ function buildLayoutArcs(
 function getZoomedArcArray(
 	mandala: MandalaShape,
 	treeDef: TreeMapDefinition | undefined,
-): Array<{ id: string; x0: number; x1: number; y0: number; y1: number; transparent?: boolean; depth?: number }> | null {
+): Array<{
+	id: string
+	x0: number
+	x1: number
+	y0: number
+	y1: number
+	transparent?: boolean
+	depth?: number
+}> | null {
 	if (!treeDef) return null
 	if (mandala.props.zoomMode !== 'focus' || !mandala.props.zoomedNodeId) return null
 
@@ -336,6 +345,17 @@ function processPendingSnaps(
 				}
 				cellsToRelayout.add(targetCellId)
 				stateChanged = true
+
+				// Emit placement event for Prisma local training
+				const noteUtil = editor.getShapeUtil(shape)
+				const noteText = (noteUtil as any).getText?.(shape) ?? ''
+				if (noteText.trim()) {
+					emitPlacement({
+						noteText,
+						cellId: targetCellId,
+						mapId: mandala.props.frameworkId,
+					})
+				}
 
 				if (shape.parentId !== mandala.id) {
 					shapesToReparentToMandala.push(shapeId)
@@ -575,7 +595,15 @@ function getBestCellHitForPageBoundsTree(
 }
 
 function getBestCellHitForArcs(
-	arcArray: Array<{ id: string; x0: number; x1: number; y0: number; y1: number; transparent?: boolean; depth?: number }>,
+	arcArray: Array<{
+		id: string
+		x0: number
+		x1: number
+		y0: number
+		y1: number
+		transparent?: boolean
+		depth?: number
+	}>,
 	pageBounds: {
 		minX: number
 		minY: number
