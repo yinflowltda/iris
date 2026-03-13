@@ -130,6 +130,23 @@ export interface SessionStatePart {
 	frameworkId: string
 }
 
+export interface PrismaContextPart {
+	type: 'prismaContext'
+	noteClassifications: {
+		textSnippet: string
+		currentCellId: string | null
+		currentCellLabel: string | null
+		bestMatchCellId: string | null
+		bestMatchCellLabel: string | null
+		similarity: number
+		isMisplaced: boolean
+	}[]
+	emptyCells: { cellId: string; cellLabel: string }[]
+	totalNotes: number
+	totalCells: number
+	filledCellCount: number
+}
+
 // ============================================================================
 // Prompt Part Definitions
 // ============================================================================
@@ -552,4 +569,48 @@ export const DebugPartDefinition: PromptPartDefinition<DebugPart> = {
 export const SessionStatePartDefinition: PromptPartDefinition<SessionStatePart> = {
 	type: 'sessionState',
 	// No buildContent - this is metadata for the worker, not content for the model
+}
+
+// PrismaContext - Prisma's note classification context for the model
+export const PrismaContextPartDefinition: PromptPartDefinition<PrismaContextPart> = {
+	type: 'prismaContext',
+	priority: -45, // after screenshot, before user message
+	buildContent(part: PrismaContextPart) {
+		const lines: string[] = []
+
+		lines.push(
+			`[PRISMA CONTEXT]: Cell coverage: ${part.filledCellCount}/${part.totalCells} filled. ${part.totalNotes} note(s) placed.`,
+		)
+
+		// Note classifications
+		const misplaced = part.noteClassifications.filter((n) => n.isMisplaced)
+		const wellPlaced = part.noteClassifications.filter((n) => !n.isMisplaced && n.currentCellId)
+
+		if (wellPlaced.length > 0) {
+			const items = wellPlaced
+				.map(
+					(n) =>
+						`  "${n.textSnippet}" → ${n.currentCellLabel} (match: ${n.similarity.toFixed(2)} ✓)`,
+				)
+				.join('\n')
+			lines.push(`Well-placed notes:\n${items}`)
+		}
+
+		if (misplaced.length > 0) {
+			const items = misplaced
+				.map(
+					(n) =>
+						`  "${n.textSnippet}" → ${n.currentCellLabel} (best match: ${n.bestMatchCellLabel}, ${n.similarity.toFixed(2)})`,
+				)
+				.join('\n')
+			lines.push(`Possibly misplaced notes:\n${items}`)
+		}
+
+		// Empty cells
+		if (part.emptyCells.length > 0) {
+			lines.push(`Empty cells: ${part.emptyCells.map((c) => c.cellLabel).join(', ')}`)
+		}
+
+		return [lines.join('\n')]
+	},
 }
