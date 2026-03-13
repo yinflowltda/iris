@@ -14,7 +14,7 @@ The Life Map is a **self-contained framework** — it replaces the generic intro
 
 ### The Six Verbs of the Yinflow Life Map Method
 
-The Yinflow Life Map method — one of the methods within the Yinflow methodology — is built on six verbs that form a complete cycle of human experience:
+The Yinflow Life Map method — one of the methods within the Yinflow methodology — is built on five active verbs plus an integrative state (Flow) that emerges when all five align:
 
 | Verb | Portuguese | Meaning | Mandala mapping |
 |---|---|---|---|
@@ -309,7 +309,7 @@ Follow the Yinflow Life Map sequence with educative moments:
 **1. Want / Querer (Purpose/Desire)**
 - "What do you truly want in this area of your life?"
 - Help distinguish surface wants from deeper longings
-- Educative: "I start with desire because in the Yinflow method, purpose is the engine — everything else flows from what you truly want."
+- Educative: "I start with desire because in the Yinflow Life Map method, purpose is the engine — everything else flows from what you truly want."
 
 **2. Be / Ser (Identity/Being)**
 - "Who are you being in this area? How do you show up?"
@@ -414,7 +414,7 @@ Educative: "This half of the map is about what you actually DO — your routines
 
 **Weeks (middle layer):**
 - 4 week slots, each spanning 2 days
-- Weekly patterns, recurring commitments, weekly goals
+- Recurring monthly commitments anchored to a specific week of the month (rent, supermarket run, monthly meetings)
 
 **Months (outer layer):**
 - 12 months grouped by quarter
@@ -487,11 +487,11 @@ Educative: "Looking at your week as a whole, I can see where your time goes — 
 - Week 3: `thursday-week3`, `friday-week3`
 - Week 4: `saturday-week4`, `sunday-week4`
 
-**Months** (merge visually via groupId — each day maps to exactly 3 months):
-- Flex + Monday → `flex-january`, `flex-february`, `flex-march`, `monday-january`, `monday-february`, `monday-march`
-- Tuesday + Wednesday → `tuesday-april`, `tuesday-may`, `tuesday-june`, `wednesday-april`, `wednesday-may`, `wednesday-june`
-- Thursday + Friday → `thursday-july`, `thursday-august`, `thursday-september`, `friday-july`, `friday-august`, `friday-september`
-- Saturday + Sunday → `saturday-october`, `saturday-november`, `saturday-december`, `sunday-october`, `sunday-november`, `sunday-december`
+**Months** (merge visually via groupId — months inherit quarterly grouping from their parent week group: Week 1's days map to Q1 months, Week 2 to Q2, etc.):
+- Week 1 (Flex + Monday) → Q1: `flex-january`, `flex-february`, `flex-march`, `monday-january`, `monday-february`, `monday-march`
+- Week 2 (Tuesday + Wednesday) → Q2: `tuesday-april`, `tuesday-may`, `tuesday-june`, `wednesday-april`, `wednesday-may`, `wednesday-june`
+- Week 3 (Thursday + Friday) → Q3: `thursday-july`, `thursday-august`, `thursday-september`, `friday-july`, `friday-august`, `friday-september`
+- Week 4 (Saturday + Sunday) → Q4: `saturday-october`, `saturday-november`, `saturday-december`, `sunday-october`, `sunday-november`, `sunday-december`
 
 **Septenniums (overlay):**
 - `phase-0-7`, `phase-7-14`, `phase-14-21`, `phase-21-28`, `phase-28-35`, `phase-35-42`, `phase-42-49`, `phase-49-56`, `phase-56-63`, `phase-63-70+`
@@ -753,7 +753,7 @@ Add `'life-map'` to `SELF_CONTAINED_FRAMEWORKS` set in `buildSystemPrompt.ts`. T
 
 ### Region-Based Loading
 
-Create a new `LifeMapSessionState` type (separate from `SessionStatePart` which uses `currentStep` for the emotions map's linear 0-9 step flow):
+Create a new `LifeMapSessionState` type (separate from `SessionStatePart` which uses `currentStep` for the emotions map's linear 0-9 step flow). The `frameworkPromptBuilders` dispatcher in `buildSystemPrompt.ts` must be updated to accept a union type (`SessionStatePart | LifeMapSessionState`) or a discriminated union keyed on `frameworkId`:
 
 ```typescript
 interface LifeMapSessionState {
@@ -800,9 +800,11 @@ All features are in scope for the full implementation:
 - **Bulk flip toggle**: UI toggle to flip all notes between past-present and present-future at once.
 - **Condition overlay loading**: `LifeMapSessionState` tracking for active conditions, loading only relevant overlays.
 - **Code rename `flow` → `flex`**: Rename cell ID from `flow` to `flex` in `client/lib/frameworks/life-map.ts` and all referencing files. Update label from `Flow` to `Flex`.
+- **Code rename `essencia` → `proposito`**: Rename center cell ID from `essencia` to `proposito` in `client/lib/frameworks/life-map.ts`, `worker/prompt/sections/life-map-section.ts`, and all referencing files. Update label from `Essência` to `Propósito`.
+- **Domain name updates in prompt section**: Rename `Emocional` → `Mental` and `Relacional` → `Pessoal` in `worker/prompt/sections/life-map-section.ts`. Also update `longDescription` in `client/lib/frameworks/life-map.ts` to match.
 - **Customizable day segments**: UI for the user to define their own time block boundaries (dawn/morning/afternoon/night transition times). Shared across all weekdays.
 - **Time block input field**: Input field in the mandala center for setting shared weekday time boundaries visually.
 
 ### Future Chore
 
-Extract shared patterns from emotions-map and life-map self-contained prompts into generic intro/rules sections that work for all maps. Tracked in memory: `project_generic_prompt_refactor.md`.
+Extract shared patterns from emotions-map and life-map self-contained prompts into generic intro/rules sections that work for all maps. Tracked in memory: `/Users/rafarj/.claude/projects/-Users-rafarj-code-iris/memory/project_generic_prompt_refactor.md`.
