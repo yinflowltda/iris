@@ -3,17 +3,18 @@
 // Runs Microsoft SEAL (CKKS scheme) via WASM in a Web Worker to avoid blocking
 // the UI thread. Handles encrypt, decrypt, and homomorphic add operations.
 
-import type { MainModule } from 'node-seal/dist/seal_throws.js'
 import type { CkksWorkerRequest, CkksWorkerResponse, CkksBlob, CkksKeyPair } from './ckks-types'
+
+type MainModule = Awaited<ReturnType<typeof import('node-seal')['default']>>
 
 // ─── SEAL State ─────────────────────────────────────────────────────────────
 
 let seal: MainModule
-let context: import('node-seal/dist/seal_throws.js').SEALContext
-let encoder: import('node-seal/dist/seal_throws.js').CKKSEncoder
-let encryptor: import('node-seal/dist/seal_throws.js').Encryptor | null = null
-let decryptor: import('node-seal/dist/seal_throws.js').Decryptor | null = null
-let evaluator: import('node-seal/dist/seal_throws.js').Evaluator
+let context: InstanceType<MainModule['SEALContext']>
+let encoder: InstanceType<MainModule['CKKSEncoder']>
+let encryptor: InstanceType<MainModule['Encryptor']> | null = null
+let decryptor: InstanceType<MainModule['Decryptor']> | null = null
+let evaluator: InstanceType<MainModule['Evaluator']>
 
 // CKKS parameters
 const POLY_MODULUS_DEGREE = 8192 // → 4096 slots
@@ -31,8 +32,11 @@ function post(msg: CkksWorkerResponse) {
 async function init() {
 	try {
 		// Dynamic import so WASM loads inside the worker
-		const { initialize } = await import('node-seal/dist/index_throws.js')
-		seal = await initialize()
+		const { default: initialize } = await import('node-seal')
+		seal = await initialize({
+			// Serve WASM from public/ — Vite's dep optimizer mangles the binary otherwise
+			locateFile: (path: string) => (path.endsWith('.wasm') ? '/' + path : path),
+		})
 
 		const parms = new seal.EncryptionParameters(seal.SchemeType.ckks)
 		parms.setPolyModulusDegree(POLY_MODULUS_DEGREE)

@@ -48,7 +48,7 @@ export default defineConfig(() => {
 			react(),
 		],
 		optimizeDeps: {
-			exclude: ['@huggingface/transformers'],
+			exclude: ['@huggingface/transformers', 'node-seal'],
 		},
 		server: {
 			proxy: {
