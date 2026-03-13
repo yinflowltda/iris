@@ -146,6 +146,13 @@ export const CellSuggestionOverlay = memo(function CellSuggestionOverlay() {
 		setSuggestions((prev) => prev.filter((s) => s.shapeId !== shapeId))
 	}, [])
 
+	// Auto-initialize Prisma when a mandala is present
+	useEffect(() => {
+		if (mandala && prisma.status === 'idle') {
+			prisma.init().catch(() => {})
+		}
+	}, [mandala, prisma.status, prisma.init])
+
 	// Re-classify when state changes
 	useEffect(() => {
 		if (!prisma.isReady || !mandalaState || !frameworkId || !mandalaId) {

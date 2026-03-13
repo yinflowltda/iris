@@ -22,6 +22,11 @@ export const PrismaContextPartUtil = registerPromptPartUtil(
 			if (!treeDef) return null as unknown as PrismaContextPart
 
 			const service = PrismaEmbeddingService.getInstance()
+			if (service.status === 'idle') {
+				// Kick off init for next request, skip this one
+				service.init().catch(() => {})
+				return null as unknown as PrismaContextPart
+			}
 			if (service.status !== 'ready') return null as unknown as PrismaContextPart
 
 			const state = mandala.props.state
