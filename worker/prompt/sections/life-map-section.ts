@@ -593,6 +593,8 @@ When the user is pouring out content (especially via voice), do NOT interrupt. L
 function buildConditionAnxiety(): string {
 	return `#### Overlay: Anxiety
 
+**Disclaimer:** This overlay adjusts the exploration strategy for a user who has self-identified this condition. It does not constitute diagnosis or clinical advice.
+
 **Intentional adjustments:**
 - Explore triggers across dimensions — anxiety often cuts across multiple domains
 - \`fisico-ter\`: somatic symptoms (tension, sleep disruption, appetite changes)
@@ -605,13 +607,13 @@ function buildConditionAnxiety(): string {
 - Daily activity distribution causing overload (check day segments for packed schedules)
 - Absence of relaxation/recovery slots (look for empty Noite or Flex cells)
 - Avoidance patterns (empty slots where activity should be)
-- Present-future: help insert stress management activities in specific time slots, balance routine
-
-(placeholder — full content in next task)`
+- Present-future: help insert stress management activities in specific time slots, balance routine`
 }
 
 function buildConditionChronicStress(): string {
 	return `#### Overlay: Chronic Stress
+
+**Disclaimer:** This overlay adjusts the exploration strategy for a user who has self-identified this condition. It does not constitute diagnosis or clinical advice.
 
 **Intentional adjustments:**
 - Unresolved past events generating present stress (septenniums)
@@ -623,13 +625,13 @@ function buildConditionChronicStress(): string {
 - Routine restructuring for balance
 - Overextension — too many commitments, insufficient spacing
 - Nutrition and physical activity gaps
-- Insert psychosocial support activities and relaxation techniques
-
-(placeholder — full content in next task)`
+- Insert psychosocial support activities and relaxation techniques`
 }
 
 function buildConditionInsomnia(): string {
 	return `#### Overlay: Insomnia
+
+**Disclaimer:** This overlay adjusts the exploration strategy for a user who has self-identified this condition. It does not constitute diagnosis or clinical advice.
 
 **Intentional adjustments:**
 - How sleep disruption impacts each dimension (Mental, Físico especially)
@@ -640,13 +642,14 @@ function buildConditionInsomnia(): string {
 - Madrugada (dawn): wake time, morning alertness
 - Sleep environment factors (light, temperature, screens)
 - Caffeine/stimulant timing in afternoon/evening
-- Present-future: sleep-supportive routine (consistent times, pre-sleep ritual, screen curfew)
-
-(placeholder — full content in next task)`
+- Nap patterns disrupting nighttime sleep
+- Present-future: sleep-supportive routine (consistent times, pre-sleep ritual, screen curfew)`
 }
 
 function buildConditionADHD(): string {
 	return `#### Overlay: ADHD
+
+**Disclaimer:** This overlay adjusts the exploration strategy for a user who has self-identified this condition. It does not constitute diagnosis or clinical advice.
 
 **Intentional adjustments:**
 - Be: self-esteem, self-efficacy perceptions
@@ -664,13 +667,13 @@ function buildConditionADHD(): string {
 
 **Session adaptation:**
 - Shorter, more concrete questions
-- Visual anchoring: "Let's look at your map — we've filled these areas so far"
-
-(placeholder — full content in next task)`
+- Visual anchoring: "Let's look at your map — we've filled these areas so far"`
 }
 
 function buildConditionBurnout(): string {
 	return `#### Overlay: Burnout
+
+**Disclaimer:** This overlay adjusts the exploration strategy for a user who has self-identified this condition. It does not constitute diagnosis or clinical advice.
 
 **Intentional adjustments:**
 - Profissional is the priority dimension — explore extensively
@@ -684,13 +687,13 @@ function buildConditionBurnout(): string {
 - Insert rebalancing activities (relaxation, social, physical)
 - Don't overload the intervention — fewer commitments, not more
 
-**Special caution:** Low emotional capacity. Small steps, celebrated.
-
-(placeholder — full content in next task)`
+**Special caution:** Low emotional capacity. Small steps, celebrated.`
 }
 
 function buildConditionChronicPain(): string {
 	return `#### Overlay: Chronic Pain
+
+**Disclaimer:** This overlay adjusts the exploration strategy for a user who has self-identified this condition. It does not constitute diagnosis or clinical advice.
 
 **Intentional adjustments:**
 - Pain-onset events in septenniums (injuries, accidents, disease onset)
@@ -703,13 +706,13 @@ function buildConditionChronicPain(): string {
 - Which activities worsen/improve pain
 - Task distribution: pause adjustment, overload avoidance
 - Plans fitting functional capacity, not idealized ability
-- Pain elimination is not the goal — self-management and meaningful occupation IS
-
-(placeholder — full content in next task)`
+- Pain elimination is not the goal — self-management and meaningful occupation IS`
 }
 
 function buildConditionDepression(): string {
 	return `#### Overlay: Depression
+
+**Disclaimer:** This overlay adjusts the exploration strategy for a user who has self-identified this condition. It does not constitute diagnosis or clinical advice.
 
 **Intentional adjustments:**
 - Psychic energy via presence/absence of future plans (Want may feel unreachable)
@@ -729,7 +732,5 @@ function buildConditionDepression(): string {
 - Focus on reality, avoid "sick role"
 - Small step significance recognition
 - Fluctuating energy is normal
-- Suicidal ideation / self-harm → crisis resources immediately
-
-(placeholder — full content in next task)`
+- Suicidal ideation / self-harm → crisis resources immediately`
 }
