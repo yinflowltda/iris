@@ -582,8 +582,11 @@ export const PrismaContextPartDefinition: PromptPartDefinition<PrismaContextPart
 			`[PRISMA CONTEXT]: Cell coverage: ${part.filledCellCount}/${part.totalCells} filled. ${part.totalNotes} note(s) placed.`,
 		)
 
-		// Note classifications
-		const misplaced = part.noteClassifications.filter((n) => n.isMisplaced)
+		// Note classifications — only flag misplacements with sufficient confidence
+		const MIN_CONFIDENCE = 0.25
+		const misplaced = part.noteClassifications.filter(
+			(n) => n.isMisplaced && n.similarity >= MIN_CONFIDENCE,
+		)
 		const wellPlaced = part.noteClassifications.filter((n) => !n.isMisplaced && n.currentCellId)
 
 		if (wellPlaced.length > 0) {

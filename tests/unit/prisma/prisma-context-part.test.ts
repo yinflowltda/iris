@@ -125,6 +125,34 @@ describe('PrismaContextPartDefinition.buildContent', () => {
 		expect(typeof result[0]).toBe('string')
 	})
 
+	it('filters out low-confidence misplacements', () => {
+		const part = makePart({
+			noteClassifications: [
+				{
+					textSnippet: 'low confidence note',
+					currentCellId: 'a',
+					currentCellLabel: 'A',
+					bestMatchCellId: 'b',
+					bestMatchCellLabel: 'B',
+					similarity: 0.15,
+					isMisplaced: true,
+				},
+				{
+					textSnippet: 'high confidence note',
+					currentCellId: 'c',
+					currentCellLabel: 'C',
+					bestMatchCellId: 'd',
+					bestMatchCellLabel: 'D',
+					similarity: 0.6,
+					isMisplaced: true,
+				},
+			],
+		})
+		const [content] = PrismaContextPartDefinition.buildContent!(part)
+		expect(content).not.toContain('low confidence note')
+		expect(content).toContain('high confidence note')
+	})
+
 	it('has correct priority', () => {
 		expect(PrismaContextPartDefinition.priority).toBe(-45)
 	})

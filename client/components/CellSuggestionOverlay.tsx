@@ -41,6 +41,9 @@ export function extractDescriptorsFromMandala(
 	return descriptors
 }
 
+/** Minimum cosine similarity required to show a suggestion. Below this, the match is too weak. */
+const MIN_SUGGESTION_SIMILARITY = 0.25
+
 /** Convert misplaced entries into UI-ready suggestions with labels. */
 export function buildSuggestions(
 	misplaced: NoteClassificationEntry[],
@@ -54,7 +57,12 @@ export function buildSuggestions(
 	walk(treeDef.root)
 
 	return misplaced
-		.filter((e) => e.matches.length > 0 && e.currentCellId !== null)
+		.filter(
+			(e) =>
+				e.matches.length > 0 &&
+				e.currentCellId !== null &&
+				e.matches[0].similarity >= MIN_SUGGESTION_SIMILARITY,
+		)
 		.map((e) => ({
 			shapeId: e.shapeId,
 			currentCellId: e.currentCellId!,

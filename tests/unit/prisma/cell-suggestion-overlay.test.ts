@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
-	extractDescriptorsFromMandala,
 	buildSuggestions,
 	type CellSuggestion,
+	extractDescriptorsFromMandala,
 } from '../../../client/components/CellSuggestionOverlay'
 import type { NoteClassificationEntry } from '../../../client/lib/prisma/note-classifier'
 
@@ -112,6 +112,18 @@ describe('buildSuggestions', () => {
 				text: 'no match',
 				currentCellId: 'cell-a',
 				matches: [],
+			},
+		]
+		expect(buildSuggestions(misplaced, treeDef)).toHaveLength(0)
+	})
+
+	it('filters out low-similarity matches', () => {
+		const misplaced: NoteClassificationEntry[] = [
+			{
+				shapeId: 's1',
+				text: 'low confidence',
+				currentCellId: 'cell-a',
+				matches: [{ cellId: 'cell-b', label: 'Cell B', similarity: 0.15 }],
 			},
 		]
 		expect(buildSuggestions(misplaced, treeDef)).toHaveLength(0)
