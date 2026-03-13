@@ -15,6 +15,7 @@ import { DeleteActionUtil } from '../actions/DeleteActionUtil'
 import { DetectConflictActionUtil } from '../actions/DetectConflictActionUtil'
 import { DistributeActionUtil } from '../actions/DistributeActionUtil'
 import { FillCellActionUtil } from '../actions/FillCellActionUtil'
+import { StreamingCellFillActionUtil } from '../actions/StreamingCellFillActionUtil'
 import { GetMetadataActionUtil } from '../actions/GetMetadataActionUtil'
 import { HighlightCellActionUtil } from '../actions/HighlightCellActionUtil'
 import { LabelActionUtil } from '../actions/LabelActionUtil'
@@ -178,7 +179,7 @@ export const AGENT_MODE_DEFINITIONS = [
 			CountShapesActionUtil.type,
 
 			// Mandala-specific actions
-			FillCellActionUtil.type,
+			StreamingCellFillActionUtil.type,
 			HighlightCellActionUtil.type,
 			ZoomToCellActionUtil.type,
 			DetectConflictActionUtil.type,
@@ -227,7 +228,7 @@ export const AGENT_MODE_DEFINITIONS = [
 			SetMyViewActionUtil.type,
 
 			// Mandala-specific actions
-			FillCellActionUtil.type,
+			StreamingCellFillActionUtil.type,
 			HighlightCellActionUtil.type,
 			ZoomToCellActionUtil.type,
 			DetectConflictActionUtil.type,
