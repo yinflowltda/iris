@@ -1155,6 +1155,82 @@ button.prompt-tag span {
 	color: #1e3a5f;
 }
 
+/* ─── Edge Type Picker ──────────────────────────────────────────────────── */
+
+.edge-type-backdrop {
+	position: fixed;
+	inset: 0;
+	z-index: 99;
+	pointer-events: auto;
+}
+
+.edge-type-picker {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	padding: 8px;
+	min-width: 160px;
+	max-width: 220px;
+	font-family: "Source Sans 3", sans-serif;
+	background: rgba(15, 23, 42, 0.92);
+	backdrop-filter: blur(12px);
+	border: 1px solid rgba(148, 163, 184, 0.2);
+	border-radius: 10px;
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+	pointer-events: auto;
+	z-index: 100;
+}
+
+.edge-type-header {
+	font-size: 10px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: rgba(148, 163, 184, 0.7);
+	padding: 0 4px 4px;
+}
+
+.edge-type-list {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.edge-type-option {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 6px 8px;
+	border: none;
+	border-radius: 6px;
+	background: transparent;
+	color: #e2e8f0;
+	font-family: inherit;
+	font-size: 13px;
+	font-weight: 500;
+	cursor: pointer;
+	pointer-events: auto;
+	text-align: left;
+	transition: background 0.1s;
+}
+
+.edge-type-option:hover {
+	background: rgba(148, 163, 184, 0.15);
+}
+
+.edge-type-dot {
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	flex-shrink: 0;
+}
+
+.edge-type-label {
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
 /* Todo list */
 
 .todo-list {

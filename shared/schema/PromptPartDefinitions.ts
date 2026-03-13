@@ -130,6 +130,17 @@ export interface SessionStatePart {
 	frameworkId: string
 }
 
+export interface SemanticSearchPart {
+	type: 'semanticSearch'
+	query: string
+	results: {
+		textSnippet: string
+		cellId: string
+		cellLabel: string
+		similarity: number
+	}[]
+}
+
 export interface PrismaContextPart {
 	type: 'prismaContext'
 	noteClassifications: {
@@ -145,6 +156,26 @@ export interface PrismaContextPart {
 	totalNotes: number
 	totalCells: number
 	filledCellCount: number
+	/** Knowledge graph analysis (chains, gaps, coverage). */
+	graphAnalysis?: {
+		chains: {
+			edgeTypeIds: string[]
+			cellIds: string[]
+			isComplete: boolean
+		}[]
+		gaps: {
+			edgeLabel: string
+			fromCellLabel: string
+			toCellLabel: string
+			suggestWhen?: string
+		}[]
+		thinCells: { cellLabel: string; noteCount: number }[]
+		stats: {
+			chainCount: number
+			completeChainCount: number
+			gapCount: number
+		}
+	}
 }
 
 // ============================================================================
@@ -571,6 +602,23 @@ export const SessionStatePartDefinition: PromptPartDefinition<SessionStatePart> 
 	// No buildContent - this is metadata for the worker, not content for the model
 }
 
+// SemanticSearch - RAG over mandala notes, ranked by relevance to the user's query
+export const SemanticSearchPartDefinition: PromptPartDefinition<SemanticSearchPart> = {
+	type: 'semanticSearch',
+	priority: -42, // after Prisma context (-45), before screenshot (-40)
+	buildContent(part: SemanticSearchPart) {
+		if (part.results.length === 0) return []
+
+		const lines = [
+			`[RELEVANT NOTES]: The following notes from the map are most relevant to "${part.query.slice(0, 60)}":`,
+		]
+		for (const r of part.results) {
+			lines.push(`  "${r.textSnippet}" (${r.cellLabel}, relevance: ${r.similarity.toFixed(2)})`)
+		}
+		return [lines.join('\n')]
+	},
+}
+
 // PrismaContext - Prisma's note classification context for the model
 export const PrismaContextPartDefinition: PromptPartDefinition<PrismaContextPart> = {
 	type: 'prismaContext',
@@ -612,6 +660,34 @@ export const PrismaContextPartDefinition: PromptPartDefinition<PrismaContextPart
 		// Empty cells
 		if (part.emptyCells.length > 0) {
 			lines.push(`Empty cells: ${part.emptyCells.map((c) => c.cellLabel).join(', ')}`)
+		}
+
+		// Knowledge graph analysis
+		if (part.graphAnalysis) {
+			const ga = part.graphAnalysis
+
+			if (ga.chains.length > 0) {
+				const chainDescs = ga.chains
+					.filter((c) => c.isComplete)
+					.map((c) => `  ${c.cellIds.join(' → ')} (via ${c.edgeTypeIds.join(', ')})`)
+				if (chainDescs.length > 0) {
+					lines.push(`Thought chains found (${chainDescs.length}):\n${chainDescs.join('\n')}`)
+				}
+			}
+
+			if (ga.gaps.length > 0) {
+				const gapDescs = ga.gaps.map(
+					(g) =>
+						`  ${g.fromCellLabel} —[${g.edgeLabel}]→ ${g.toCellLabel}${g.suggestWhen ? ` (suggest when: ${g.suggestWhen})` : ''}`,
+				)
+				lines.push(`Missing connections (${ga.gaps.length}):\n${gapDescs.join('\n')}`)
+			}
+
+			if (ga.thinCells.length > 0) {
+				lines.push(
+					`Cells needing more exploration: ${ga.thinCells.map((c) => c.cellLabel).join(', ')}`,
+				)
+			}
 		}
 
 		return [lines.join('\n')]

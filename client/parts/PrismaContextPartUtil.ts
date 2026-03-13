@@ -5,6 +5,7 @@ import { getFramework } from '../lib/frameworks/framework-registry'
 import { collectAnchorCells } from '../lib/prisma/cell-anchors'
 import { PrismaEmbeddingService } from '../lib/prisma/embedding-service'
 import { classifyNoteBatch } from '../lib/prisma/note-classifier'
+import { analyzeKnowledgeGraph } from '../lib/prisma/symbolic-reasoning'
 import { extractNoteDescriptors } from '../lib/prisma/use-note-classifier'
 import type { MandalaShape } from '../shapes/MandalaShapeUtil'
 import { PromptPartUtil, registerPromptPartUtil } from './PromptPartUtil'
@@ -78,6 +79,31 @@ export const PrismaContextPartUtil = registerPromptPartUtil(
 						cellLabel: labelMap.get(id) ?? id,
 					}))
 
+				// Knowledge graph analysis (chains, gaps, coverage)
+				const arrows = mandala.props.arrows ?? []
+				const graphResult = analyzeKnowledgeGraph(arrows, state, treeDef)
+				const graphAnalysis: PrismaContextPart['graphAnalysis'] =
+					(treeDef.edgeTypes?.length ?? 0) > 0
+						? {
+								chains: graphResult.chains.map((c) => ({
+									edgeTypeIds: c.edgeTypeIds,
+									cellIds: c.cellIds,
+									isComplete: c.isComplete,
+								})),
+								gaps: graphResult.gaps.map((g) => ({
+									edgeLabel: g.edgeLabel,
+									fromCellLabel: g.fromCellLabel,
+									toCellLabel: g.toCellLabel,
+									suggestWhen: g.suggestWhen,
+								})),
+								thinCells: graphResult.coverage.thinCells.map((c) => ({
+									cellLabel: c.label,
+									noteCount: c.noteCount,
+								})),
+								stats: graphResult.stats,
+							}
+						: undefined
+
 				return {
 					type: 'prismaContext',
 					noteClassifications,
@@ -85,6 +111,7 @@ export const PrismaContextPartUtil = registerPromptPartUtil(
 					totalNotes: descriptors.length,
 					totalCells: allCellIds.length,
 					filledCellCount: filledCellIds.size,
+					graphAnalysis,
 				}
 			} catch {
 				// Prisma context is non-critical — fail silently

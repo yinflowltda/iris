@@ -5,6 +5,7 @@ import type { MandalaArrowRecord } from '../../shared/types/MandalaTypes'
 import type { Streaming } from '../../shared/types/Streaming'
 import type { AgentHelpers } from '../AgentHelpers'
 import type { MandalaShape } from '../shapes/MandalaShapeUtil'
+import { emitArrowCreated } from '../lib/prisma/placement-events'
 import { AgentActionUtil, registerActionUtil } from './AgentActionUtil'
 import { findElementCell, validateElementExists } from './element-lookup-utils'
 import { resolveMandalaId } from './mandala-action-utils'
@@ -52,7 +53,7 @@ export const CreateArrowActionUtil = registerActionUtil(
 				(a) =>
 					a.sourceElementId === action.sourceElementId &&
 					a.targetElementId === action.targetElementId &&
-					a.color === action.color,
+					(a.edgeTypeId ? a.edgeTypeId === action.edgeTypeId : a.color === action.color),
 			)
 			if (duplicate) return
 
@@ -132,6 +133,7 @@ export const CreateArrowActionUtil = registerActionUtil(
 				sourceElementId: action.sourceElementId,
 				targetElementId: action.targetElementId,
 				color: action.color,
+				edgeTypeId: action.edgeTypeId,
 			}
 
 			editor.updateShape({
@@ -141,6 +143,24 @@ export const CreateArrowActionUtil = registerActionUtil(
 					arrows: [...existingArrows, newRecord],
 				},
 			})
+
+			// Emit arrow event for edge predictor training
+			if (action.edgeTypeId && sourceCellId && targetCellId) {
+				const srcUtil = editor.getShapeUtil(sourceShape)
+				const tgtUtil = editor.getShapeUtil(targetShape)
+				const srcText = (srcUtil as any).getText?.(sourceShape) ?? ''
+				const tgtText = (tgtUtil as any).getText?.(targetShape) ?? ''
+				if (srcText.trim() && tgtText.trim()) {
+					emitArrowCreated({
+						srcNoteText: srcText,
+						tgtNoteText: tgtText,
+						srcCellId: sourceCellId,
+						tgtCellId: targetCellId,
+						edgeTypeId: action.edgeTypeId,
+						mapId: mandala.props.frameworkId,
+					})
+				}
+			}
 
 			// Pan camera from source to destination, following the arrow path
 			const noteSize = Math.max(sourceBounds.w, sourceBounds.h)

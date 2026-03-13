@@ -333,13 +333,26 @@ function buildWeekGroup(weekIndex: number): TreeNodeDef {
 	}
 }
 
+// ─── Cell ID helpers for edge types ──────────────────────────────────────────
+
+const ALL_DOMAIN_IDS = ['espiritual', 'mental', 'fisico', 'material', 'profissional', 'pessoal']
+const quererCells = ALL_DOMAIN_IDS.map((d) => `${d}-querer`)
+const serCells = ALL_DOMAIN_IDS.map((d) => `${d}-ser`)
+const terCells = ALL_DOMAIN_IDS.map((d) => `${d}-ter`)
+const saberCells = ALL_DOMAIN_IDS.map((d) => `${d}-saber`)
+const allDomainCells = [...quererCells, ...serCells, ...terCells, ...saberCells]
+
+/** Day segment cells where temporal notes actually land */
+const daySegmentCells = DAYS.filter((d) => d.id !== 'flow').flatMap((d) =>
+	DAY_SEGMENTS.map((s) => `${d.id}-${s.id}`),
+)
+const temporalNoteCells = ['flow', ...daySegmentCells]
+
 // Domain nodes for the bottom half (6 domains)
 const DOMAIN_NODES: TreeNodeDef[] = LIFE_MAP.slices.map((s) => buildDomainNode(s))
 
 // Temporal week groups for the top half (4 weeks × 2 days each = 8 days)
-const TEMPORAL_NODES: TreeNodeDef[] = Array.from({ length: 4 }, (_, i) =>
-	buildWeekGroup(i),
-)
+const TEMPORAL_NODES: TreeNodeDef[] = Array.from({ length: 4 }, (_, i) => buildWeekGroup(i))
 
 export const LIFE_TREE: TreeMapDefinition = {
 	id: 'life-map',
@@ -347,6 +360,88 @@ export const LIFE_TREE: TreeMapDefinition = {
 	description: LIFE_MAP.description,
 	// First child at 3 o'clock (bottom half starts at 3 o'clock going clockwise)
 	startAngle: Math.PI / 2,
+	edgeTypes: [
+		{
+			id: 'shapes',
+			label: 'shapes',
+			fromCells: quererCells,
+			toCells: serCells,
+			empiricalBasis:
+				'Self-Determination Theory: intrinsic desires shape identity formation (Deci & Ryan, 2000)',
+			suggestWhen: 'User connects a desire to how they show up in that domain',
+			color: 'black',
+		},
+		{
+			id: 'determines',
+			label: 'determines',
+			fromCells: serCells,
+			toCells: terCells,
+			empiricalBasis:
+				'Identity-based habits: who you are determines what you accumulate and sustain (Clear, 2018)',
+			suggestWhen: 'User links their identity to resources or possessions',
+			color: 'black',
+		},
+		{
+			id: 'enables',
+			label: 'enables',
+			fromCells: terCells,
+			toCells: saberCells,
+			empiricalBasis:
+				'Capability approach: available resources enable knowledge acquisition (Sen, 1999)',
+			suggestWhen: 'User connects resources to learning opportunities',
+			color: 'black',
+		},
+		{
+			id: 'informs',
+			label: 'informs',
+			fromCells: saberCells,
+			toCells: quererCells,
+			empiricalBasis:
+				'Knowledge-desire feedback: deeper understanding refines aspirations (Maslow, 1954)',
+			suggestWhen: 'User notices knowledge changing what they desire',
+			color: 'black',
+		},
+		{
+			id: 'grounds',
+			label: 'grounds',
+			fromCells: ['essencia'],
+			toCells: quererCells,
+			empiricalBasis:
+				'Values-based motivation: core values anchor authentic desires (Schwartz, 1992)',
+			suggestWhen: 'User connects their essence to a specific desire',
+			color: 'green',
+		},
+		{
+			id: 'depends-on',
+			label: 'depends on',
+			fromCells: allDomainCells,
+			toCells: allDomainCells,
+			empiricalBasis:
+				'Life balance theory: life domains are interdependent systems (Greenhaus & Allen, 2011)',
+			suggestWhen: 'User notices one life area depending on another',
+			color: 'black',
+		},
+		{
+			id: 'conflicts-with',
+			label: 'conflicts with',
+			fromCells: allDomainCells,
+			toCells: allDomainCells,
+			empiricalBasis:
+				'Role conflict theory: competing demands across life domains create tension (Kahn et al., 1964)',
+			suggestWhen: 'User identifies tension between two life areas',
+			color: 'red',
+		},
+		{
+			id: 'planned-in',
+			label: 'planned in',
+			fromCells: allDomainCells,
+			toCells: temporalNoteCells,
+			empiricalBasis:
+				'Implementation intentions: linking goals to specific times increases follow-through (Gollwitzer, 1999)',
+			suggestWhen: 'User schedules a domain goal into a specific time slot',
+			color: 'green',
+		},
+	],
 	radialBands: {
 		centerRadius: 0.1,
 		regions: [
@@ -391,10 +486,7 @@ export const LIFE_TREE: TreeMapDefinition = {
 		question: LIFE_MAP.center.question,
 		guidance: LIFE_MAP.center.guidance,
 		examples: LIFE_MAP.center.examples,
-		children: [
-			...DOMAIN_NODES,
-			...TEMPORAL_NODES,
-		],
+		children: [...DOMAIN_NODES, ...TEMPORAL_NODES],
 	},
 	// 10 seven-year life phase blocks as an overlay at ring 4
 	overlayRing: {

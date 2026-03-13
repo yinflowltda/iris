@@ -10,7 +10,7 @@ import type { MandalaShape } from '../../shapes/MandalaShapeUtil'
 import { getFramework } from '../frameworks/framework-registry'
 import { PrismaEmbeddingService } from './embedding-service'
 import { LocalPrismaTrainer } from './local-trainer'
-import { onPlacement } from './placement-events'
+import { onArrowCreated, onPlacement } from './placement-events'
 
 const TRAIN_AFTER_PLACEMENTS = 5
 const TRAIN_STEPS = 10
@@ -119,7 +119,7 @@ export function useLocalTrainer(): UseLocalTrainerState {
 
 	// Subscribe to placement events
 	useEffect(() => {
-		const unsub = onPlacement((event) => {
+		const unsubPlacement = onPlacement((event) => {
 			const trainer = trainerRef.current
 			if (!trainer || event.mapId !== mapId) return
 
@@ -148,8 +148,30 @@ export function useLocalTrainer(): UseLocalTrainerState {
 			}
 		})
 
+		// Subscribe to arrow creation events for edge predictor training
+		const unsubArrow = onArrowCreated((event) => {
+			const trainer = trainerRef.current
+			if (!trainer || event.mapId !== mapId || !trainer.isInitialized) return
+
+			trainer.addArrow(
+				event.srcNoteText,
+				event.tgtNoteText,
+				event.srcCellId,
+				event.tgtCellId,
+				event.edgeTypeId,
+			)
+			placementsSinceTrainRef.current++
+
+			// Debounced training trigger (same counter as placements)
+			if (placementsSinceTrainRef.current >= TRAIN_AFTER_PLACEMENTS) {
+				if (trainTimerRef.current) clearTimeout(trainTimerRef.current)
+				trainTimerRef.current = setTimeout(triggerTrain, DEBOUNCE_MS)
+			}
+		})
+
 		return () => {
-			unsub()
+			unsubPlacement()
+			unsubArrow()
 			if (trainTimerRef.current) clearTimeout(trainTimerRef.current)
 		}
 	}, [mapId, triggerTrain])

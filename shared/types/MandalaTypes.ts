@@ -82,11 +82,32 @@ export interface RadialBandsConfig {
 	regions: RadialBandRegion[]
 }
 
+// ─── Edge types (knowledge graph schema) ────────────────────────────────────
+
+export interface EdgeTypeDef {
+	id: string
+	label: string
+	/** Valid source cell IDs for this edge type. */
+	fromCells: string[]
+	/** Valid target cell IDs for this edge type. */
+	toCells: string[]
+	/** Clinical/theoretical grounding for this relationship type. */
+	empiricalBasis: string
+	/** If true, the edge can go in both directions. Default: false (directed). */
+	bidirectional?: boolean
+	/** Hint for Iris: when to suggest this arrow type to the user. */
+	suggestWhen?: string
+	/** Arrow color when rendered. */
+	color?: MandalaArrowColor
+}
+
 export interface TreeMapDefinition {
 	id: string
 	name: string
 	description: string
 	root: TreeNodeDef
+	/** Knowledge graph edge schema — valid relationship types between notes. */
+	edgeTypes?: EdgeTypeDef[]
 	/** Angular offset (radians) applied to all arcs to rotate the layout */
 	startAngle?: number
 	/** Overlay arcs rendered at the outermost empty ring band.
@@ -118,6 +139,8 @@ export interface MandalaArrowRecord {
 	sourceElementId: SimpleShapeId
 	targetElementId: SimpleShapeId
 	color: MandalaArrowColor
+	/** Edge type ID from the map's edgeTypes schema. */
+	edgeTypeId?: string
 }
 
 // ─── Per-cell element metadata (stored in note shape.meta.elementMetadata) ───
