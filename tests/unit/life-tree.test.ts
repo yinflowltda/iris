@@ -23,7 +23,7 @@ describe('LIFE_TREE', () => {
 
 	it('contains 103 total IDs', () => {
 		// root(1) + 6 transparent domains(6) + 6×4 rings(24) + 4 transparent week-groups(4)
-		// + 7 transparent days(7) + 1 flow day(1) + 7×4 day-segments(28) + 8 week-slots(8) + 24 months(24) = 103
+		// + 7 transparent days(7) + 1 flex day(1) + 7×4 day-segments(28) + 8 week-slots(8) + 24 months(24) = 103
 		const ids = collectIds(LIFE_TREE.root)
 		expect(ids).toHaveLength(103)
 	})
@@ -70,7 +70,7 @@ describe('LIFE_TREE', () => {
 		}
 	})
 
-	it('top half: Flow is single cell, other days have 4-segment chains', () => {
+	it('top half: Flex is single cell, other days have 4-segment chains', () => {
 		const weekGroups = LIFE_TREE.root.children!.slice(6)
 		expect(weekGroups).toHaveLength(4)
 
@@ -79,11 +79,11 @@ describe('LIFE_TREE', () => {
 			expect(weekGroup.children).toHaveLength(2)
 
 			for (const day of weekGroup.children!) {
-				const isFlow = day.id === 'flow'
+				const isFlex = day.id === 'flex'
 				expect(day.children).toHaveLength(1)
 
-				if (isFlow) {
-					// Flow: visible cell (not transparent, no segments)
+				if (isFlex) {
+					// Flex: visible cell (not transparent, no segments)
 					expect(day.transparent).toBeUndefined()
 					// Direct child is the week-slot
 					const weekSlot = day.children![0]
@@ -91,7 +91,7 @@ describe('LIFE_TREE', () => {
 					expect(weekSlot.groupId).toBeTruthy()
 					expect(weekSlot.children).toHaveLength(3)
 				} else {
-					// Non-Flow: transparent + hideLabel wrapper with 4 segment chain
+					// Non-Flex: transparent + hideLabel wrapper with 4 segment chain
 					expect(day.transparent).toBe(true)
 					expect(day.hideLabel).toBe(true)
 
@@ -150,7 +150,7 @@ describe('LIFE_TREE', () => {
 	it('week ring outer aligns with Ter ring outer', () => {
 		const arcs = computeSunburstLayout(LIFE_TREE)
 		const terArc = arcs.find((a) => a.id === 'espiritual-ter')!
-		const weekArc = arcs.find((a) => a.id === 'flow-week1')!
+		const weekArc = arcs.find((a) => a.id === 'flex-week1')!
 
 		// Week outer boundary matches Ter outer boundary
 		expect(weekArc.y1).toBeCloseTo(terArc.y1, 5)
@@ -159,7 +159,7 @@ describe('LIFE_TREE', () => {
 	it('day segments outer (night) is at midpoint of Ter band', () => {
 		const arcs = computeSunburstLayout(LIFE_TREE)
 		const terArc = arcs.find((a) => a.id === 'espiritual-ter')!
-		// Use monday-night since Flow has no segments
+		// Use monday-night since Flex has no segments
 		const nightArc = arcs.find((a) => a.id === 'monday-night')!
 
 		const terMidpoint = (terArc.y0 + terArc.y1) / 2
@@ -177,14 +177,14 @@ describe('LIFE_TREE', () => {
 		expect(monthArc.y1).toBeCloseTo(saberMidpoint, 5)
 	})
 
-	it('Flow cell spans from center to night boundary', () => {
+	it('Flex cell spans from center to night boundary', () => {
 		const arcs = computeSunburstLayout(LIFE_TREE)
-		const flowArc = arcs.find((a) => a.id === 'flow')!
+		const flexArc = arcs.find((a) => a.id === 'flex')!
 		const nightArc = arcs.find((a) => a.id === 'monday-night')!
 
-		// Flow cell inner = center radius, outer = night outer boundary
-		expect(flowArc.y0).toBeCloseTo(0.1, 5)
-		expect(flowArc.y1).toBeCloseTo(nightArc.y1, 5)
+		// Flex cell inner = center radius, outer = night outer boundary
+		expect(flexArc.y0).toBeCloseTo(0.1, 5)
+		expect(flexArc.y1).toBeCloseTo(nightArc.y1, 5)
 	})
 
 	it('combined day segments span is wider than a single bottom-half ring', () => {

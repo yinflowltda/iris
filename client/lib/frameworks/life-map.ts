@@ -80,7 +80,7 @@ const EMPTY_CONTENT = { question: '', guidance: '', examples: [] as string[] }
 // ─── Temporal constants (top half) ───────────────────────────────────────────
 
 const DAYS = [
-	{ id: 'flow', label: 'Flow' },
+	{ id: 'flex', label: 'Flex' },
 	{ id: 'monday', label: 'Monday' },
 	{ id: 'tuesday', label: 'Tuesday' },
 	{ id: 'wednesday', label: 'Wednesday' },
@@ -245,14 +245,14 @@ const DAY_SEGMENTS = [
  * Build a temporal day node within a week group:
  * day (transparent+hideLabel) → dawn → morning → afternoon → night → week-slot (groupId) → months (hideLabel)
  *
- * Non-Flow days: morning segment carries the day name label; other segments are hideLabel.
- * Flow: all 4 segments are hideLabel (no visible time subdivisions).
+ * Non-Flex days: morning segment carries the day name label; other segments are hideLabel.
+ * Flex: all 4 segments are hideLabel (no visible time subdivisions).
  */
 function buildTemporalDayNode(dayIndex: number, weekIndex: number): TreeNodeDef {
 	const day = DAYS[dayIndex]
 	const week = WEEK_GROUPS[weekIndex]
 	const monthOffset = weekIndex * 3
-	const isFlow = dayIndex === 0
+	const isFlex = dayIndex === 0
 
 	const monthChildren: TreeNodeDef[] = []
 	for (let m = 0; m < 3; m++) {
@@ -274,8 +274,8 @@ function buildTemporalDayNode(dayIndex: number, weekIndex: number): TreeNodeDef 
 		children: monthChildren,
 	}
 
-	if (isFlow) {
-		// Flow: single visible cell (no day segments), directly contains week → months
+	if (isFlex) {
+		// Flex: single visible cell (no day segments), directly contains week → months
 		// Uses dedicated radial band region so band 1 spans the full segment area
 		return {
 			id: day.id,
@@ -301,7 +301,7 @@ function buildTemporalDayNode(dayIndex: number, weekIndex: number): TreeNodeDef 
 		}
 	}
 
-	// Non-Flow: transparent + hideLabel wrapper (no visual cell, no group label)
+	// Non-Flex: transparent + hideLabel wrapper (no visual cell, no group label)
 	return {
 		id: day.id,
 		label: day.label,
@@ -343,10 +343,10 @@ const saberCells = ALL_DOMAIN_IDS.map((d) => `${d}-saber`)
 const allDomainCells = [...quererCells, ...serCells, ...terCells, ...saberCells]
 
 /** Day segment cells where temporal notes actually land */
-const daySegmentCells = DAYS.filter((d) => d.id !== 'flow').flatMap((d) =>
+const daySegmentCells = DAYS.filter((d) => d.id !== 'flex').flatMap((d) =>
 	DAY_SEGMENTS.map((s) => `${d.id}-${s.id}`),
 )
-const temporalNoteCells = ['flow', ...daySegmentCells]
+const temporalNoteCells = ['flex', ...daySegmentCells]
 
 // Domain nodes for the bottom half (6 domains)
 const DOMAIN_NODES: TreeNodeDef[] = LIFE_MAP.slices.map((s) => buildDomainNode(s))
@@ -456,18 +456,18 @@ export const LIFE_TREE: TreeMapDefinition = {
 				},
 			},
 			{
-				// Flow slice: single cell spanning all day-segment bands, then week + month
-				// Flow's day wrapper is visible (not transparent), segments are transparent
-				// → visualDepth 1 = Flow cell, 2 = Week, 3 = Month
+				// Flex slice: single cell spanning all day-segment bands, then week + month
+				// Flex's day wrapper is visible (not transparent), segments are transparent
+				// → visualDepth 1 = Flex cell, 2 = Week, 3 = Month
 				angularRange: [(3 * Math.PI) / 2, (3 * Math.PI) / 2 + Math.PI / 8],
 				bands: {
-					1: [0.1, 0.6625], // Flow cell (spans dawn→night range)
+					1: [0.1, 0.6625], // Flex cell (spans dawn→night range)
 					2: [0.6625, 0.775], // Week
 					3: [0.775, 0.8875], // Month
 				},
 			},
 			{
-				// Top half (non-Flow): temporal days with 4 segments each
+				// Top half (non-Flex): temporal days with 4 segments each
 				angularRange: [(3 * Math.PI) / 2 + Math.PI / 8, (5 * Math.PI) / 2],
 				bands: {
 					1: [0.1, 0.2406], // Dawn
@@ -490,7 +490,7 @@ export const LIFE_TREE: TreeMapDefinition = {
 	},
 	// 10 seven-year life phase blocks as an overlay at ring 4
 	overlayRing: {
-		startNodeId: TEMPORAL_NODES[0].children![0].id, // first day (flow)
+		startNodeId: TEMPORAL_NODES[0].children![0].id, // first day (flex)
 		endNodeId: TEMPORAL_NODES[TEMPORAL_NODES.length - 1].children![1].id, // last day (sunday)
 		arcs: LIFE_PHASE_BLOCKS,
 	},

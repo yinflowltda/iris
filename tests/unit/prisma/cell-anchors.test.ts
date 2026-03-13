@@ -108,10 +108,10 @@ describe('collectAnchorCells', () => {
 	it('skips temporal cells (empty question)', () => {
 		const cells = collectAnchorCells(LIFE_TREE.root)
 		const ids = cells.map((c) => c.id)
-		expect(ids).not.toContain('flow')
+		expect(ids).not.toContain('flex')
 		expect(ids).not.toContain('monday')
-		expect(ids).not.toContain('flow-week1')
-		expect(ids).not.toContain('flow-january')
+		expect(ids).not.toContain('flex-week1')
+		expect(ids).not.toContain('flex-january')
 	})
 })
 
