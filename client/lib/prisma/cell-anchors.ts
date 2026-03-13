@@ -6,7 +6,8 @@ import { PrismaEmbeddingService } from './embedding-service'
 export interface CellAnchor {
 	cellId: string
 	label: string
-	embedding: Float32Array
+	/** Multiple embeddings per cell for better matching against short user notes. */
+	embeddings: Float32Array[]
 }
 
 export type CellAnchors = Map<string, CellAnchor>
@@ -26,6 +27,18 @@ export function composeAnchorText(node: TreeNodeDef): string {
 	if (node.guidance) parts.push(node.guidance)
 	if (node.examples.length > 0) parts.push(node.examples.join('. '))
 	return parts.join('. ')
+}
+
+/**
+ * Compose multiple anchor texts per cell for better matching against short user notes.
+ * Returns: the full description text + each individual example (which match user note style).
+ */
+export function composeAnchorTexts(node: TreeNodeDef): string[] {
+	const texts: string[] = [composeAnchorText(node)]
+	for (const example of node.examples) {
+		texts.push(example)
+	}
+	return texts
 }
 
 // ─── Tree traversal ──────────────────────────────────────────────────────────
@@ -61,9 +74,12 @@ export async function generateCellAnchors(treeDef: TreeMapDefinition): Promise<C
 	const anchors: CellAnchors = new Map()
 
 	for (const cell of cells) {
-		const text = composeAnchorText(cell)
-		const embedding = await service.embed(text)
-		anchors.set(cell.id, { cellId: cell.id, label: cell.label, embedding })
+		const texts = composeAnchorTexts(cell)
+		const embeddings: Float32Array[] = []
+		for (const text of texts) {
+			embeddings.push(await service.embed(text))
+		}
+		anchors.set(cell.id, { cellId: cell.id, label: cell.label, embeddings })
 	}
 
 	anchorCache.set(treeDef.id, anchors)
@@ -86,7 +102,20 @@ export function cosineSimilarity(a: Float32Array, b: Float32Array): number {
 	return dot
 }
 
-/** Find the nearest cell(s) by cosine similarity. */
+/** Max cosine similarity between a note embedding and any of a cell's anchor embeddings. */
+export function maxSimilarity(
+	noteEmbedding: Float32Array,
+	anchorEmbeddings: Float32Array[],
+): number {
+	let max = -Infinity
+	for (const anchor of anchorEmbeddings) {
+		const sim = cosineSimilarity(noteEmbedding, anchor)
+		if (sim > max) max = sim
+	}
+	return max
+}
+
+/** Find the nearest cell(s) by cosine similarity (max across multi-anchor embeddings). */
 export function findNearestCell(
 	noteEmbedding: Float32Array,
 	anchors: CellAnchors,
@@ -97,7 +126,7 @@ export function findNearestCell(
 		results.push({
 			cellId: anchor.cellId,
 			label: anchor.label,
-			similarity: cosineSimilarity(noteEmbedding, anchor.embedding),
+			similarity: maxSimilarity(noteEmbedding, anchor.embeddings),
 		})
 	}
 	results.sort((a, b) => b.similarity - a.similarity)
