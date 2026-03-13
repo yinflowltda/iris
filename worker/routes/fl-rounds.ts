@@ -15,6 +15,23 @@ function getAggregationDO(env: Environment, mapId: string): DurableObjectStub {
 	return env.AGGREGATION_DO.get(id)
 }
 
+/**
+ * Forward a request to the DO and clone the response so CORS middleware
+ * can modify headers (DO responses have immutable headers in workerd).
+ */
+async function forwardToDO(
+	stub: DurableObjectStub,
+	url: string,
+	init?: RequestInit,
+): Promise<Response> {
+	const doResponse = await stub.fetch(new Request(url, init))
+	return new Response(doResponse.body, {
+		status: doResponse.status,
+		statusText: doResponse.statusText,
+		headers: new Headers(doResponse.headers),
+	})
+}
+
 /** POST /fl/rounds/open — Open a new FL round for a map */
 export async function openRound(request: IRequest, env: Environment): Promise<Response> {
 	const mapId = request.query.mapId as string
@@ -23,11 +40,11 @@ export async function openRound(request: IRequest, env: Environment): Promise<Re
 	}
 
 	const stub = getAggregationDO(env, mapId)
-	return stub.fetch(new Request('https://do/open', {
+	return forwardToDO(stub, 'https://do/open', {
 		method: 'POST',
 		body: request.body,
-		headers: request.headers,
-	}))
+		headers: { 'Content-Type': 'application/json' },
+	})
 }
 
 /** POST /fl/rounds/submit — Submit encrypted weight deltas */
@@ -38,11 +55,11 @@ export async function submitDelta(request: IRequest, env: Environment): Promise<
 	}
 
 	const stub = getAggregationDO(env, mapId)
-	return stub.fetch(new Request('https://do/submit', {
+	return forwardToDO(stub, 'https://do/submit', {
 		method: 'POST',
 		body: request.body,
-		headers: request.headers,
-	}))
+		headers: { 'Content-Type': 'application/json' },
+	})
 }
 
 /** GET /fl/rounds/status — Get current round status for a map */
@@ -53,7 +70,7 @@ export async function roundStatus(request: IRequest, env: Environment): Promise<
 	}
 
 	const stub = getAggregationDO(env, mapId)
-	return stub.fetch(new Request('https://do/status', { method: 'GET' }))
+	return forwardToDO(stub, 'https://do/status', { method: 'GET' })
 }
 
 /** GET /fl/rounds/aggregate — Download the aggregated result */
@@ -64,7 +81,7 @@ export async function getAggregate(request: IRequest, env: Environment): Promise
 	}
 
 	const stub = getAggregationDO(env, mapId)
-	return stub.fetch(new Request('https://do/aggregate', { method: 'GET' }))
+	return forwardToDO(stub, 'https://do/aggregate', { method: 'GET' })
 }
 
 /** POST /fl/rounds/aggregate — Upload the aggregated ciphertext (from aggregator) */
@@ -75,9 +92,9 @@ export async function uploadAggregate(request: IRequest, env: Environment): Prom
 	}
 
 	const stub = getAggregationDO(env, mapId)
-	return stub.fetch(new Request('https://do/aggregate', {
+	return forwardToDO(stub, 'https://do/aggregate', {
 		method: 'POST',
 		body: request.body,
-		headers: request.headers,
-	}))
+		headers: { 'Content-Type': 'application/json' },
+	})
 }
