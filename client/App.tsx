@@ -62,6 +62,7 @@ import { ChatPanelFallback } from './components/ChatPanelFallback'
 import { CustomHelperButtons } from './components/CustomHelperButtons'
 import { AgentViewportBoundsHighlights } from './components/highlights/AgentViewportBoundsHighlights'
 import { AllContextHighlights } from './components/highlights/ContextHighlights'
+import { CellSuggestionOverlay } from './components/CellSuggestionOverlay'
 import { TemplateChooser } from './components/TemplateChooser'
 import { setActiveMandalaId } from './lib/frameworks/active-framework'
 import './lib/frameworks/emotions-map'
@@ -642,6 +643,7 @@ function App() {
 						<TldrawAgentAppContextProvider app={app}>
 							<AgentViewportBoundsHighlights />
 							<AllContextHighlights />
+							<CellSuggestionOverlay />
 						</TldrawAgentAppContextProvider>
 					)}
 				</>
