@@ -19,6 +19,7 @@ custom_domain = true
 bindings = [
     { name = "AGENT_DURABLE_OBJECT", class_name = "AgentDurableObject" },
     { name = "VOICE_AGENT_DO", class_name = "VoiceAgentDurableObject" },
+    { name = "AGGREGATION_DO", class_name = "AggregationDO" },
 ]
 
 # Durable objects require migrations to create/modify/delete them
@@ -35,6 +36,14 @@ renamed_classes = [
 [[migrations]]
 tag = "v3"
 new_classes = ["VoiceAgentDurableObject"]
+
+[[migrations]]
+tag = "v4"
+new_classes = ["AggregationDO"]
+
+[[r2_buckets]]
+binding = "FL_BUCKET"
+bucket_name = "iris-fl-rounds"
 
 [vars]
 TTS_ENABLED = "false"
