@@ -49,7 +49,11 @@ export function buildSystemPrompt(
 
 	const lines: string[] = []
 
-	if (isSelfContained) {
+	const useStreamingCells = actionTypes.includes('cell_fill')
+
+	if (useStreamingCells) {
+		lines.push(buildStreamingCellsIntro())
+	} else if (isSelfContained) {
 		// Self-contained frameworks provide their own role/rules/action instructions.
 		// Only add minimal JSON response framing.
 		lines.push(buildCompactIntro())
@@ -65,7 +69,11 @@ export function buildSystemPrompt(
 	}
 
 	if (withSchema) {
-		lines.push(buildSchemaPromptSection(modePart, isSelfContained))
+		if (useStreamingCells) {
+			lines.push(buildStreamingCellsSchemaSection())
+		} else {
+			lines.push(buildSchemaPromptSection(modePart, isSelfContained))
+		}
 	}
 
 	const result = normalizeNewlines(lines.join('\n'))
@@ -90,6 +98,40 @@ export function buildSystemPrompt(
 	}
 
 	return result
+}
+
+function buildStreamingCellsIntro(): string {
+	return `You respond with structured JSON containing two fields: "message" (your response to the user) and "cells" (a mapping of cell IDs to arrays of short content labels).
+
+**Important:** Every response MUST include a "message" field to communicate with the user. The "cells" field contains the mandala content you want to create. Each cell entry is an array of short, concise labels (a few words each). Do NOT repeat context implied by the cell name (time period, category). No trailing periods.
+
+Example response:
+\`\`\`json
+{
+  "message": "Looking at your situation, I can identify several key patterns...",
+  "cells": {
+    "past-events": ["Lost my job", "Moved to new city"],
+    "past-thoughts": ["Felt overwhelmed", "Uncertainty about future"],
+    "evidence": ["Got new job quickly", "Friends supported me"]
+  }
+}
+\`\`\`
+
+Always return valid JSON. Only use cell IDs that are valid for the current framework.`
+}
+
+function buildStreamingCellsSchemaSection(): string {
+	return `## JSON schema
+
+Respond with a JSON object matching this schema:
+
+{
+  "message": "string (required) — your response to the user",
+  "cells": "object (optional) — mapping of cellId to array of short label strings. Example: { \\"past-events\\": [\\"Lost job\\", \\"Moved\\"] }"
+}
+
+Do not include any other fields. The "cells" field is optional — if you only need to respond without filling cells, omit it.
+`
 }
 
 function buildCompactIntro(): string {

@@ -373,7 +373,22 @@ export const UpdateAction = z
 
 export type UpdateAction = z.infer<typeof UpdateAction>
 
-// Fill Cell Action (mandala-specific)
+// Cell Fill Action (streaming mandala fill — lightweight event emitted by server)
+export const CellFillAction = z
+	.object({
+		_type: z.literal('cell_fill'),
+		cellId: z.string(),
+		content: z.string(),
+	})
+	.meta({
+		title: 'Cell Fill',
+		description:
+			'A lightweight cell fill event emitted by the server when parsing a streaming cells mapping. Not generated directly by the LLM.',
+	})
+
+export type CellFillAction = z.infer<typeof CellFillAction>
+
+// Fill Cell Action (mandala-specific) — LEGACY, kept for fallback
 export const FillCellAction = z
 	.object({
 		_type: z.literal('fill_cell'),

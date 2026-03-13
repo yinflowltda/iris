@@ -155,8 +155,15 @@ export class AgentService {
 		})
 
 		let buffer = ''
+		let formatDetected: 'actions' | 'cells' | null = null
+
+		// State for legacy actions format
 		let lastActionIndex = -1
 		let maybeIncompleteAction: AgentAction | null = null
+
+		// State for streaming cells format
+		const emittedCellCounts = new Map<string, number>()
+		let lastMessageText = ''
 
 		let startTime = Date.now()
 		for await (const text of streamResult.textStream) {
@@ -165,6 +172,31 @@ export class AgentService {
 			const partialObject = tryParseStreamingJson(buffer)
 			if (!partialObject) continue
 
+			// Detect format on first successful parse
+			if (formatDetected === null) {
+				if (partialObject.cells && typeof partialObject.cells === 'object') {
+					formatDetected = 'cells'
+				} else if (Array.isArray(partialObject.actions)) {
+					formatDetected = 'actions'
+				}
+			}
+
+			if (formatDetected === 'cells') {
+				yield* this.parseCellsFormat(
+					partialObject,
+					emittedCellCounts,
+					lastMessageText,
+					startTime,
+					false,
+				)
+				// Update message tracking
+				if (typeof partialObject.message === 'string') {
+					lastMessageText = partialObject.message
+				}
+				continue
+			}
+
+			// Legacy actions format
 			const actions = partialObject.actions
 			if (!Array.isArray(actions)) continue
 			if (actions.length === 0) continue
@@ -197,7 +229,19 @@ export class AgentService {
 			}
 		}
 
-		if (maybeIncompleteAction) {
+		if (formatDetected === 'cells') {
+			// Final parse to emit remaining entries
+			const finalObject = tryParseStreamingJson(buffer)
+			if (finalObject) {
+				yield* this.parseCellsFormat(
+					finalObject,
+					emittedCellCounts,
+					lastMessageText,
+					startTime,
+					true,
+				)
+			}
+		} else if (maybeIncompleteAction) {
 			yield {
 				...maybeIncompleteAction,
 				complete: true,
@@ -215,16 +259,78 @@ export class AgentService {
 			} as any
 		}
 	}
+
+	/**
+	 * Parse the streaming `{ message, cells }` format and yield cell_fill + message events.
+	 *
+	 * For cells: we can only be sure a string is complete when the NEXT string in the
+	 * same array has started (or the stream has ended). So we emit all entries up to
+	 * `count - 1` during streaming, and emit the final entry when `isFinal` is true.
+	 */
+	private *parseCellsFormat(
+		partialObject: any,
+		emittedCellCounts: Map<string, number>,
+		prevMessageText: string,
+		startTime: number,
+		isFinal: boolean,
+	): Generator<Streaming<AgentAction>> {
+		const cells = partialObject.cells
+		if (cells && typeof cells === 'object') {
+			for (const [cellId, entries] of Object.entries(cells)) {
+				if (!Array.isArray(entries)) continue
+
+				const alreadyEmitted = emittedCellCounts.get(cellId) ?? 0
+				// During streaming, only emit up to count-1 (last entry may be incomplete)
+				// When final, emit everything
+				const emitUpTo = isFinal ? entries.length : entries.length - 1
+
+				for (let i = alreadyEmitted; i < emitUpTo; i++) {
+					const content = entries[i]
+					if (typeof content !== 'string' || content.trim().length === 0) continue
+
+					yield {
+						_type: 'cell_fill',
+						cellId,
+						content: content.trim(),
+						complete: true,
+						time: Date.now() - startTime,
+					} as Streaming<AgentAction>
+				}
+
+				if (emitUpTo > alreadyEmitted) {
+					emittedCellCounts.set(cellId, emitUpTo)
+				}
+			}
+		}
+
+		// Emit message updates
+		const messageText = typeof partialObject.message === 'string' ? partialObject.message : ''
+		if (messageText !== prevMessageText || (isFinal && messageText.length > 0)) {
+			yield {
+				_type: 'message',
+				text: messageText,
+				complete: isFinal,
+				time: Date.now() - startTime,
+			} as Streaming<AgentAction>
+		}
+	}
 }
 
 function getFallbackModels(preferred: AgentModelName): AgentModelName[] {
 	const preferredDef = AGENT_MODEL_DEFINITIONS[preferred]
 	if (!preferredDef) return []
 	const allModels = Object.keys(AGENT_MODEL_DEFINITIONS) as AgentModelName[]
-	return allModels.filter(
+
+	// First: same-provider fallbacks. Then: cross-provider fallbacks.
+	const sameProvider = allModels.filter(
 		(name) =>
 			name !== preferred && AGENT_MODEL_DEFINITIONS[name]?.provider === preferredDef.provider,
 	)
+	const crossProvider = allModels.filter(
+		(name) =>
+			name !== preferred && AGENT_MODEL_DEFINITIONS[name]?.provider !== preferredDef.provider,
+	)
+	return [...sameProvider, ...crossProvider]
 }
 
 function toReadableError(error: unknown): Error {

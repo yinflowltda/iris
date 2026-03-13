@@ -654,7 +654,7 @@ export class TldrawAgent {
 								const actionUtilType = this.actions.getAgentActionUtilType(action._type)
 								const actionUtil = this.actions.getAgentActionUtil(action._type)
 
-								if (!availableActions.includes(actionUtilType)) {
+								if (!availableActions.includes(actionUtilType as typeof availableActions[number])) {
 									if (action.complete) {
 										console.warn(
 											`[Agent] Action dropped: "${action._type}" is not available in current mode`,
