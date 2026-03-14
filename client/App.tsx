@@ -38,6 +38,7 @@ import {
 	TldrawUiMenuCheckboxItem,
 	TldrawUiMenuContextProvider,
 	TldrawUiMenuGroup,
+	TldrawUiMenuItem,
 	TldrawUiMenuToolItem,
 	TldrawUiOrientationProvider,
 	TldrawUiToastsProvider,
@@ -71,9 +72,13 @@ import './lib/frameworks/life-map'
 import { getFramework } from './lib/frameworks/framework-registry'
 import { makeEmptyState } from './lib/mandala-geometry'
 import { findNonOverlappingPosition } from './lib/mandala-placement'
+import { CkksService } from './lib/prisma/ckks-service'
 import { registerArrowBindingDetector } from './lib/mandala-arrow-binding'
 import { registerMandalaSnapEffect } from './lib/mandala-snap'
 import { applyNodulePaletteToThemes } from './lib/nodule-color-palette'
+import { FLSettingsPanel } from './components/FLSettingsPanel'
+import { useLocalTrainer } from './lib/prisma/use-local-trainer'
+import { useFLOrchestrator } from './lib/prisma/use-fl-orchestrator'
 import { CircularNoteShapeUtil } from './shapes/CircularNoteShapeUtil'
 import { MandalaShapeTool } from './shapes/MandalaShapeTool'
 import { type MandalaShape, MandalaShapeUtil } from './shapes/MandalaShapeUtil'
@@ -85,6 +90,10 @@ import { TargetShapeTool } from './tools/TargetShapeTool'
 const ChatPanelContext = createContext<{ chatOpen: boolean; toggleChat: () => void }>({
 	chatOpen: false,
 	toggleChat: () => {},
+})
+
+const FLSettingsContext = createContext<{ openFLSettings: () => void }>({
+	openFLSettings: () => {},
 })
 
 DefaultSizeStyle.setDefaultValue('s')
@@ -210,6 +219,40 @@ const ToolbarWithStylePanel = memo(function ToolbarWithStylePanel() {
 	)
 })
 
+/**
+ * Mounts FL training + orchestration hooks inside the Tldraw context.
+ * Wires useLocalTrainer → useFLOrchestrator so training completions
+ * automatically trigger FL round participation when consented.
+ */
+function FLHooksMount() {
+	const editor = useEditor()
+	const mandala = useValue(
+		'fl-mandala',
+		() =>
+			editor.getCurrentPageShapes().find((s) => s.type === 'mandala') as MandalaShape | undefined,
+		[editor],
+	)
+
+	const mapId = mandala?.props.frameworkId ?? null
+
+	const flConfig = useMemo(
+		() => (mapId ? { apiBase: '', mapId } : null),
+		[mapId],
+	)
+
+	const { onAfterTrain: flOnAfterTrain } = useFLOrchestrator(flConfig)
+	const exampleCountRef = useRef(0)
+
+	const trainerState = useLocalTrainer({
+		onAfterTrain: (_result, adapter, preSnapshot) => {
+			flOnAfterTrain(adapter, exampleCountRef.current, preSnapshot)
+		},
+	})
+	exampleCountRef.current = trainerState.exampleCount
+
+	return null
+}
+
 const ARROW_VISIBLE_OPACITY = 0.6
 
 function useArrowsVisible(): [boolean, () => void] {
@@ -252,6 +295,7 @@ function useArrowsVisible(): [boolean, () => void] {
 
 function IrisMainMenu() {
 	const [arrowsVisible, toggleArrowsVisible] = useArrowsVisible()
+	const { openFLSettings } = useContext(FLSettingsContext)
 
 	return (
 		<DefaultMainMenu>
@@ -262,6 +306,12 @@ function IrisMainMenu() {
 					checked={arrowsVisible}
 					onSelect={toggleArrowsVisible}
 					readonlyOk
+				/>
+				<TldrawUiMenuItem
+					id="fl-settings"
+					label="Privacy & Learning"
+					readonlyOk
+					onSelect={openFLSettings}
 				/>
 			</TldrawUiMenuGroup>
 			<DefaultMainMenuContent />
@@ -315,6 +365,11 @@ function hasNoTextContent(richText: unknown): boolean {
 function App() {
 	const [app, setApp] = useState<TldrawAgentApp | null>(null)
 	const [showTemplate, setShowTemplate] = useState(SHOW_TEMPLATE_CHOOSER)
+	const [showFLSettings, setShowFLSettings] = useState(false)
+	const flSettingsCtx = useMemo(
+		() => ({ openFLSettings: () => setShowFLSettings(true) }),
+		[],
+	)
 	const [chatOpen, setChatOpen] = useState(false)
 	const toggleChat = useCallback(() => setChatOpen((v) => !v), [])
 	const chatInputRef = useRef<HTMLTextAreaElement>(null)
@@ -460,6 +515,10 @@ function App() {
 				})
 			},
 		)
+
+		// Expose services on window for browser testing
+		const ckks = CkksService.getInstance()
+		;(window as any).ckks = ckks
 
 		return () => {
 			cleanupProgress()
@@ -659,6 +718,7 @@ function App() {
 	return (
 		<MandalaCoverContext.Provider value={{ onCoverSlideClick: handleCoverSlideClick }}>
 			<ChatPanelContext.Provider value={{ chatOpen, toggleChat }}>
+				<FLSettingsContext.Provider value={flSettingsCtx}>
 				<TldrawUiToastsProvider>
 					<div className="tldraw-agent-container">
 						<div className="tldraw-canvas">
@@ -672,6 +732,7 @@ function App() {
 								textOptions={textOptions}
 							>
 								<TldrawAgentAppProvider onMount={setApp} onUnmount={handleUnmount} />
+								<FLHooksMount />
 							</Tldraw>
 						</div>
 						<div className={`agent-chat-slot${chatOpen ? ' agent-chat-slot--open' : ''}`}>
@@ -688,8 +749,13 @@ function App() {
 							onSelectTemplate={handleSelectTemplate}
 							onRequestClose={() => setShowTemplate(false)}
 						/>
+						<FLSettingsPanel
+							visible={showFLSettings}
+							onRequestClose={() => setShowFLSettings(false)}
+						/>
 					</div>
 				</TldrawUiToastsProvider>
+				</FLSettingsContext.Provider>
 			</ChatPanelContext.Provider>
 		</MandalaCoverContext.Provider>
 	)

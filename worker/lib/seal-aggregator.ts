@@ -1,0 +1,111 @@
+// ─── SEAL Aggregator ────────────────────────────────────────────────────────
+//
+// Server-side CKKS homomorphic addition for the AggregationDO.
+// Creates only SEALContext + Evaluator — never touches plaintext or secret keys.
+// Uses lazy initialization so WASM loads only when aggregation is needed.
+//
+// WASM Loading Strategy:
+// Emscripten (node-seal) tries to load WASM via XMLHttpRequest (browser) or
+// fs.readFileSync (Node.js) — neither available in Cloudflare Workers.
+// We import the WASM as a Cloudflare module binding and use Emscripten's
+// `instantiateWasm` callback to inject it directly, bypassing all I/O.
+
+import { POLY_MODULUS_DEGREE, COEFF_MOD_BIT_SIZES } from '../../shared/constants/ckks-params'
+// @ts-expect-error — Cloudflare Workers .wasm import yields WebAssembly.Module
+import sealWasmModule from '../../node_modules/node-seal/dist/seal_throws.wasm'
+
+type MainModule = Awaited<ReturnType<typeof import('node-seal')['default']>>
+
+export class SealAggregator {
+	private _seal: MainModule | null = null
+	private _context: InstanceType<MainModule['SEALContext']> | null = null
+	private _evaluator: InstanceType<MainModule['Evaluator']> | null = null
+	private _initPromise: Promise<void> | null = null
+
+	get isInitialized(): boolean {
+		return this._seal !== null
+	}
+
+	/** Lazily initialize node-seal WASM. Cached on instance for reuse. */
+	ensureInitialized(): Promise<void> {
+		if (this._seal) return Promise.resolve()
+		if (this._initPromise) return this._initPromise
+
+		this._initPromise = this._init()
+		return this._initPromise
+	}
+
+	private async _init(): Promise<void> {
+		const { default: initialize } = await import('node-seal')
+		const seal = await initialize({
+			// Override Emscripten's WASM loading to work in Cloudflare Workers.
+			// The static .wasm import gives us a WebAssembly.Module (already compiled).
+			// We instantiate it directly, bypassing XMLHttpRequest/fs.readFileSync.
+			instantiateWasm(
+				imports: WebAssembly.Imports,
+				receiveInstance: (instance: WebAssembly.Instance, module: WebAssembly.Module) => void,
+			) {
+				WebAssembly.instantiate(sealWasmModule, imports).then((instance) => {
+					receiveInstance(instance, sealWasmModule)
+				})
+				return {} // async path — Emscripten waits for receiveInstance callback
+			},
+		})
+
+		const parms = new seal.EncryptionParameters(seal.SchemeType.ckks)
+		parms.setPolyModulusDegree(POLY_MODULUS_DEGREE)
+		parms.setCoeffModulus(
+			seal.CoeffModulus.Create(POLY_MODULUS_DEGREE, Int32Array.from(COEFF_MOD_BIT_SIZES)),
+		)
+
+		const context = new seal.SEALContext(parms, true, seal.SecLevelType.tc128)
+		const evaluator = new seal.Evaluator(context)
+		parms.delete()
+
+		this._seal = seal
+		this._context = context
+		this._evaluator = evaluator
+	}
+
+	/**
+	 * Inject a pre-initialized seal instance (test-only).
+	 * Allows tests to share a single WASM instance across the aggregator and test helpers,
+	 * since node-seal's Emscripten module uses global state and multiple instances conflict.
+	 */
+	_initWith(
+		seal: MainModule,
+		context: InstanceType<MainModule['SEALContext']>,
+		evaluator: InstanceType<MainModule['Evaluator']>,
+	): void {
+		this._seal = seal
+		this._context = context
+		this._evaluator = evaluator
+		this._initPromise = Promise.resolve()
+	}
+
+	/**
+	 * Add two base64-encoded CKKS ciphertexts using evaluator.addInplace().
+	 * Returns the sum as a base64 string. The input ciphertext objects are deleted
+	 * after use to conserve memory.
+	 */
+	async addCiphertexts(b64A: string, b64B: string): Promise<string> {
+		await this.ensureInitialized()
+		const seal = this._seal!
+		const context = this._context!
+		const evaluator = this._evaluator!
+
+		const ctA = new seal.Ciphertext()
+		ctA.loadFromBase64(context, b64A)
+
+		const ctB = new seal.Ciphertext()
+		ctB.loadFromBase64(context, b64B)
+
+		evaluator.addInplace(ctA, ctB)
+		ctB.delete()
+
+		const result = ctA.saveToBase64(seal.ComprModeType.zstd)
+		ctA.delete()
+
+		return result
+	}
+}

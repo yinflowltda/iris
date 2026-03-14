@@ -7,6 +7,7 @@ import type { TreeMapDefinition } from '../../../shared/types/MandalaTypes'
 import { collectAnchorCells, composeAnchorText } from './cell-anchors'
 import { EdgePredictor, type EdgePrediction, type EdgePredictorWeights } from './edge-predictor'
 import { PrismaEmbeddingService } from './embedding-service'
+import { LoraAdapter, type LoraWeights } from './lora-adapter'
 import { dot, ProjectionHead } from './projection-head'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -37,6 +38,7 @@ export interface TrainerState {
 	examples: PlacementExample[]
 	arrowExamples?: ArrowExample[]
 	edgePredictorWeights?: EdgePredictorWeights
+	loraWeights?: LoraWeights
 	trainStepCount: number
 }
 
@@ -135,6 +137,7 @@ function l2Normalize(v: Float32Array): void {
 
 export class LocalPrismaTrainer {
 	private _head: ProjectionHead
+	private _lora: LoraAdapter | null = null
 	private _anchors: TrainableAnchors
 	private _examples: PlacementExample[] = []
 	private _arrowExamples: ArrowExample[] = []
@@ -151,6 +154,10 @@ export class LocalPrismaTrainer {
 
 	get head(): ProjectionHead {
 		return this._head
+	}
+
+	get lora(): LoraAdapter | null {
+		return this._lora
 	}
 
 	get anchors(): TrainableAnchors {
@@ -175,6 +182,25 @@ export class LocalPrismaTrainer {
 
 	get isInitialized(): boolean {
 		return this._initialized
+	}
+
+	/** Enable LoRA mode: freeze base projection head, train only LoRA B matrices. */
+	enableLora(seed?: number): LoraAdapter {
+		this._lora = new LoraAdapter(this._head, seed)
+		return this._lora
+	}
+
+	/**
+	 * Disable LoRA mode.
+	 * If mergeWeights is true, merges LoRA knowledge into base projection head
+	 * weights (W_new = W + B*A) before discarding the adapter.
+	 * This prevents knowledge loss when user opts out of FL.
+	 */
+	disableLora(options?: { mergeWeights?: boolean }): void {
+		if (options?.mergeWeights && this._lora) {
+			this._lora.mergeIntoBase()
+		}
+		this._lora = null
 	}
 
 	/**
@@ -287,20 +313,29 @@ export class LocalPrismaTrainer {
 			}
 		}
 
+		// Decide whether to use LoRA or base projection head
+		const useLora = this._lora !== null
+
 		for (let step = 0; step < steps; step++) {
 			// Shuffle examples for each step
 			const shuffled = [...this._examples].sort(() => Math.random() - 0.5)
 
 			let stepLoss = 0
-			this._head.zeroGrad()
+			if (useLora) {
+				this._lora!.zeroGrad()
+			} else {
+				this._head.zeroGrad()
+			}
 
 			for (const example of shuffled) {
 				const noteEmbedding = textToEmbedding.get(example.noteText)!
 				const positiveAnchor = this._anchors.vectors.get(example.cellId)
 				if (!positiveAnchor) continue
 
-				// Forward through projection head
-				const projected = this._head.forward(noteEmbedding)
+				// Forward through projection head (or LoRA-augmented head)
+				const projected = useLora
+					? this._lora!.forward(noteEmbedding)
+					: this._head.forward(noteEmbedding)
 
 				// Collect negative anchors
 				const negatives = new Map<string, Float32Array>()
@@ -313,8 +348,12 @@ export class LocalPrismaTrainer {
 				stepLoss += result.loss
 
 				if (result.gradProjected) {
-					// Backprop through projection head
-					this._head.backward(result.gradProjected)
+					// Backprop (LoRA only updates B matrices; base head updates all)
+					if (useLora) {
+						this._lora!.backward(result.gradProjected)
+					} else {
+						this._head.backward(result.gradProjected)
+					}
 
 					// Update positive anchor
 					if (result.gradPositive) {
@@ -337,8 +376,12 @@ export class LocalPrismaTrainer {
 				}
 			}
 
-			// Apply accumulated projection head gradients
-			this._head.step(LEARNING_RATE, WEIGHT_DECAY)
+			// Apply accumulated gradients
+			if (useLora) {
+				this._lora!.step(LEARNING_RATE, WEIGHT_DECAY)
+			} else {
+				this._head.step(LEARNING_RATE, WEIGHT_DECAY)
+			}
 
 			totalLoss += stepLoss / shuffled.length
 			stepsRun++
@@ -378,7 +421,9 @@ export class LocalPrismaTrainer {
 	 * Returns sorted results by similarity (highest first).
 	 */
 	classify(noteEmbedding: Float32Array, topK = 3): { cellId: string; similarity: number }[] {
-		const projected = this._head.forward(noteEmbedding)
+		const projected = this._lora
+			? this._lora.forward(noteEmbedding)
+			: this._head.forward(noteEmbedding)
 		const results: { cellId: string; similarity: number }[] = []
 
 		for (const [cellId, anchor] of this._anchors.vectors) {
@@ -401,6 +446,7 @@ export class LocalPrismaTrainer {
 			examples: this._examples,
 			arrowExamples: this._arrowExamples,
 			edgePredictorWeights: this._edgePredictor?.serialize(),
+			loraWeights: this._lora?.serialize(),
 			trainStepCount: this._trainStepCount,
 		}
 	}
@@ -420,6 +466,12 @@ export class LocalPrismaTrainer {
 		trainer._arrowExamples = data.arrowExamples ?? []
 		trainer._trainStepCount = data.trainStepCount
 		trainer._initialized = true
+
+		// Restore LoRA weights if present
+		if (data.loraWeights) {
+			const lora = trainer.enableLora()
+			lora.loadWeights(data.loraWeights)
+		}
 
 		// Restore edge predictor if we have weights and edge types
 		const edgeTypes = treeDef?.edgeTypes

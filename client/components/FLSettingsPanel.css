@@ -1,0 +1,270 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   FL Settings Panel — Dark Slate Glassmorphic Modal
+   Matches TemplateChooser visual language.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Overlay ─────────────────────────────────────────────────────────────── */
+
+.fl-overlay {
+	position: fixed;
+	inset: 0;
+	z-index: 999999;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background-color: rgba(0, 0, 0, 0.6);
+	backdrop-filter: blur(8px);
+	-webkit-backdrop-filter: blur(8px);
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 0.25s ease;
+}
+
+.fl-overlay[data-visible="true"] {
+	opacity: 1;
+	pointer-events: auto;
+}
+
+/* ── Modal ───────────────────────────────────────────────────────────────── */
+
+.fl-modal {
+	display: flex;
+	flex-direction: column;
+	gap: 24px;
+	max-width: 520px;
+	width: calc(100% - 48px);
+	padding: 32px;
+	border-radius: 20px;
+	background: linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(30, 41, 59, 0.94));
+	backdrop-filter: blur(20px);
+	-webkit-backdrop-filter: blur(20px);
+	border: 1px solid rgba(255, 255, 255, 0.08);
+	transform: translateY(12px) scale(0.97);
+	transition: transform 0.3s ease;
+}
+
+.fl-overlay[data-visible="true"] .fl-modal {
+	transform: translateY(0) scale(1);
+}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+
+.fl-header {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	padding-bottom: 16px;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.fl-title {
+	margin: 0;
+	font-family: "Source Sans 3", sans-serif;
+	font-size: 20px;
+	font-weight: 600;
+	color: #ffffff;
+	letter-spacing: -0.01em;
+}
+
+.fl-subtitle {
+	margin: 0;
+	font-family: "Source Sans 3", sans-serif;
+	font-size: 13px;
+	font-weight: 400;
+	color: #94a3b8;
+	line-height: 1.5;
+}
+
+/* ── Toggle row ──────────────────────────────────────────────────────────── */
+
+.fl-toggle-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	padding: 16px;
+	border-radius: 12px;
+	background: rgba(255, 255, 255, 0.03);
+	border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.fl-toggle-label {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	flex: 1;
+}
+
+.fl-toggle-title {
+	margin: 0;
+	font-family: "Source Sans 3", sans-serif;
+	font-size: 14px;
+	font-weight: 600;
+	color: #ffffff;
+}
+
+.fl-toggle-desc {
+	margin: 0;
+	font-family: "Source Sans 3", sans-serif;
+	font-size: 12px;
+	font-weight: 400;
+	color: #94a3b8;
+	line-height: 1.4;
+}
+
+/* ── Toggle switch ───────────────────────────────────────────────────────── */
+
+.fl-switch {
+	position: relative;
+	width: 44px;
+	height: 24px;
+	flex-shrink: 0;
+}
+
+.fl-switch input {
+	opacity: 0;
+	width: 0;
+	height: 0;
+}
+
+.fl-switch-track {
+	position: absolute;
+	cursor: pointer;
+	inset: 0;
+	border-radius: 12px;
+	background: rgba(255, 255, 255, 0.1);
+	transition: background 0.2s ease;
+}
+
+.fl-switch input:checked + .fl-switch-track {
+	background: rgba(74, 222, 128, 0.4);
+}
+
+.fl-switch-thumb {
+	position: absolute;
+	top: 3px;
+	left: 3px;
+	width: 18px;
+	height: 18px;
+	border-radius: 50%;
+	background: #94a3b8;
+	transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.fl-switch input:checked ~ .fl-switch-thumb {
+	transform: translateX(20px);
+	background: #4ade80;
+}
+
+/* ── GDPR notice ─────────────────────────────────────────────────────────── */
+
+.fl-gdpr-notice {
+	display: flex;
+	gap: 10px;
+	padding: 12px 14px;
+	border-radius: 10px;
+	background: rgba(251, 191, 36, 0.06);
+	border: 1px solid rgba(251, 191, 36, 0.15);
+}
+
+.fl-gdpr-icon {
+	flex-shrink: 0;
+	font-size: 16px;
+	line-height: 1.4;
+}
+
+.fl-gdpr-text {
+	margin: 0;
+	font-family: "Source Sans 3", sans-serif;
+	font-size: 12px;
+	font-weight: 400;
+	color: #fbbf24;
+	line-height: 1.5;
+}
+
+/* ── Privacy info ────────────────────────────────────────────────────────── */
+
+.fl-privacy-info {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.fl-privacy-item {
+	display: flex;
+	gap: 8px;
+	align-items: flex-start;
+}
+
+.fl-privacy-check {
+	flex-shrink: 0;
+	color: #4ade80;
+	font-size: 13px;
+	line-height: 1.4;
+}
+
+.fl-privacy-text {
+	margin: 0;
+	font-family: "Source Sans 3", sans-serif;
+	font-size: 12px;
+	font-weight: 400;
+	color: #cbd5e1;
+	line-height: 1.5;
+}
+
+/* ── Stats ───────────────────────────────────────────────────────────────── */
+
+.fl-stats {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 12px;
+}
+
+.fl-stat {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 4px;
+	padding: 12px 8px;
+	border-radius: 10px;
+	background: rgba(255, 255, 255, 0.03);
+	border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.fl-stat-value {
+	font-family: "Source Sans 3", sans-serif;
+	font-size: 20px;
+	font-weight: 700;
+	color: #ffffff;
+}
+
+.fl-stat-label {
+	font-family: "Source Sans 3", sans-serif;
+	font-size: 11px;
+	font-weight: 500;
+	color: #64748b;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+
+/* ── Close button ────────────────────────────────────────────────────────── */
+
+.fl-close {
+	appearance: none;
+	border: none;
+	font-family: "Source Sans 3", sans-serif;
+	font-size: 13px;
+	font-weight: 600;
+	padding: 10px 0;
+	border-radius: 10px;
+	background: rgba(255, 255, 255, 0.06);
+	color: #94a3b8;
+	cursor: pointer;
+	width: 100%;
+	transition: background 0.15s ease, color 0.15s ease;
+}
+
+.fl-close:hover {
+	background: rgba(255, 255, 255, 0.1);
+	color: #e2e8f0;
+}
