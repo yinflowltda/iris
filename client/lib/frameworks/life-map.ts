@@ -14,16 +14,16 @@ import { registerFramework } from './framework-registry'
  *
  * Domains: Espiritual, Mental, Físico, Material, Profissional, Pessoal
  * Rings (center → outer): Querer, Ser, Ter, Saber
- * Center: Essência (Essence/Self)
+ * Center: Propósito (Purpose/Focus)
  */
 
 // ─── Ring definitions (bottom half: life domains) ────────────────────────────
 
 const RING_DEFS = [
-	{ id: 'querer', label: 'Querer', innerRatio: 0.1, outerRatio: 0.325 },
-	{ id: 'ser', label: 'Ser', innerRatio: 0.325, outerRatio: 0.55 },
-	{ id: 'ter', label: 'Ter', innerRatio: 0.55, outerRatio: 0.775 },
-	{ id: 'saber', label: 'Saber', innerRatio: 0.775, outerRatio: 1.0 },
+	{ id: 'querer', label: 'Want', innerRatio: 0.1, outerRatio: 0.325 },
+	{ id: 'ser', label: 'Am', innerRatio: 0.325, outerRatio: 0.55 },
+	{ id: 'ter', label: 'Have', innerRatio: 0.55, outerRatio: 0.775 },
+	{ id: 'saber', label: 'Know', innerRatio: 0.775, outerRatio: 1.0 },
 ] as const
 
 const RING_CONTENT: Record<string, { question: string; guidance: string; examples: string[] }> = {
@@ -80,7 +80,7 @@ const EMPTY_CONTENT = { question: '', guidance: '', examples: [] as string[] }
 // ─── Temporal constants (top half) ───────────────────────────────────────────
 
 const DAYS = [
-	{ id: 'flow', label: 'Flow' },
+	{ id: 'flex', label: 'Flex' },
 	{ id: 'monday', label: 'Monday' },
 	{ id: 'tuesday', label: 'Tuesday' },
 	{ id: 'wednesday', label: 'Wednesday' },
@@ -132,24 +132,25 @@ export const LIFE_MAP: MapDefinition = {
 	id: 'life-map',
 	name: 'Life Map',
 	description:
-		'A holistic mandala for exploring six key life dimensions through four lenses of self-awareness — Querer (desire), Ser (being), Ter (having), and Saber (knowing).',
+		'A holistic mandala for exploring six key life dimensions through four lenses of self-awareness — Want, Am, Have, and Know.',
 	center: {
-		id: 'essencia',
-		label: 'Essência',
+		id: 'proposito',
+		label: 'Purpose',
 		radiusRatio: 0.1,
-		question: 'What is your essence — the core of who you are beyond roles and titles?',
+		question:
+			'What is the driving reason behind your current choices? What are you working toward in this period of your life?',
 		guidance:
-			'Help the user connect with their deepest sense of self. This is the anchor that holds all life dimensions together.',
+			'Help the user articulate the focused intention that gives direction to everything on this map. Life maps are scoped to a 3-6 month horizon.',
 		examples: [
-			'Curiosity and compassion',
-			'A seeker of truth and beauty',
-			'Someone who values growth above comfort',
+			'Transition to a new city and establish a new life there',
+			'Build a sustainable freelance career',
+			'Recover from burnout and find work-life balance',
 		],
 	},
 	slices: [
 		{
 			id: 'espiritual',
-			label: 'Espiritual',
+			label: 'Spiritual',
 			startAngle: 90,
 			endAngle: 120,
 			cells: buildSliceCells('espiritual'),
@@ -163,7 +164,7 @@ export const LIFE_MAP: MapDefinition = {
 		},
 		{
 			id: 'fisico',
-			label: 'Físico',
+			label: 'Physical',
 			startAngle: 150,
 			endAngle: 180,
 			cells: buildSliceCells('fisico'),
@@ -177,14 +178,14 @@ export const LIFE_MAP: MapDefinition = {
 		},
 		{
 			id: 'profissional',
-			label: 'Profissional',
+			label: 'Professional',
 			startAngle: 210,
 			endAngle: 240,
 			cells: buildSliceCells('profissional'),
 		},
 		{
 			id: 'pessoal',
-			label: 'Pessoal',
+			label: 'Personal',
 			startAngle: 240,
 			endAngle: 270,
 			cells: buildSliceCells('pessoal'),
@@ -235,24 +236,24 @@ function buildDomainNode(slice: { id: string; label: string }): TreeNodeDef {
 }
 
 const DAY_SEGMENTS = [
-	{ id: 'dawn', label: 'Madrugada' },
-	{ id: 'morning', label: 'Manhã' },
-	{ id: 'afternoon', label: 'Tarde' },
-	{ id: 'night', label: 'Noite' },
+	{ id: 'dawn', label: 'Dawn' },
+	{ id: 'morning', label: 'Morning' },
+	{ id: 'afternoon', label: 'Afternoon' },
+	{ id: 'night', label: 'Night' },
 ] as const
 
 /**
  * Build a temporal day node within a week group:
  * day (transparent+hideLabel) → dawn → morning → afternoon → night → week-slot (groupId) → months (hideLabel)
  *
- * Non-Flow days: morning segment carries the day name label; other segments are hideLabel.
- * Flow: all 4 segments are hideLabel (no visible time subdivisions).
+ * Non-Flex days: morning segment carries the day name label; other segments are hideLabel.
+ * Flex: all 4 segments are hideLabel (no visible time subdivisions).
  */
 function buildTemporalDayNode(dayIndex: number, weekIndex: number): TreeNodeDef {
 	const day = DAYS[dayIndex]
 	const week = WEEK_GROUPS[weekIndex]
 	const monthOffset = weekIndex * 3
-	const isFlow = dayIndex === 0
+	const isFlex = dayIndex === 0
 
 	const monthChildren: TreeNodeDef[] = []
 	for (let m = 0; m < 3; m++) {
@@ -274,8 +275,8 @@ function buildTemporalDayNode(dayIndex: number, weekIndex: number): TreeNodeDef 
 		children: monthChildren,
 	}
 
-	if (isFlow) {
-		// Flow: single visible cell (no day segments), directly contains week → months
+	if (isFlex) {
+		// Flex: single visible cell (no day segments), directly contains week → months
 		// Uses dedicated radial band region so band 1 spans the full segment area
 		return {
 			id: day.id,
@@ -301,7 +302,7 @@ function buildTemporalDayNode(dayIndex: number, weekIndex: number): TreeNodeDef 
 		}
 	}
 
-	// Non-Flow: transparent + hideLabel wrapper (no visual cell, no group label)
+	// Non-Flex: transparent + hideLabel wrapper (no visual cell, no group label)
 	return {
 		id: day.id,
 		label: day.label,
@@ -343,10 +344,10 @@ const saberCells = ALL_DOMAIN_IDS.map((d) => `${d}-saber`)
 const allDomainCells = [...quererCells, ...serCells, ...terCells, ...saberCells]
 
 /** Day segment cells where temporal notes actually land */
-const daySegmentCells = DAYS.filter((d) => d.id !== 'flow').flatMap((d) =>
+const daySegmentCells = DAYS.filter((d) => d.id !== 'flex').flatMap((d) =>
 	DAY_SEGMENTS.map((s) => `${d.id}-${s.id}`),
 )
-const temporalNoteCells = ['flow', ...daySegmentCells]
+const temporalNoteCells = ['flex', ...daySegmentCells]
 
 // Domain nodes for the bottom half (6 domains)
 const DOMAIN_NODES: TreeNodeDef[] = LIFE_MAP.slices.map((s) => buildDomainNode(s))
@@ -404,7 +405,7 @@ export const LIFE_TREE: TreeMapDefinition = {
 		{
 			id: 'grounds',
 			label: 'grounds',
-			fromCells: ['essencia'],
+			fromCells: ['proposito'],
 			toCells: quererCells,
 			empiricalBasis:
 				'Values-based motivation: core values anchor authentic desires (Schwartz, 1992)',
@@ -456,18 +457,18 @@ export const LIFE_TREE: TreeMapDefinition = {
 				},
 			},
 			{
-				// Flow slice: single cell spanning all day-segment bands, then week + month
-				// Flow's day wrapper is visible (not transparent), segments are transparent
-				// → visualDepth 1 = Flow cell, 2 = Week, 3 = Month
+				// Flex slice: single cell spanning all day-segment bands, then week + month
+				// Flex's day wrapper is visible (not transparent), segments are transparent
+				// → visualDepth 1 = Flex cell, 2 = Week, 3 = Month
 				angularRange: [(3 * Math.PI) / 2, (3 * Math.PI) / 2 + Math.PI / 8],
 				bands: {
-					1: [0.1, 0.6625], // Flow cell (spans dawn→night range)
+					1: [0.1, 0.6625], // Flex cell (spans dawn→night range)
 					2: [0.6625, 0.775], // Week
 					3: [0.775, 0.8875], // Month
 				},
 			},
 			{
-				// Top half (non-Flow): temporal days with 4 segments each
+				// Top half (non-Flex): temporal days with 4 segments each
 				angularRange: [(3 * Math.PI) / 2 + Math.PI / 8, (5 * Math.PI) / 2],
 				bands: {
 					1: [0.1, 0.2406], // Dawn
@@ -490,7 +491,7 @@ export const LIFE_TREE: TreeMapDefinition = {
 	},
 	// 10 seven-year life phase blocks as an overlay at ring 4
 	overlayRing: {
-		startNodeId: TEMPORAL_NODES[0].children![0].id, // first day (flow)
+		startNodeId: TEMPORAL_NODES[0].children![0].id, // first day (flex)
 		endNodeId: TEMPORAL_NODES[TEMPORAL_NODES.length - 1].children![1].id, // last day (sunday)
 		arcs: LIFE_PHASE_BLOCKS,
 	},
@@ -514,7 +515,7 @@ registerFramework({
 		description: 'See how different areas of your life are doing at a glance.',
 		active: true,
 		longDescription:
-			'A holistic mandala for exploring six key life dimensions — Spiritual, Emotional, Physical, Material, Professional, and Relational — through four lenses of self-awareness: what you want, who you are, what you have, and what you know.',
+			'A holistic mandala for exploring six key life dimensions — Spiritual, Mental, Physical, Material, Professional, and Personal — through four lenses of self-awareness: what you want, who you are, what you have, and what you know.',
 		useCases: ['Holistic', 'Self-Assessment', '6 Domains', '4 Rings'],
 		keyQuestions: [
 			'How balanced is my life right now?',

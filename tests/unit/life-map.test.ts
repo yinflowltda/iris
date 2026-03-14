@@ -32,8 +32,8 @@ describe('Life Map definition', () => {
 		expect(new Set(ids).size).toBe(25)
 	})
 
-	it('has a center cell named essencia', () => {
-		expect(LIFE_MAP.center.id).toBe('essencia')
+	it('has a center cell named proposito', () => {
+		expect(LIFE_MAP.center.id).toBe('proposito')
 		expect(LIFE_MAP.center.radiusRatio).toBeGreaterThan(0)
 		expect(LIFE_MAP.center.radiusRatio).toBeLessThan(1)
 	})
@@ -154,7 +154,7 @@ describe('Life Map geometry functions', () => {
 
 	it('getCellAtPoint detects the center cell', () => {
 		const cellId = getCellAtPoint(LIFE_MAP, center, outerRadius, center)
-		expect(cellId).toBe('essencia')
+		expect(cellId).toBe('proposito')
 	})
 
 	it('makeEmptyState creates state for all cells', () => {
@@ -191,7 +191,7 @@ describe('Life Map cell layout', () => {
 	})
 
 	it('computes layout for the center cell', () => {
-		const bounds = getCellBounds(LIFE_MAP, center, outerRadius, 'essencia')
+		const bounds = getCellBounds(LIFE_MAP, center, outerRadius, 'proposito')
 		expect(bounds).not.toBeNull()
 		const layout = computeCellContentLayout(bounds!, 2)
 		expect(layout).toHaveLength(2)

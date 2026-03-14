@@ -493,7 +493,7 @@ export function SunburstSvg({
 	const centerFontSize = Math.max(10, Math.min(16, outerRadius * 0.045)) * globalLabelScale
 
 	// Hide root label when zoomed to a non-root cell
-	const showRootLabel = false
+	const showRootLabel = !isZoomedNonRoot
 
 	const centerCircle = (
 		<g key="center">

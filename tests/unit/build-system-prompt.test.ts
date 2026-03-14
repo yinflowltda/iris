@@ -44,7 +44,7 @@ describe('buildSystemPrompt framework injection', () => {
 		const prompt = makeMinimalPrompt('life-map')
 		const systemPrompt = buildSystemPrompt(prompt, { withSchema: false })
 		expect(systemPrompt).toContain('Life Map')
-		expect(systemPrompt).toContain('life domains')
+		expect(systemPrompt).toContain('life design companion')
 		expect(systemPrompt).not.toContain('CBT')
 	})
 
