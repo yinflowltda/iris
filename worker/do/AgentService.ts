@@ -163,6 +163,7 @@ export class AgentService {
 
 		// State for streaming cells format
 		const emittedCellCounts = new Map<string, number>()
+		let emittedActionCount = 0
 		let lastMessageText = ''
 
 		let startTime = Date.now()
@@ -185,13 +186,22 @@ export class AgentService {
 			}
 
 			if (formatDetected === 'cells') {
-				yield* this.parseCellsFormat(
+				const result = this.parseCellsFormat(
 					partialObject,
 					emittedCellCounts,
+					emittedActionCount,
 					lastMessageText,
 					startTime,
 					false,
 				)
+				for (const event of result) {
+					yield event
+				}
+				// Update action tracking
+				const actions = partialObject.actions
+				if (Array.isArray(actions)) {
+					emittedActionCount = Math.max(emittedActionCount, actions.length - 1)
+				}
 				// Update message tracking
 				if (typeof partialObject.message === 'string') {
 					lastMessageText = partialObject.message
@@ -239,6 +249,7 @@ export class AgentService {
 				yield* this.parseCellsFormat(
 					finalObject,
 					emittedCellCounts,
+					emittedActionCount,
 					lastMessageText,
 					startTime,
 					true,
@@ -264,15 +275,19 @@ export class AgentService {
 	}
 
 	/**
-	 * Parse the streaming `{ message, cells }` format and yield cell_fill + message events.
+	 * Parse the streaming `{ message, cells, actions }` format and yield events.
 	 *
 	 * For cells: we can only be sure a string is complete when the NEXT string in the
 	 * same array has started (or the stream has ended). So we emit all entries up to
 	 * `count - 1` during streaming, and emit the final entry when `isFinal` is true.
+	 *
+	 * For actions: same logic — emit up to count-1 during streaming (last may be
+	 * incomplete), emit all when final.
 	 */
 	private *parseCellsFormat(
 		partialObject: any,
 		emittedCellCounts: Map<string, number>,
+		alreadyEmittedActions: number,
 		prevMessageText: string,
 		startTime: number,
 		isFinal: boolean,
@@ -303,6 +318,21 @@ export class AgentService {
 				if (emitUpTo > alreadyEmitted) {
 					emittedCellCounts.set(cellId, emitUpTo)
 				}
+			}
+		}
+
+		// Emit structured actions (move_note, create_arrow, set_metadata, etc.)
+		const actions = partialObject.actions
+		if (Array.isArray(actions)) {
+			const emitUpTo = isFinal ? actions.length : actions.length - 1
+			for (let i = alreadyEmittedActions; i < emitUpTo; i++) {
+				const action = actions[i] as AgentAction | undefined
+				if (!action || !action._type) continue
+				yield {
+					...action,
+					complete: true,
+					time: Date.now() - startTime,
+				} as Streaming<AgentAction>
 			}
 		}
 
