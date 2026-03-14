@@ -77,6 +77,8 @@ import { registerArrowBindingDetector } from './lib/mandala-arrow-binding'
 import { registerMandalaSnapEffect } from './lib/mandala-snap'
 import { applyNodulePaletteToThemes } from './lib/nodule-color-palette'
 import { FLSettingsPanel } from './components/FLSettingsPanel'
+import { useLocalTrainer } from './lib/prisma/use-local-trainer'
+import { useFLOrchestrator } from './lib/prisma/use-fl-orchestrator'
 import { CircularNoteShapeUtil } from './shapes/CircularNoteShapeUtil'
 import { MandalaShapeTool } from './shapes/MandalaShapeTool'
 import { type MandalaShape, MandalaShapeUtil } from './shapes/MandalaShapeUtil'
@@ -216,6 +218,40 @@ const ToolbarWithStylePanel = memo(function ToolbarWithStylePanel() {
 		</TldrawUiOrientationProvider>
 	)
 })
+
+/**
+ * Mounts FL training + orchestration hooks inside the Tldraw context.
+ * Wires useLocalTrainer → useFLOrchestrator so training completions
+ * automatically trigger FL round participation when consented.
+ */
+function FLHooksMount() {
+	const editor = useEditor()
+	const mandala = useValue(
+		'fl-mandala',
+		() =>
+			editor.getCurrentPageShapes().find((s) => s.type === 'mandala') as MandalaShape | undefined,
+		[editor],
+	)
+
+	const mapId = mandala?.props.frameworkId ?? null
+
+	const flConfig = useMemo(
+		() => (mapId ? { apiBase: '', mapId } : null),
+		[mapId],
+	)
+
+	const { onAfterTrain: flOnAfterTrain } = useFLOrchestrator(flConfig)
+	const exampleCountRef = useRef(0)
+
+	const trainerState = useLocalTrainer({
+		onAfterTrain: (_result, adapter) => {
+			flOnAfterTrain(adapter, exampleCountRef.current)
+		},
+	})
+	exampleCountRef.current = trainerState.exampleCount
+
+	return null
+}
 
 const ARROW_VISIBLE_OPACITY = 0.6
 
@@ -696,6 +732,7 @@ function App() {
 								textOptions={textOptions}
 							>
 								<TldrawAgentAppProvider onMount={setApp} onUnmount={handleUnmount} />
+								<FLHooksMount />
 							</Tldraw>
 						</div>
 						<div className={`agent-chat-slot${chatOpen ? ' agent-chat-slot--open' : ''}`}>
