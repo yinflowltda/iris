@@ -270,3 +270,56 @@ describe('LocalPrismaTrainer', () => {
 		expect(postBIds).toContain('cell-b')
 	})
 })
+
+// ─── disableLora with mergeWeights ──────────────────────────────────────────
+
+describe('disableLora with mergeWeights', () => {
+	it('should merge LoRA knowledge into base weights when mergeWeights is true', () => {
+		const trainer = new LocalPrismaTrainer('test-map')
+		trainer.initAnchorsFromEmbeddings(
+			new Map([
+				['cell-1', unitVector(384, 0)],
+				['cell-2', unitVector(384, 1)],
+			]),
+		)
+
+		const adapter = trainer.enableLora()
+		// Set non-zero B weights
+		for (let i = 0; i < adapter.b1.length; i++) adapter.b1[i] = 0.01
+		for (let i = 0; i < adapter.b2.length; i++) adapter.b2[i] = 0.01
+
+		// Record base weights before merge
+		const w1Before = new Float32Array(trainer.head.w1)
+		const w2Before = new Float32Array(trainer.head.w2)
+
+		trainer.disableLora({ mergeWeights: true })
+
+		expect(trainer.lora).toBeNull()
+		let w1Changed = false
+		for (let i = 0; i < w1Before.length; i++) {
+			if (Math.abs(trainer.head.w1[i] - w1Before[i]) > 1e-10) {
+				w1Changed = true
+				break
+			}
+		}
+		expect(w1Changed).toBe(true)
+	})
+
+	it('should NOT merge weights when mergeWeights is false or omitted', () => {
+		const trainer = new LocalPrismaTrainer('test-map')
+		trainer.initAnchorsFromEmbeddings(
+			new Map([['cell-1', unitVector(384, 0)]]),
+		)
+
+		const adapter = trainer.enableLora()
+		for (let i = 0; i < adapter.b1.length; i++) adapter.b1[i] = 0.01
+
+		const w1Before = new Float32Array(trainer.head.w1)
+
+		trainer.disableLora() // no mergeWeights
+
+		for (let i = 0; i < w1Before.length; i++) {
+			expect(trainer.head.w1[i]).toBe(w1Before[i])
+		}
+	})
+})

@@ -273,6 +273,37 @@ export class LoraAdapter {
 		this.b2.set(flat.subarray(this.b1.length))
 	}
 
+	/**
+	 * Merge LoRA adaptation into base weights: W_new = W + B*A
+	 * After merging, the base projection head contains the LoRA knowledge
+	 * and the adapter can be safely discarded.
+	 */
+	mergeIntoBase(): void {
+		const { w1, w2 } = this._base
+
+		// W1_new = W1 + B1*A1  (HIDDEN_DIM×INPUT_DIM += HIDDEN_DIM×LORA_RANK * LORA_RANK×INPUT_DIM)
+		for (let i = 0; i < HIDDEN_DIM; i++) {
+			for (let j = 0; j < INPUT_DIM; j++) {
+				let sum = 0
+				for (let k = 0; k < LORA_RANK; k++) {
+					sum += this.b1[i * LORA_RANK + k] * this.a1[k * INPUT_DIM + j]
+				}
+				w1[i * INPUT_DIM + j] += sum
+			}
+		}
+
+		// W2_new = W2 + B2*A2  (INPUT_DIM×HIDDEN_DIM += INPUT_DIM×LORA_RANK * LORA_RANK×HIDDEN_DIM)
+		for (let i = 0; i < INPUT_DIM; i++) {
+			for (let j = 0; j < HIDDEN_DIM; j++) {
+				let sum = 0
+				for (let k = 0; k < LORA_RANK; k++) {
+					sum += this.b2[i * LORA_RANK + k] * this.a2[k * HIDDEN_DIM + j]
+				}
+				w2[i * HIDDEN_DIM + j] += sum
+			}
+		}
+	}
+
 	/** Serialize B weights for persistence. */
 	serialize(): LoraWeights {
 		return {

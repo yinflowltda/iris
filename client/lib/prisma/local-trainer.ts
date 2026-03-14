@@ -190,8 +190,16 @@ export class LocalPrismaTrainer {
 		return this._lora
 	}
 
-	/** Disable LoRA mode: return to training the full projection head. */
-	disableLora(): void {
+	/**
+	 * Disable LoRA mode.
+	 * If mergeWeights is true, merges LoRA knowledge into base projection head
+	 * weights (W_new = W + B*A) before discarding the adapter.
+	 * This prevents knowledge loss when user opts out of FL.
+	 */
+	disableLora(options?: { mergeWeights?: boolean }): void {
+		if (options?.mergeWeights && this._lora) {
+			this._lora.mergeIntoBase()
+		}
 		this._lora = null
 	}
 
