@@ -40,14 +40,18 @@ export function createFLOrchestrator(config: FLOrchestratorConfig) {
 		const ckks = CkksService.getInstance()
 		await ckks.init()
 
-		// Try to load persisted keys
-		const stored = await ckks.loadKeysFromIDB()
-		if (stored) {
-			await ckks.loadKeys(stored)
-		} else {
-			const keys = await ckks.generateKeys()
-			await ckks.saveKeysToIDB(keys)
+		// Fetch the server's public key for this map.
+		// All clients encrypt with the same key → homomorphic addition works.
+		console.debug('[FL] Fetching CKKS public key from server...')
+		const resp = await fetch(
+			`${config.apiBase}/fl/keys?mapId=${encodeURIComponent(config.mapId)}`,
+		)
+		if (!resp.ok) {
+			throw new Error(`Failed to fetch FL public key: ${resp.status}`)
 		}
+		const { publicKey } = (await resp.json()) as { publicKey: string }
+		await ckks.loadPublicKey(publicKey)
+		console.debug('[FL] Public key loaded (encrypt-only, server decrypts aggregate)')
 		_keysReady = true
 	}
 
@@ -102,7 +106,7 @@ export function createFLOrchestrator(config: FLOrchestratorConfig) {
 					console.warn('[FL]', _error)
 					return
 				}
-				const openData = await openResp.json()
+				const openData = (await openResp.json()) as { roundId: string }
 				console.debug(`[FL] Round opened: ${openData.roundId}`)
 				// Submit to the newly opened round
 				await flClient.submitDelta(adapter, _snapshot, numExamples)

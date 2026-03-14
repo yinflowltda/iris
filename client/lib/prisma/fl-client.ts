@@ -11,7 +11,6 @@
 //   8. Download and apply aggregated deltas
 //   9. Track cumulative privacy budget
 
-import type { CkksBlob } from './ckks-types'
 import type { FLRoundSummary, FLSubmitResponse } from '../../../shared/types/FLRound'
 import { CkksService } from './ckks-service'
 import { clipAndNoise, computeSigma, l2Norm } from './differential-privacy'
@@ -237,6 +236,7 @@ export class FLClient {
 
 	/**
 	 * Download the published aggregate and apply it to the LoRA adapter.
+	 * The server decrypts the CKKS aggregate and returns plaintext values.
 	 * Returns true if successful, false if no aggregate available.
 	 */
 	async applyAggregate(adapter: LoraAdapter): Promise<boolean> {
@@ -251,35 +251,21 @@ export class FLClient {
 				return false
 			}
 
-			const data: { roundId: string; blobs: string[]; submissionCount: number } =
+			const data: { roundId: string; values: number[]; submissionCount: number } =
 				await resp.json()
-			if (!data.blobs || data.blobs.length === 0) {
+			if (!data.values || data.values.length === 0) {
 				this._status = 'idle'
 				return false
 			}
 
-			// Decrypt aggregated ciphertext blobs
-			this._status = 'applying'
-			const ckks = CkksService.getInstance()
-			const totalParams = adapter.paramCount
-			const slotCount = ckks.slotCount
-
-			const blobs: CkksBlob[] = data.blobs.map((b64, i) => ({
-				data: b64,
-				valueCount:
-					i < data.blobs.length - 1
-						? slotCount
-						: totalParams - (data.blobs.length - 1) * slotCount,
-			}))
-
-			const aggregatedDelta = await ckks.decryptVector(blobs)
-
 			// Apply: current_params += aggregated_delta / submissionCount
 			// (The DO stores raw sum; we average by dividing by submission count)
+			this._status = 'applying'
+			console.debug(`[FL Client] Applying aggregate: ${data.values.length} values from ${data.submissionCount} submissions`)
 			const currentParams = adapter.getTrainableParams()
 			const scale = 1 / data.submissionCount
-			for (let i = 0; i < Math.min(currentParams.length, aggregatedDelta.length); i++) {
-				currentParams[i] += aggregatedDelta[i] * scale
+			for (let i = 0; i < Math.min(currentParams.length, data.values.length); i++) {
+				currentParams[i] += data.values[i] * scale
 			}
 			adapter.setTrainableParams(currentParams)
 

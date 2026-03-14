@@ -26,6 +26,7 @@ export type CkksWorkerRequest =
 	| { type: 'decrypt'; id: string; blob: CkksBlob }
 	| { type: 'add'; id: string; blobA: CkksBlob; blobB: CkksBlob }
 	| { type: 'loadKeys'; id: string; keys: CkksKeyPair }
+	| { type: 'loadPublicKey'; id: string; publicKey: string }
 
 export type CkksWorkerResponse =
 	| { type: 'init:complete'; slotCount: number }
@@ -40,3 +41,5 @@ export type CkksWorkerResponse =
 	| { type: 'add:error'; id: string; error: string }
 	| { type: 'loadKeys:result'; id: string }
 	| { type: 'loadKeys:error'; id: string; error: string }
+	| { type: 'loadPublicKey:result'; id: string }
+	| { type: 'loadPublicKey:error'; id: string; error: string }

@@ -4,6 +4,7 @@ import { AutoRouter, cors, error, type IRequest } from 'itty-router'
 import type { Environment } from './environment'
 import { getAvailableModels } from './routes/models'
 import {
+	getPublicKey,
 	openRound,
 	submitDelta,
 	roundStatus,
@@ -30,6 +31,7 @@ const router = AutoRouter<IRequest, [env: Environment, ctx: ExecutionContext]>({
 	.get('/models', (_req: IRequest, env: Environment) => {
 		return Response.json(getAvailableModels(env))
 	})
+	.get('/fl/keys', getPublicKey)
 	.post('/fl/rounds/open', openRound)
 	.post('/fl/rounds/submit', submitDelta)
 	.get('/fl/rounds/status', roundStatus)

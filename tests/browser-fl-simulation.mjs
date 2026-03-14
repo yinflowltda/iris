@@ -117,26 +117,34 @@ async function main() {
 	log('📐', `LoRA params: ${PARAM_COUNT} (B1=${HIDDEN_DIM}×${RANK} + B2=${OUTPUT_DIM}×${RANK})`)
 	log('📐', `Blobs needed: ${Math.ceil(PARAM_COUNT / slotCount)} (${PARAM_COUNT} params / ${slotCount} slots)`)
 
-	// ── Step 2: Generate keys for 2 clients ────────────────────────────────
+	// ── Step 2: Fetch public key from server ────────────────────────────────
 
-	section('Step 2: Key Generation (simulating IndexedDB persistence)')
+	section('Step 2: Fetch Server Public Key (like CkksService.loadPublicKey)')
 
-	// IMPORTANT: All clients must share the same CKKS keypair for homomorphic
-	// addition to produce valid results. In production, this shared key would be
-	// derived deterministically from a round seed or distributed by the coordinator.
-	const sharedKeyGen = new seal.KeyGenerator(context)
-	const sharedPublicKey = sharedKeyGen.createPublicKey()
-	const sharedSecretKey = sharedKeyGen.secretKey()
+	// The server generates and manages the CKKS keypair per map.
+	// Clients fetch the public key and encrypt with it.
+	// Server decrypts the aggregate (clients never see the secret key).
 
-	log('🔑', `Shared keypair generated (all clients encrypt with same public key)`)
-	log('💡', `This is required: CKKS addInplace only works on ciphertexts under the same key`)
+	// First, trigger key generation by opening (and discarding) a round status check
+	// or just fetch the key directly — the server generates keys on first request.
+	const keysResp = await fetch(`${BASE}/fl/keys?mapId=${MAP_ID}`)
+	const keysData = await keysResp.json()
+	if (!keysData.publicKey) {
+		console.log('\n  ❌ Failed to fetch public key from server')
+		process.exit(1)
+	}
+
+	const serverPublicKey = new seal.PublicKey()
+	serverPublicKey.loadFromBase64(context, keysData.publicKey)
+
+	log('🔑', `Server public key fetched (${keysData.publicKey.length} chars)`)
+	log('💡', `Server manages keypair — clients encrypt only, server decrypts aggregate`)
 
 	const clients = []
 	for (const name of ['Client-A', 'Client-B']) {
-		const encryptor = new seal.Encryptor(context, sharedPublicKey)
-		const decryptor = new seal.Decryptor(context, sharedSecretKey)
-		clients.push({ name, encryptor, decryptor, id: crypto.randomUUID() })
-		log('🔑', `${name}: using shared keypair (id=${clients.at(-1).id.slice(0, 8)}...)`)
+		const encryptor = new seal.Encryptor(context, serverPublicKey)
+		clients.push({ name, encryptor, id: crypto.randomUUID() })
+		log('🔑', `${name}: loaded server public key (id=${clients.at(-1).id.slice(0, 8)}...)`)
 	}
 
 	// ── Step 3: Simulate training for both clients ─────────────────────────
@@ -259,47 +267,32 @@ async function main() {
 		process.exit(1)
 	}
 
-	// ── Step 9: Download Aggregate ─────────────────────────────────────────
+	// ── Step 9: Download Plaintext Aggregate ─────────────────────────────────
 
-	section('Step 9: Download Aggregate (like FL client does)')
+	section('Step 9: Download Plaintext Aggregate (server decrypted)')
 
 	const getAggResp = await fetch(`${BASE}/fl/rounds/aggregate?mapId=${MAP_ID}`)
 	const getAggData = await getAggResp.json()
-	const aggBlobs = getAggData.blobs
-	if (!aggBlobs || aggBlobs.length === 0) {
-		console.log('\n  ❌ No aggregate blobs returned')
+	const aggValues = getAggData.values
+	if (!aggValues || aggValues.length === 0) {
+		console.log('\n  ❌ No aggregate values returned')
 		process.exit(1)
 	}
 
-	const totalAggChars = aggBlobs.reduce((s, b) => s + b.length, 0)
-	log('📥', `Aggregate: ${aggBlobs.length} blob(s), ${totalAggChars} chars total (${(totalAggChars * 0.75 / 1024).toFixed(1)} KB)`)
+	log('📥', `Aggregate: ${aggValues.length} plaintext values`)
 	log('📥', `Submission count: ${getAggData.submissionCount}`)
 
-	// ── Step 10: Decrypt from both clients' perspectives ───────────────────
+	// ── Step 10: Apply Aggregate (both clients) ────────────────────────────
 
-	section('Step 10: Decrypt & Apply Aggregate (both clients)')
+	section('Step 10: Apply Plaintext Aggregate (both clients)')
+
+	// Build the aggregate delta array from the plaintext values (may have extra padding)
+	const aggregatedDelta = new Float32Array(PARAM_COUNT)
+	for (let i = 0; i < Math.min(aggValues.length, PARAM_COUNT); i++) {
+		aggregatedDelta[i] = aggValues[i]
+	}
 
 	for (const cd of clientData) {
-		// Decrypt all blobs and stitch together (like FL client's applyAggregate)
-		const aggregatedDelta = new Float32Array(PARAM_COUNT)
-		for (let b = 0; b < aggBlobs.length; b++) {
-			const aggCt = new seal.Ciphertext()
-			aggCt.loadFromBase64(context, aggBlobs[b])
-
-			const decryptedPlain = new seal.Plaintext()
-			cd.decryptor.decrypt(aggCt, decryptedPlain)
-			const decryptedValues = encoder.decodeFloat64(decryptedPlain)
-
-			const offset = b * slotCount
-			const remaining = Math.min(slotCount, PARAM_COUNT - offset)
-			for (let i = 0; i < remaining; i++) {
-				aggregatedDelta[offset + i] = decryptedValues[i]
-			}
-
-			aggCt.delete()
-			decryptedPlain.delete()
-		}
-
 		// Apply: current_params += aggregated_delta / submissionCount
 		// (This is what FL client's applyAggregate does)
 		const scale = 1 / getAggData.submissionCount
@@ -316,7 +309,7 @@ async function main() {
 		}
 
 		// Verify: the aggregate should be approximately the sum of both clients' private deltas
-		// (since the server does homomorphic addition)
+		// (since the server does homomorphic addition + decryption)
 		const expectedSum = new Float32Array(PARAM_COUNT)
 		for (let i = 0; i < PARAM_COUNT; i++) {
 			expectedSum[i] = clientData[0].privateDelta[i] + clientData[1].privateDelta[i]
@@ -346,22 +339,19 @@ async function main() {
 	console.log(`\n${'═'.repeat(60)}`)
 	console.log(`  RESULT: ✅ Browser FL simulation PASSED`)
 	console.log(``)
-	console.log(`  Pipeline: train → DP → CKKS encrypt → submit → aggregate → decrypt → apply`)
-	console.log(`  Clients: 2 (shared public key, independent training)`)
+	console.log(`  Pipeline: train → DP → CKKS encrypt → submit → aggregate → server decrypt → apply`)
+	console.log(`  Clients: 2 (server-managed public key, independent training)`)
 	console.log(`  LoRA params: ${PARAM_COUNT} (FFA-LoRA, rank ${RANK})`)
 	console.log(`  Privacy: ε=${EPSILON}, δ=${DELTA}, σ=${sigma.toFixed(4)}`)
 	console.log(`  Encryption: CKKS (${slotCount} slots, ${clientData[0].blobs.length} blobs, ~${(clientData[0].blobs.reduce((s, b) => s + b.length, 0) * 0.75 / 1024).toFixed(0)} KB total)`)
-	console.log(`  Server: homomorphic addInplace (never sees plaintext)`)
+	console.log(`  Server: homomorphic addInplace → decrypt aggregate → publish plaintext`)
 	console.log(`${'═'.repeat(60)}\n`)
 
 	// Cleanup
 	for (const cd of clientData) {
 		cd.encryptor.delete()
-		cd.decryptor.delete()
 	}
-	sharedKeyGen.delete()
-	sharedPublicKey.delete()
-	sharedSecretKey.delete()
+	serverPublicKey.delete()
 	encoder.delete()
 	parms.delete()
 }

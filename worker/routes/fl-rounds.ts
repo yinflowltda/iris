@@ -32,6 +32,17 @@ async function forwardToDO(
 	})
 }
 
+/** GET /fl/keys — Get the CKKS public key for encrypting submissions */
+export async function getPublicKey(request: IRequest, env: Environment): Promise<Response> {
+	const mapId = request.query.mapId as string
+	if (!mapId) {
+		return Response.json({ error: 'mapId query parameter required' }, { status: 400 })
+	}
+
+	const stub = getAggregationDO(env, mapId)
+	return forwardToDO(stub, 'https://do/keys', { method: 'GET' })
+}
+
 /** POST /fl/rounds/open — Open a new FL round for a map */
 export async function openRound(request: IRequest, env: Environment): Promise<Response> {
 	const mapId = request.query.mapId as string

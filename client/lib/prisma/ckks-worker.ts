@@ -102,6 +102,24 @@ function loadKeys(id: string, keys: CkksKeyPair) {
 	}
 }
 
+// ─── Load Public Key Only (for FL — server manages the keypair) ────────────
+
+function loadPublicKey(id: string, publicKeyB64: string) {
+	try {
+		const publicKey = new seal.PublicKey()
+		publicKey.loadFromBase64(context, publicKeyB64)
+
+		encryptor = new seal.Encryptor(context, publicKey)
+		// No decryptor — server decrypts the aggregate
+
+		publicKey.delete()
+
+		post({ type: 'loadPublicKey:result', id })
+	} catch (e) {
+		post({ type: 'loadPublicKey:error', id, error: e instanceof Error ? e.message : String(e) })
+	}
+}
+
 // ─── Encrypt ────────────────────────────────────────────────────────────────
 
 function encrypt(id: string, values: number[]) {
@@ -195,6 +213,9 @@ self.onmessage = (e: MessageEvent<CkksWorkerRequest>) => {
 			break
 		case 'loadKeys':
 			loadKeys(msg.id, msg.keys)
+			break
+		case 'loadPublicKey':
+			loadPublicKey(msg.id, msg.publicKey)
 			break
 		case 'encrypt':
 			encrypt(msg.id, msg.values)
