@@ -54,6 +54,7 @@ export function createFLOrchestrator(config: FLOrchestratorConfig) {
 	async function onTrainingComplete(
 		adapter: LoraAdapter,
 		numExamples: number,
+		preSnapshot: Float32Array | null,
 	): Promise<void> {
 		// 1. Check consent
 		if (!getFLConsent().isOptedIn) return
@@ -66,9 +67,10 @@ export function createFLOrchestrator(config: FLOrchestratorConfig) {
 		try {
 			await ensureKeys()
 
-			// Take snapshot if not already taken
+			// Use pre-training snapshot for accurate delta computation.
+			// Falls back to current params if no snapshot provided (delta = 0, safe no-op).
 			if (!_snapshot) {
-				_snapshot = flClient.snapshotParams(adapter)
+				_snapshot = preSnapshot ?? flClient.snapshotParams(adapter)
 			}
 
 			// 2. Check round status
@@ -141,10 +143,10 @@ export function useFLOrchestrator(config: FLOrchestratorConfig | null) {
 	}, [config?.apiBase, config?.mapId])
 
 	const onAfterTrain = useCallback(
-		(adapter: LoraAdapter | null, numExamples: number) => {
+		(adapter: LoraAdapter | null, numExamples: number, preSnapshot: Float32Array | null) => {
 			const orch = orchestratorRef.current
 			if (!orch || !adapter) return
-			orch.onTrainingComplete(adapter, numExamples).catch(() => {})
+			orch.onTrainingComplete(adapter, numExamples, preSnapshot).catch(() => {})
 		},
 		[],
 	)

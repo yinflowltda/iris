@@ -244,8 +244,8 @@ function FLHooksMount() {
 	const exampleCountRef = useRef(0)
 
 	const trainerState = useLocalTrainer({
-		onAfterTrain: (_result, adapter) => {
-			flOnAfterTrain(adapter, exampleCountRef.current)
+		onAfterTrain: (_result, adapter, preSnapshot) => {
+			flOnAfterTrain(adapter, exampleCountRef.current, preSnapshot)
 		},
 	})
 	exampleCountRef.current = trainerState.exampleCount

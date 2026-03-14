@@ -57,7 +57,7 @@ describe('FL Orchestrator', () => {
 		const orchestrator = createFLOrchestrator(config)
 		const adapter = new LoraAdapter(new ProjectionHead())
 
-		await orchestrator.onTrainingComplete(adapter, 5)
+		await orchestrator.onTrainingComplete(adapter, 5, adapter.getTrainableParams())
 		expect(mockFetch).not.toHaveBeenCalled()
 	})
 
@@ -85,7 +85,7 @@ describe('FL Orchestrator', () => {
 		const orchestrator = createFLOrchestrator(config)
 		const adapter = new LoraAdapter(new ProjectionHead())
 
-		await orchestrator.onTrainingComplete(adapter, 5)
+		await orchestrator.onTrainingComplete(adapter, 5, adapter.getTrainableParams())
 
 		// Should have called: getRoundStatus (internal fetch) + submitDelta (status check + submit = 2 fetches)
 		// FLClient.getRoundStatus() = 1 fetch, FLClient.submitDelta() calls getRoundStatus() internally + submit = 2 fetches
@@ -135,7 +135,7 @@ describe('FL Orchestrator', () => {
 		const orchestrator = createFLOrchestrator(config)
 		const adapter = new LoraAdapter(new ProjectionHead())
 
-		await orchestrator.onTrainingComplete(adapter, 5)
+		await orchestrator.onTrainingComplete(adapter, 5, adapter.getTrainableParams())
 
 		// Verify open call was made
 		const openCalls = mockFetch.mock.calls.filter((c: any[]) =>
@@ -167,9 +167,10 @@ describe('FL Orchestrator', () => {
 		const adapter = new LoraAdapter(new ProjectionHead())
 
 		// Start first call (blocks)
-		const p1 = orchestrator.onTrainingComplete(adapter, 5)
+		const snapshot = adapter.getTrainableParams()
+		const p1 = orchestrator.onTrainingComplete(adapter, 5, snapshot)
 		// Second call should be skipped (concurrency guard)
-		const p2 = orchestrator.onTrainingComplete(adapter, 5)
+		const p2 = orchestrator.onTrainingComplete(adapter, 5, snapshot)
 
 		// Resolve the first call's status check
 		resolveFirst!()
@@ -207,7 +208,7 @@ describe('FL Orchestrator', () => {
 		const adapter = new LoraAdapter(new ProjectionHead())
 
 		// Should not throw
-		await orchestrator.onTrainingComplete(adapter, 5)
+		await orchestrator.onTrainingComplete(adapter, 5, adapter.getTrainableParams())
 		expect(orchestrator.error).toBeTruthy()
 	})
 })

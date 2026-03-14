@@ -28,7 +28,7 @@ export interface UseLocalTrainerState {
 }
 
 export function useLocalTrainer(options?: {
-	onAfterTrain?: (result: TrainStepResult, adapter: LoraAdapter | null) => void
+	onAfterTrain?: (result: TrainStepResult, adapter: LoraAdapter | null, preSnapshot: Float32Array | null) => void
 }): UseLocalTrainerState {
 	const editor = useEditor()
 	const [state, setState] = useState<UseLocalTrainerState>({
@@ -133,6 +133,9 @@ export function useLocalTrainer(options?: {
 		setState((prev) => ({ ...prev, isTraining: true }))
 
 		try {
+			// Snapshot params BEFORE training for accurate FL delta computation
+			const preSnapshot = trainer.lora?.getTrainableParams() ?? null
+
 			const result = await trainer.train(TRAIN_STEPS)
 			placementsSinceTrainRef.current = 0
 
@@ -146,7 +149,7 @@ export function useLocalTrainer(options?: {
 				lastLoss: result.loss,
 			}))
 
-			onAfterTrainRef.current?.(result, trainer.lora)
+			onAfterTrainRef.current?.(result, trainer.lora, preSnapshot)
 		} catch {
 			setState((prev) => ({ ...prev, isTraining: false }))
 		}

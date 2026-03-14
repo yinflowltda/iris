@@ -202,11 +202,11 @@ export class AggregationDO extends DurableObject<Environment> {
 			response.roundStatus = 'aggregating'
 			// Non-blocking: aggregate in background (with error handling)
 			this.ctx.waitUntil(
-				this.performAggregation().catch((err) => {
+				this.performAggregation().catch(async (err) => {
 					console.error('[AggregationDO] aggregation failed:', err)
 					if (this.round) {
 						this.round.status = 'collecting'
-						this.saveRound()
+						await this.saveRound()
 					}
 				}),
 			)
@@ -300,11 +300,18 @@ export class AggregationDO extends DurableObject<Environment> {
 		await this.saveRound()
 		await this.recordRoundHistory()
 
-		// Clean up submission blobs
-		const listResult = await r2.list({ prefix: `rounds/${this.round.id}/submissions/` })
-		for (const obj of listResult.objects) {
-			await r2.delete(obj.key)
-		}
+		// Clean up submission blobs (paginate — R2 list returns max 1000 per call)
+		let cursor: string | undefined
+		do {
+			const listResult = await r2.list({
+				prefix: `rounds/${this.round.id}/submissions/`,
+				cursor,
+			})
+			for (const obj of listResult.objects) {
+				await r2.delete(obj.key)
+			}
+			cursor = listResult.truncated ? listResult.cursor : undefined
+		} while (cursor)
 	}
 
 	private async handleAggregateNow(): Promise<Response> {
