@@ -444,6 +444,28 @@ export const ZoomToCellAction = z
 
 export type ZoomToCellAction = z.infer<typeof ZoomToCellAction>
 
+// Move Note Action (mandala-specific)
+export const MoveNoteAction = z
+	.object({
+		_type: z.literal('move_note'),
+		intent: z.string(),
+		mandalaId: SimpleShapeIdSchema,
+		noteId: SimpleShapeIdSchema.describe(
+			'The ID of the note shape to move (e.g. "mandala-1-profissional-querer-0").',
+		),
+		targetCellId: z.string().describe(
+			'The destination cell ID (e.g. "pessoal-querer").',
+		),
+	})
+	.meta({
+		title: 'Move Note',
+		description:
+			'Move a note from its current cell to a different cell within the same mandala. Use this instead of creating a duplicate when the user asks to relocate content.',
+		_systemPromptCategory: 'edit',
+	})
+
+export type MoveNoteAction = z.infer<typeof MoveNoteAction>
+
 // Create Arrow Action (mandala-specific)
 export const CreateArrowAction = z
 	.object({

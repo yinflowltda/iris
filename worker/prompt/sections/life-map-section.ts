@@ -311,6 +311,15 @@ ${flagged(
 	)}
 
 ${flagged(
+		flags.hasMoveNote,
+		`**\`move_note\`**:
+- Parameters: \`noteId\` (the note shape to move), \`targetCellId\` (destination cell), \`mandalaId\`
+- Use when the user asks to move, relocate, or reassign a note to a different cell.
+- The action handles removing the note from its source cell, adding it to the target, and repositioning all affected notes automatically.
+- Do NOT delete and recreate — always use \`move_note\` to preserve the note's identity, metadata, and arrows.`,
+	)}
+
+${flagged(
 		flags.hasSetMetadata,
 		`**\`set_metadata\`**: Set metadata fields as content is placed. Always set \`tense\`. Set date fields to maximum precision available.`,
 	)}

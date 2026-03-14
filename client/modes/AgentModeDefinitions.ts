@@ -27,6 +27,7 @@ import { ResizeActionUtil } from '../actions/ResizeActionUtil'
 import { ReviewActionUtil } from '../actions/ReviewActionUtil'
 import { RotateActionUtil } from '../actions/RotateActionUtil'
 import { SendToBackActionUtil } from '../actions/SendToBackActionUtil'
+import { MoveNoteActionUtil } from '../actions/MoveNoteActionUtil'
 import { SetMetadataActionUtil } from '../actions/SetMetadataActionUtil'
 import { SetMyViewActionUtil } from '../actions/SetMyViewActionUtil'
 import { StackActionUtil } from '../actions/StackActionUtil'
@@ -188,6 +189,7 @@ export const AGENT_MODE_DEFINITIONS = [
 			CreateArrowActionUtil.type,
 			SetMetadataActionUtil.type,
 			GetMetadataActionUtil.type,
+			MoveNoteActionUtil.type,
 
 			// Internal (required)
 			UnknownActionUtil.type,
@@ -239,6 +241,7 @@ export const AGENT_MODE_DEFINITIONS = [
 			CreateArrowActionUtil.type,
 			SetMetadataActionUtil.type,
 			GetMetadataActionUtil.type,
+			MoveNoteActionUtil.type,
 
 			// Individual shapes
 			CreateActionUtil.type,

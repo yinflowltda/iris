@@ -63,6 +63,7 @@ export function getSystemPromptFlags(actions: AgentAction['_type'][], parts: Pro
 		hasTimePart: parts.includes('time'),
 
 		// Mandala-specific
+		hasMoveNote: actions.includes('move_note'),
 		hasCreateArrow: actions.includes('create_arrow'),
 		hasSetMetadata: actions.includes('set_metadata'),
 		hasGetMetadata: actions.includes('get_metadata'),
