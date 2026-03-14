@@ -4,6 +4,7 @@
 // the UI thread. Handles encrypt, decrypt, and homomorphic add operations.
 
 import type { CkksWorkerRequest, CkksWorkerResponse, CkksBlob, CkksKeyPair } from './ckks-types'
+import { POLY_MODULUS_DEGREE, COEFF_MOD_BIT_SIZES, CKKS_SCALE } from '../../../shared/constants/ckks-params'
 
 type MainModule = Awaited<ReturnType<typeof import('node-seal')['default']>>
 
@@ -17,9 +18,7 @@ let decryptor: InstanceType<MainModule['Decryptor']> | null = null
 let evaluator: InstanceType<MainModule['Evaluator']>
 
 // CKKS parameters
-const POLY_MODULUS_DEGREE = 8192 // → 4096 slots
-const COEFF_MOD_BIT_SIZES = Int32Array.from([60, 40, 40, 60])
-const SCALE = Math.pow(2, 40)
+const SCALE = CKKS_SCALE
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -40,7 +39,7 @@ async function init() {
 
 		const parms = new seal.EncryptionParameters(seal.SchemeType.ckks)
 		parms.setPolyModulusDegree(POLY_MODULUS_DEGREE)
-		parms.setCoeffModulus(seal.CoeffModulus.Create(POLY_MODULUS_DEGREE, COEFF_MOD_BIT_SIZES))
+		parms.setCoeffModulus(seal.CoeffModulus.Create(POLY_MODULUS_DEGREE, Int32Array.from(COEFF_MOD_BIT_SIZES)))
 
 		context = new seal.SEALContext(parms, true, seal.SecLevelType.tc128)
 		encoder = new seal.CKKSEncoder(context)
