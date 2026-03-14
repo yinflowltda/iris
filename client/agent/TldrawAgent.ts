@@ -720,6 +720,10 @@ export class TldrawAgent {
 					} finally {
 						this.setIsActingOnEditor(false)
 					}
+					// Pause after fill_cell/cell_fill completes so the highlight→fill progression is visible per cell
+					if (action.complete && (action._type === 'fill_cell' || action._type === 'cell_fill')) {
+						await new Promise((resolve) => setTimeout(resolve, 500))
+					}
 				}
 				await Promise.all(actionPromises)
 

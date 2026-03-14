@@ -81,6 +81,19 @@ export const StreamingCellFillActionUtil = registerActionUtil(
 			if (!mandala) return
 
 			const cellId = action.cellId as string
+
+			// Auto-highlight cell before filling for visual progression
+			const preState: MandalaState = { ...mandala.props.state }
+			const preCellState = preState[cellId]
+			if (preCellState && preCellState.status !== 'active' && preCellState.status !== 'filled') {
+				preState[cellId] = { ...preCellState, status: 'active' }
+				editor.updateShape({
+					id: mandalaShapeId,
+					type: 'mandala',
+					props: { state: preState },
+				})
+			}
+
 			const outerRadius = computeMandalaOuterRadius(mandala.props.w, mandala.props.h)
 			const localCenter = {
 				x: mandala.props.w / 2,

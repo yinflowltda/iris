@@ -48,6 +48,20 @@ export const FillCellActionUtil = registerActionUtil(
 			const { editor } = this
 			const mandalaShapeId = `shape:${action.mandalaId}` as TLShapeId
 			const mandala = editor.getShape(mandalaShapeId) as MandalaShape | undefined
+			// Auto-highlight cell if the model skipped highlight_cell
+			if (mandala && action.cellId) {
+				const state = mandala.props.state as MandalaState
+				const cellState = state[action.cellId as string]
+				if (cellState && cellState.status !== 'active' && cellState.status !== 'filled') {
+					const currentState: MandalaState = { ...state }
+					currentState[action.cellId as string] = { ...cellState, status: 'active' }
+					editor.updateShape({
+						id: mandalaShapeId,
+						type: 'mandala',
+						props: { state: currentState },
+					})
+				}
+			}
 			if (!mandala) return
 
 			const cellId = action.cellId as string
