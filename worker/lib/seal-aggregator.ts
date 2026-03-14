@@ -3,6 +3,8 @@
 // Server-side CKKS homomorphic addition for the AggregationDO.
 // Creates only SEALContext + Evaluator — never touches plaintext or secret keys.
 // Uses lazy initialization so WASM loads only when aggregation is needed.
+//
+// Requires `nodejs_compat` in wrangler.toml for node-seal's Emscripten module.
 
 import { POLY_MODULUS_DEGREE, COEFF_MOD_BIT_SIZES } from '../../shared/constants/ckks-params'
 

@@ -47,6 +47,9 @@ export default defineConfig(() => {
 			cloudflare(),
 			react(),
 		],
+		worker: {
+			format: 'es' as const,
+		},
 		optimizeDeps: {
 			exclude: ['@huggingface/transformers', 'node-seal'],
 		},
