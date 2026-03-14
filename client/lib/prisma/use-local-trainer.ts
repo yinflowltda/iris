@@ -9,7 +9,9 @@ import { useEditor, useValue } from 'tldraw'
 import type { MandalaShape } from '../../shapes/MandalaShapeUtil'
 import { getFramework } from '../frameworks/framework-registry'
 import { PrismaEmbeddingService } from './embedding-service'
-import { LocalPrismaTrainer } from './local-trainer'
+import { getFLConsent } from './fl-consent'
+import type { LoraAdapter } from './lora-adapter'
+import { LocalPrismaTrainer, type TrainStepResult } from './local-trainer'
 import { onArrowCreated, onPlacement } from './placement-events'
 
 const TRAIN_AFTER_PLACEMENTS = 5
@@ -22,9 +24,12 @@ export interface UseLocalTrainerState {
 	trainStepCount: number
 	exampleCount: number
 	lastLoss: number | null
+	loraEnabled: boolean
 }
 
-export function useLocalTrainer(): UseLocalTrainerState {
+export function useLocalTrainer(options?: {
+	onAfterTrain?: (result: TrainStepResult, adapter: LoraAdapter | null) => void
+}): UseLocalTrainerState {
 	const editor = useEditor()
 	const [state, setState] = useState<UseLocalTrainerState>({
 		trainer: null,
@@ -32,11 +37,14 @@ export function useLocalTrainer(): UseLocalTrainerState {
 		trainStepCount: 0,
 		exampleCount: 0,
 		lastLoss: null,
+		loraEnabled: false,
 	})
 
 	const trainerRef = useRef<LocalPrismaTrainer | null>(null)
 	const placementsSinceTrainRef = useRef(0)
 	const trainTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+	const onAfterTrainRef = useRef(options?.onAfterTrain)
+	onAfterTrainRef.current = options?.onAfterTrain
 
 	const mandala = useValue(
 		'trainer-mandala',
@@ -75,6 +83,11 @@ export function useLocalTrainer(): UseLocalTrainerState {
 				}
 			}
 
+			// Enable LoRA if FL consent is active
+			if (getFLConsent().isOptedIn && !trainer.lora) {
+				trainer.enableLora()
+			}
+
 			if (!cancelled) {
 				trainerRef.current = trainer
 				setState((prev) => ({
@@ -82,6 +95,7 @@ export function useLocalTrainer(): UseLocalTrainerState {
 					trainer,
 					exampleCount: trainer!.exampleCount,
 					trainStepCount: trainer!.trainStepCount,
+					loraEnabled: trainer!.lora !== null,
 				}))
 			}
 		}
@@ -91,6 +105,25 @@ export function useLocalTrainer(): UseLocalTrainerState {
 			cancelled = true
 		}
 	}, [mapId])
+
+	// React to FL consent changes
+	useEffect(() => {
+		const consent = getFLConsent()
+		const unsub = consent.onChange(() => {
+			const trainer = trainerRef.current
+			if (!trainer) return
+
+			if (consent.isOptedIn && !trainer.lora) {
+				trainer.enableLora()
+				setState((prev) => ({ ...prev, loraEnabled: true }))
+			} else if (!consent.isOptedIn && trainer.lora) {
+				trainer.disableLora({ mergeWeights: true })
+				trainer.save().catch(() => {})
+				setState((prev) => ({ ...prev, loraEnabled: false }))
+			}
+		})
+		return unsub
+	}, [])
 
 	// Trigger training (debounced)
 	const triggerTrain = useCallback(async () => {
@@ -112,10 +145,12 @@ export function useLocalTrainer(): UseLocalTrainerState {
 				trainStepCount: trainer.trainStepCount,
 				lastLoss: result.loss,
 			}))
+
+			onAfterTrainRef.current?.(result, trainer.lora)
 		} catch {
 			setState((prev) => ({ ...prev, isTraining: false }))
 		}
-	}, [])
+	}, []) // stable — reads from refs
 
 	// Subscribe to placement events
 	useEffect(() => {
