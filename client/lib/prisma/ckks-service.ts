@@ -5,6 +5,9 @@
 
 import type { CkksStatus, CkksBlob, CkksKeyPair, CkksWorkerResponse } from './ckks-types'
 
+const CKKS_IDB_STORE = 'ckks-keys'
+const CKKS_IDB_KEY = 'ckks-keys'
+
 export interface CkksServiceEvents {
 	status: CkksStatus
 	error: string
@@ -216,6 +219,42 @@ export class CkksService {
 		return new Promise<void>((resolve, reject) => {
 			this.pendingOps.set(id, { resolve, reject })
 			this.worker!.postMessage({ type: 'loadKeys', id, keys })
+		})
+	}
+
+	/** Save CKKS keys to IndexedDB for cross-session persistence. */
+	async saveKeysToIDB(keys: CkksKeyPair): Promise<void> {
+		const db = await this.openKeyDB()
+		return new Promise<void>((resolve, reject) => {
+			const tx = db.transaction(CKKS_IDB_STORE, 'readwrite')
+			tx.objectStore(CKKS_IDB_STORE).put(keys, CKKS_IDB_KEY)
+			tx.oncomplete = () => { db.close(); resolve() }
+			tx.onerror = () => { db.close(); reject(tx.error) }
+		})
+	}
+
+	/** Load CKKS keys from IndexedDB. Returns null if not found. */
+	async loadKeysFromIDB(): Promise<CkksKeyPair | null> {
+		const db = await this.openKeyDB()
+		return new Promise<CkksKeyPair | null>((resolve, reject) => {
+			const tx = db.transaction(CKKS_IDB_STORE, 'readonly')
+			const req = tx.objectStore(CKKS_IDB_STORE).get(CKKS_IDB_KEY)
+			req.onsuccess = () => { db.close(); resolve(req.result ?? null) }
+			req.onerror = () => { db.close(); reject(req.error) }
+		})
+	}
+
+	private openKeyDB(): Promise<IDBDatabase> {
+		return new Promise((resolve, reject) => {
+			const req = indexedDB.open('ckks-key-store', 1)
+			req.onupgradeneeded = () => {
+				const db = req.result
+				if (!db.objectStoreNames.contains(CKKS_IDB_STORE)) {
+					db.createObjectStore(CKKS_IDB_STORE)
+				}
+			}
+			req.onsuccess = () => resolve(req.result)
+			req.onerror = () => reject(req.error)
 		})
 	}
 
