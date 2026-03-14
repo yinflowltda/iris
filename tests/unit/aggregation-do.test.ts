@@ -89,6 +89,7 @@ interface RoundState {
 }
 
 const DEFAULT_MIN_SUBMISSIONS = 3
+const DEFAULT_ROUND_TIMEOUT_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
 const MAX_REPORTED_NORM = 100
 
 /**
@@ -111,7 +112,7 @@ class AggregationDOHarness {
 		}
 
 		const minSubmissions = body.minSubmissions ?? DEFAULT_MIN_SUBMISSIONS
-		const timeoutMs = body.timeoutMs ?? 5 * 60 * 1000
+		const timeoutMs = body.timeoutMs ?? DEFAULT_ROUND_TIMEOUT_MS
 		const now = new Date()
 
 		this.round = {
@@ -305,14 +306,24 @@ class AggregationDOHarness {
 	/** Simulate alarm trigger */
 	async alarm(): Promise<void> {
 		if (!this.round) return
+
 		if (this.round.status === 'collecting') {
-			if (this.round.submissionCount < this.round.minSubmissions) {
+			if (this.round.submissionCount >= this.round.minSubmissions) {
+				this.round.status = 'aggregating'
+				await this.saveRound()
+				await this.performAggregation()
+			} else if (this.round.extensionCount < 3) {
+				this.round.extensionCount++
+				const newExpiry = new Date(
+					new Date(this.round.expiresAt).getTime() + DEFAULT_ROUND_TIMEOUT_MS,
+				)
+				this.round.expiresAt = newExpiry.toISOString()
+				await this.saveRound()
+				await this.storage.setAlarm(newExpiry.getTime())
+			} else {
 				this.round.status = 'timed_out'
 				await this.saveRound()
 				this.recordRoundHistory()
-			} else {
-				this.round.status = 'aggregating'
-				await this.saveRound()
 			}
 		}
 	}
@@ -558,7 +569,7 @@ describe('AggregationDO', () => {
 	// ─── Timeout ──────────────────────────────────────────────────────────────
 
 	describe('timeout (alarm)', () => {
-		it('times out if not enough submissions', async () => {
+		it('times out after 3 extensions if not enough submissions', async () => {
 			const res = await harness.open({ minSubmissions: 3 })
 			const roundId = ((await res.json()) as FLOpenRoundResponse).roundId
 
@@ -571,25 +582,45 @@ describe('AggregationDO', () => {
 				reportedNorm: 1.0,
 			})
 
-			// Trigger alarm
+			// First 3 alarms extend the round
 			await harness.alarm()
+			expect((await harness.status().json() as FLRoundSummary).status).toBe('collecting')
+			expect(harness.getRound()!.extensionCount).toBe(1)
 
+			await harness.alarm()
+			expect(harness.getRound()!.extensionCount).toBe(2)
+
+			await harness.alarm()
+			expect(harness.getRound()!.extensionCount).toBe(3)
+
+			// 4th alarm finally times out
+			await harness.alarm()
 			const status = (await harness.status().json()) as FLRoundSummary
 			expect(status.status).toBe('timed_out')
 		})
 
-		it('transitions to aggregating if enough submissions at timeout', async () => {
-			const res = await harness.open({ minSubmissions: 2 })
-			const roundId = ((await res.json()) as FLOpenRoundResponse).roundId
+		it('extends round on alarm when extensionCount < 3', async () => {
+			const openRes = await harness.open({ minSubmissions: 3, timeoutMs: 1000 })
+			const roundId = ((await openRes.json()) as FLOpenRoundResponse).roundId
 
-			// Submit 2 (but minSubmissions check in submit won't trigger
-			// because we set minSubmissions=2 and submit transitions at >=2)
-			// Actually it WILL transition at submit. Let me use minSubmissions=3
-			// and submit exactly 3 so alarm sees 'aggregating' already.
-			// Better: test with a round where submissions come after timeout.
+			await harness.submit({
+				clientId: 'client-1',
+				roundId,
+				blobs: ['ct'],
+				numExamples: 10,
+				reportedNorm: 1.0,
+			})
+
+			const expiryBefore = harness.getRound()!.expiresAt
+			await harness.alarm()
+
+			const round = harness.getRound()!
+			expect(round.extensionCount).toBe(1)
+			expect(new Date(round.expiresAt).getTime()).toBeGreaterThan(new Date(expiryBefore).getTime())
+			expect(round.status).toBe('collecting')
 		})
 
-		it('does nothing if round already aggregating', async () => {
+		it('does nothing if round already published', async () => {
 			const res = await harness.open({ minSubmissions: 1 })
 			const roundId = ((await res.json()) as FLOpenRoundResponse).roundId
 
@@ -601,16 +632,78 @@ describe('AggregationDO', () => {
 				reportedNorm: 1.0,
 			})
 
-			// Already aggregating
-			const statusBefore = (await harness.status().json()) as FLRoundSummary
-			expect(statusBefore.status).toBe('aggregating')
+			// Manually aggregate (status = aggregating after 1st submit since minSubmissions=1)
+			await harness.performAggregation()
+			expect(harness.getRound()!.status).toBe('published')
 
-			// Alarm fires
+			// Alarm fires after publish — no-op
+			await harness.alarm()
+			expect(harness.getRound()!.status).toBe('published')
+		})
+	})
+
+	// ─── Alarm Lifecycle (7-day + extensions) ─────────────────────────────────
+
+	describe('alarm lifecycle (7-day + extensions)', () => {
+		it('uses 7-day timeout by default', async () => {
+			const before = Date.now()
+			await harness.open()
+			const alarm = harness.storage.getAlarm()!
+			expect(alarm - before).toBeGreaterThanOrEqual(7 * 24 * 60 * 60 * 1000 - 100)
+		})
+
+		it('extends deadline on alarm when not enough submissions (extensionCount < 3)', async () => {
+			const openRes = await harness.open({ minSubmissions: 3 })
+			const { roundId } = (await openRes.json()) as FLOpenRoundResponse
+
+			await harness.submit({ clientId: 'c1', roundId, blobs: ['b'], numExamples: 5, reportedNorm: 1.0 })
+
+			const expiryBefore = harness.getRound()!.expiresAt
 			await harness.alarm()
 
-			// Still aggregating
-			const statusAfter = (await harness.status().json()) as FLRoundSummary
-			expect(statusAfter.status).toBe('aggregating')
+			const round = harness.getRound()!
+			expect(round.extensionCount).toBe(1)
+			expect(round.status).toBe('collecting')
+			expect(new Date(round.expiresAt).getTime()).toBeGreaterThan(new Date(expiryBefore).getTime())
+		})
+
+		it('times out after max 3 extensions', async () => {
+			const openRes = await harness.open({ minSubmissions: 3 })
+			const { roundId } = (await openRes.json()) as FLOpenRoundResponse
+
+			await harness.submit({ clientId: 'c1', roundId, blobs: ['b'], numExamples: 5, reportedNorm: 1.0 })
+
+			// Extension 1, 2, 3
+			await harness.alarm()
+			await harness.alarm()
+			await harness.alarm()
+			expect(harness.getRound()!.extensionCount).toBe(3)
+			expect(harness.getRound()!.status).toBe('collecting')
+
+			// 4th alarm → timed_out (extensionCount === 3, not < 3)
+			await harness.alarm()
+			expect(harness.getRound()!.status).toBe('timed_out')
+		})
+
+		it('aggregates on alarm if enough submissions', async () => {
+			// Use minSubmissions=5 so submit doesn't auto-trigger aggregation
+			const openRes = await harness.open({ minSubmissions: 5 })
+			const { roundId } = (await openRes.json()) as FLOpenRoundResponse
+
+			// Force round into aggregating state by direct mutation (simulating
+			// a race where submissions arrived but alarm fires before background agg completes)
+			const round = harness.getRound()!
+			for (let i = 1; i <= 5; i++) {
+				round.submittedClients.push(`c${i}`)
+				await harness.r2.put(`rounds/${roundId}/submissions/c${i}/blob-0`, `blob-${i}`)
+			}
+			round.submissionCount = 5
+			round.blobsPerSubmission = 1
+
+			// Trigger alarm while still in 'collecting' but with enough submissions
+			await harness.alarm()
+
+			expect(harness.getRound()!.status).toBe('published')
 		})
 	})
 
@@ -916,7 +1009,11 @@ describe('AggregationDO', () => {
 			await harness.submit({
 				clientId: 'c1', roundId, blobs: ['b'], numExamples: 5, reportedNorm: 1.0,
 			})
-			await harness.alarm() // only 1 submission, min is 3 → timed_out
+			// Only 1 submission, min is 3 → extends 3 times, then times out
+			await harness.alarm()
+			await harness.alarm()
+			await harness.alarm()
+			await harness.alarm()
 
 			const res = harness.metrics()
 			const body = (await res.json()) as FLMetricsResponse

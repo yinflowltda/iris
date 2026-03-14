@@ -19,7 +19,7 @@ import type {
 import { SealAggregator } from '../lib/seal-aggregator'
 
 const DEFAULT_MIN_SUBMISSIONS = 3
-const DEFAULT_ROUND_TIMEOUT_MS = 5 * 60 * 1000 // 5 minutes
+const DEFAULT_ROUND_TIMEOUT_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
 const MAX_REPORTED_NORM = 100 // Byzantine check: reject if reported norm is too high
 
 export interface FLRoundMetricEntry {
@@ -391,15 +391,23 @@ export class AggregationDO extends DurableObject<Environment> {
 	override async alarm(): Promise<void> {
 		if (!this.round) return
 
-		// Only timeout if still collecting
 		if (this.round.status === 'collecting') {
-			if (this.round.submissionCount < this.round.minSubmissions) {
+			if (this.round.submissionCount >= this.round.minSubmissions) {
+				this.round.status = 'aggregating'
+				await this.saveRound()
+				await this.performAggregation()
+			} else if (this.round.extensionCount < 3) {
+				this.round.extensionCount++
+				const newExpiry = new Date(
+					new Date(this.round.expiresAt).getTime() + DEFAULT_ROUND_TIMEOUT_MS,
+				)
+				this.round.expiresAt = newExpiry.toISOString()
+				await this.saveRound()
+				await this.ctx.storage.setAlarm(newExpiry.getTime())
+			} else {
 				this.round.status = 'timed_out'
 				await this.saveRound()
 				await this.recordRoundHistory()
-			} else {
-				this.round.status = 'aggregating'
-				await this.saveRound()
 			}
 		}
 	}
