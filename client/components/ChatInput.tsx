@@ -134,6 +134,7 @@ export function ChatInput({
 				onSubmit={(e) => {
 					e.preventDefault()
 					setInputValue('')
+					if (inputRef.current) inputRef.current.style.height = 'auto'
 					handleSubmit(e)
 				}}
 			>
@@ -164,10 +165,16 @@ export function ChatInput({
 							<textarea
 								ref={inputRef}
 								name="input"
+								rows={1}
 								autoComplete="off"
 								placeholder="Select shapes or ask Iris anything"
 								value={inputValue}
-								onInput={(e) => setInputValue(e.currentTarget.value)}
+								onInput={(e) => {
+									setInputValue(e.currentTarget.value)
+									const el = e.currentTarget
+									el.style.height = 'auto'
+									el.style.height = `${Math.min(el.scrollHeight, 200)}px`
+								}}
 								onKeyDown={(e) => {
 									if (e.key === 'Enter' && !e.shiftKey) {
 										e.preventDefault()
