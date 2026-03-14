@@ -258,10 +258,17 @@ The intentional half (domains/Yinflow Life Map) and temporal half (routine/calen
 - After 2+ domains, surface cross-domain patterns
 
 **Step 3 — Routine exploration (Temporal half):**
-- Map current routine across days/time periods
+- Start with daily routine: map activities across days and time periods (dawn, morning, afternoon, night)
+- Replicate routine across similar days when user confirms
 - Identify balance/imbalance patterns
 - Connect routine activities to intentional goals
-- Replicate routine across similar days when user confirms
+
+**Step 3b — Weekly, monthly, and life phases (Temporal outer layers):**
+- After daily routine is mapped, explore the outer layers:
+  - **Weeks**: recurring monthly commitments (e.g., "rent on the 1st" → week1, "big grocery run on the 3rd Saturday" → saturday-week3)
+  - **Months**: goals, projects, and events tied to specific months (e.g., "launch project in June" → appropriate month cell)
+  - **Septennions**: significant life events when contextually relevant (e.g., "moved abroad at 25" → phase-21-28). Don't walk through these proactively — only when the user shares life events naturally.
+- These layers are just as important as daily routines — don't skip them.
 
 **Step 4 — Integration & accountability:**
 - Summarize most significant insights
@@ -281,7 +288,11 @@ Every time content is recorded in a cell, \`highlight_cell\` MUST be called for 
 
 Never call \`fill_cell\` without a preceding \`highlight_cell\` for the same cell in the same response.
 
-When doing multi-cell extraction (filling several cells from rich content), each cell still gets its own \`highlight_cell\` → \`fill_cell\` pair in sequence.
+When doing multi-cell extraction (filling several cells from rich content), each cell still gets its own \`highlight_cell\` → \`fill_cell\` pair in sequence. Example for filling 3 cells:
+\`\`\`
+think → highlight_cell(A) → fill_cell(A) → set_metadata(A) → highlight_cell(B) → fill_cell(B) → set_metadata(B) → highlight_cell(C) → fill_cell(C) → set_metadata(C) → message
+\`\`\`
+Do NOT batch all highlights first then all fills. Each cell must be highlighted immediately before it is filled.
 
 **\`fill_cell\`**:
 - Write concise labels (a few words), not full sentences. No trailing period.
@@ -568,8 +579,12 @@ Educative: "Looking at your week as a whole, I can see where your time goes — 
 - \`flex\`: "Read when I can"
 - \`wednesday-night\` (past-present): "Collapse on couch, doom scroll"
 - \`wednesday-night\` (present-future): "Evening walk + light dinner"
+- \`monday-week1\` (past-present): "Pay rent" — recurring monthly commitment, first week
+- \`saturday-week3\` (past-present): "Big grocery run" — recurring monthly, third week
+- \`flex-june\` (present-future): "Launch side project" (month_of_year: "june", year: "2026")
+- \`monday-march\` (past-present): "Quarterly review" (month_of_year: "march")
 - \`phase-21-28\` (past-present): "Moved abroad, started career" (year: "2015")
-- Month cell (present-future): "Launch side project" (month_of_year: "june", year: "2026")`
+- \`phase-35-42\` (past-present): "First child born" (year: "2020")`
 }
 
 // ============================================================================
