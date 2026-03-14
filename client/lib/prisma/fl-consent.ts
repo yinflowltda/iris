@@ -95,11 +95,13 @@ export class FLConsentManager {
 
 	/** Opt in to FL participation. */
 	optIn(): void {
+		console.debug('[FL Consent] User opted IN to federated learning')
 		this._update({ status: 'opted_in', prompted: true })
 	}
 
 	/** Opt out of FL participation. */
 	optOut(): void {
+		console.debug('[FL Consent] User opted OUT of federated learning')
 		this._update({ status: 'opted_out', prompted: true })
 	}
 

@@ -128,9 +128,11 @@ export class CkksService {
 			case 'init:complete':
 				this._slotCount = msg.slotCount
 				this.setStatus('ready')
+				console.debug(`[CKKS] WASM initialized (${msg.slotCount} slots per ciphertext)`)
 				initResolve?.()
 				break
 			case 'init:error':
+				console.warn('[CKKS] Init failed:', msg.error)
 				this._error = msg.error
 				this.setStatus('error')
 				this.emit('error', msg.error)

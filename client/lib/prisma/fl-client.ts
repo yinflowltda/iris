@@ -166,19 +166,24 @@ export class FLClient {
 			delta[i] = afterParams[i] - beforeParams[i]
 		}
 		const rawNorm = l2Norm(delta)
+		console.debug(`[FL Client] Delta computed: ${delta.length} params, L2 norm=${rawNorm.toFixed(6)}`)
 
 		// 3. Clip + noise (DP)
 		const sigma = computeSigma(this._maxNorm, this._epsilon, this._delta)
 		const privateDelta = clipAndNoise(delta, this._maxNorm, sigma)
+		console.debug(`[FL Client] DP applied: clip=${this._maxNorm}, σ=${sigma.toFixed(4)}, ε=${this._epsilon}`)
 
 		// 4. Encrypt
 		this._status = 'encrypting'
+		console.debug('[FL Client] Encrypting delta via CKKS...')
 		const ckks = CkksService.getInstance()
 		const blobs = await ckks.encryptVector(privateDelta)
 		const blobData = blobs.map((b) => b.data)
+		console.debug(`[FL Client] Encrypted: ${blobs.length} blob(s), ${blobData.reduce((s, b) => s + b.length, 0)} chars total`)
 
 		// 5. Upload
 		this._status = 'uploading'
+		console.debug(`[FL Client] Uploading to round ${roundStatus.id}...`)
 		const submitResp = await fetch(
 			`${this._apiBase}/fl/rounds/submit?mapId=${encodeURIComponent(this._mapId)}`,
 			{
@@ -202,9 +207,11 @@ export class FLClient {
 		}
 
 		const result: FLSubmitResponse = await submitResp.json()
+		console.debug(`[FL Client] Submitted: count=${result.submissionCount}, status=${result.roundStatus}`)
 
 		// 6. Track privacy budget
 		const privacyState = this._accountant.step()
+		console.debug(`[FL Client] Privacy budget: ε=${privacyState.epsilon.toFixed(4)} / ${this._accountant.state.exhausted ? 'EXHAUSTED' : 'OK'}`)
 
 		// 7. Record telemetry
 		getFLTelemetry().recordRound({
