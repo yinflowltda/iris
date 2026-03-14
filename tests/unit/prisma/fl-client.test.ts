@@ -3,6 +3,18 @@ import { FLClient, type FLClientConfig } from '../../../client/lib/prisma/fl-cli
 import { LoraAdapter, LORA_RANK } from '../../../client/lib/prisma/lora-adapter'
 import { ProjectionHead } from '../../../client/lib/prisma/projection-head'
 
+// ─── Mock FL Consent ────────────────────────────────────────────────────────
+
+vi.mock('../../../client/lib/prisma/fl-consent', () => ({
+	getFLConsent: () => ({ isOptedIn: true }),
+}))
+
+// ─── Mock FL Telemetry ──────────────────────────────────────────────────────
+
+vi.mock('../../../client/lib/prisma/fl-telemetry', () => ({
+	getFLTelemetry: () => ({ recordRound: vi.fn() }),
+}))
+
 // ─── Mock CKKS Service ──────────────────────────────────────────────────────
 
 const mockEncryptVector = vi.fn()

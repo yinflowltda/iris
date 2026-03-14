@@ -21,14 +21,35 @@ const DEFAULT_MIN_SUBMISSIONS = 3
 const DEFAULT_ROUND_TIMEOUT_MS = 5 * 60 * 1000 // 5 minutes
 const MAX_REPORTED_NORM = 100 // Byzantine check: reject if reported norm is too high
 
+export interface FLRoundMetricEntry {
+	roundId: string
+	status: RoundStatus
+	submissionCount: number
+	minSubmissions: number
+	openedAt: string
+	closedAt: string
+	durationMs: number
+}
+
+export interface FLMetricsResponse {
+	currentRound: FLRoundSummary | null
+	totalRoundsCompleted: number
+	avgSubmissionsPerRound: number
+	avgRoundDurationMs: number
+	recentRounds: FLRoundMetricEntry[]
+}
+
 export class AggregationDO extends DurableObject<Environment> {
 	private round: FLRound | null = null
+	private roundHistory: FLRoundMetricEntry[] = []
 
 	constructor(ctx: DurableObjectState, env: Environment) {
 		super(ctx, env)
 		// Restore round state from storage on wake
 		ctx.blockConcurrencyWhile(async () => {
 			this.round = (await this.ctx.storage.get<FLRound>('round')) ?? null
+			this.roundHistory =
+				(await this.ctx.storage.get<FLRoundMetricEntry[]>('roundHistory')) ?? []
 		})
 	}
 
@@ -51,6 +72,9 @@ export class AggregationDO extends DurableObject<Environment> {
 			}
 			if (request.method === 'POST' && path === '/aggregate') {
 				return this.handleUploadAggregate(request)
+			}
+			if (request.method === 'GET' && path === '/metrics') {
+				return this.handleMetrics()
 			}
 			return new Response('Not found', { status: 404 })
 		} catch (e) {
@@ -220,6 +244,7 @@ export class AggregationDO extends DurableObject<Environment> {
 		this.round.aggregateKey = `rounds/${this.round.id}/aggregate/`
 		this.round.status = 'published'
 		await this.saveRound()
+		await this.recordRoundHistory()
 
 		return Response.json({ status: 'published', blobCount: body.blobs.length })
 	}
@@ -284,11 +309,69 @@ export class AggregationDO extends DurableObject<Environment> {
 		if (this.round.status === 'collecting') {
 			if (this.round.submissionCount < this.round.minSubmissions) {
 				this.round.status = 'timed_out'
+				await this.saveRound()
+				await this.recordRoundHistory()
 			} else {
 				this.round.status = 'aggregating'
+				await this.saveRound()
 			}
-			await this.saveRound()
 		}
+	}
+
+	// ─── Metrics ─────────────────────────────────────────────────────────────
+
+	private handleMetrics(): Response {
+		const currentRound: FLRoundSummary | null = this.round
+			? {
+					id: this.round.id,
+					status: this.round.status,
+					submissionCount: this.round.submissionCount,
+					minSubmissions: this.round.minSubmissions,
+					expiresAt: this.round.expiresAt,
+					hasAggregate: this.round.aggregateKey !== null,
+				}
+			: null
+
+		const completed = this.roundHistory.filter(
+			(r) => r.status === 'published' || r.status === 'timed_out',
+		)
+		const avgSubmissions =
+			completed.length > 0
+				? completed.reduce((s, r) => s + r.submissionCount, 0) / completed.length
+				: 0
+		const avgDuration =
+			completed.length > 0
+				? completed.reduce((s, r) => s + r.durationMs, 0) / completed.length
+				: 0
+
+		const metrics: FLMetricsResponse = {
+			currentRound,
+			totalRoundsCompleted: completed.length,
+			avgSubmissionsPerRound: Math.round(avgSubmissions * 100) / 100,
+			avgRoundDurationMs: Math.round(avgDuration),
+			recentRounds: this.roundHistory.slice(-20),
+		}
+		return Response.json(metrics)
+	}
+
+	/** Record a completed round in history (max 100 entries). */
+	private async recordRoundHistory(): Promise<void> {
+		if (!this.round) return
+		const now = new Date()
+		const entry: FLRoundMetricEntry = {
+			roundId: this.round.id,
+			status: this.round.status,
+			submissionCount: this.round.submissionCount,
+			minSubmissions: this.round.minSubmissions,
+			openedAt: this.round.openedAt,
+			closedAt: now.toISOString(),
+			durationMs: now.getTime() - new Date(this.round.openedAt).getTime(),
+		}
+		this.roundHistory.push(entry)
+		if (this.roundHistory.length > 100) {
+			this.roundHistory = this.roundHistory.slice(-100)
+		}
+		await this.ctx.storage.put('roundHistory', this.roundHistory)
 	}
 
 	// ─── Storage Helpers ──────────────────────────────────────────────────────

@@ -15,6 +15,8 @@ import type { CkksBlob } from './ckks-types'
 import type { FLRoundSummary, FLSubmitResponse } from '../../../shared/types/FLRound'
 import { CkksService } from './ckks-service'
 import { clipAndNoise, computeSigma, l2Norm } from './differential-privacy'
+import { getFLConsent } from './fl-consent'
+import { getFLTelemetry } from './fl-telemetry'
 import { PrivacyAccountant, type PrivacyState } from './privacy-accountant'
 import type { LoraAdapter } from './lora-adapter'
 
@@ -136,6 +138,11 @@ export class FLClient {
 		beforeParams: Float32Array,
 		numExamples: number,
 	): Promise<FLRoundResult> {
+		// Check consent first
+		if (!getFLConsent().isOptedIn) {
+			throw new Error('FL participation requires user consent')
+		}
+
 		if (this._accountant.state.exhausted) {
 			throw new Error('Privacy budget exhausted')
 		}
@@ -198,6 +205,15 @@ export class FLClient {
 
 		// 6. Track privacy budget
 		const privacyState = this._accountant.step()
+
+		// 7. Record telemetry
+		getFLTelemetry().recordRound({
+			roundId: roundStatus.id,
+			deltaL2Norm: rawNorm,
+			trainingLoss: 0, // TODO: accept from caller when training pipeline reports loss
+			numExamples,
+			privacyEpsilon: privacyState.epsilon,
+		})
 
 		this._status = 'idle'
 		this._error = null

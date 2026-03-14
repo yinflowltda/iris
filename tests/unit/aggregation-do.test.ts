@@ -1,5 +1,6 @@
 import { describe, expect, it, beforeEach, vi } from 'vitest'
 import type { FLOpenRoundResponse, FLSubmitResponse, FLRoundSummary, RoundStatus } from '../../shared/types/FLRound'
+import type { FLRoundMetricEntry, FLMetricsResponse } from '../../worker/do/AggregationDO'
 
 // ─── Mocks for CF primitives ────────────────────────────────────────────────
 
@@ -87,6 +88,7 @@ const MAX_REPORTED_NORM = 100
  */
 class AggregationDOHarness {
 	private round: RoundState | null = null
+	private roundHistory: FLRoundMetricEntry[] = []
 	readonly storage = new MockDOStorage()
 	readonly r2 = new MockR2Bucket()
 
@@ -207,6 +209,7 @@ class AggregationDOHarness {
 		this.round.aggregateKey = `rounds/${this.round.id}/aggregate/`
 		this.round.status = 'published'
 		await this.storage.put('round', this.round)
+		this.recordRoundHistory()
 
 		return Response.json({ status: 'published', blobCount: blobs.length })
 	}
@@ -236,15 +239,69 @@ class AggregationDOHarness {
 		if (this.round.status === 'collecting') {
 			if (this.round.submissionCount < this.round.minSubmissions) {
 				this.round.status = 'timed_out'
+				await this.storage.put('round', this.round)
+				this.recordRoundHistory()
 			} else {
 				this.round.status = 'aggregating'
+				await this.storage.put('round', this.round)
 			}
-			await this.storage.put('round', this.round)
 		}
+	}
+
+	metrics(): Response {
+		const currentRound: FLRoundSummary | null = this.round
+			? {
+					id: this.round.id,
+					status: this.round.status,
+					submissionCount: this.round.submissionCount,
+					minSubmissions: this.round.minSubmissions,
+					expiresAt: this.round.expiresAt,
+					hasAggregate: this.round.aggregateKey !== null,
+				}
+			: null
+
+		const completed = this.roundHistory.filter(
+			(r) => r.status === 'published' || r.status === 'timed_out',
+		)
+		const avgSubmissions =
+			completed.length > 0
+				? completed.reduce((s, r) => s + r.submissionCount, 0) / completed.length
+				: 0
+		const avgDuration =
+			completed.length > 0
+				? completed.reduce((s, r) => s + r.durationMs, 0) / completed.length
+				: 0
+
+		const metrics: FLMetricsResponse = {
+			currentRound,
+			totalRoundsCompleted: completed.length,
+			avgSubmissionsPerRound: Math.round(avgSubmissions * 100) / 100,
+			avgRoundDurationMs: Math.round(avgDuration),
+			recentRounds: this.roundHistory.slice(-20),
+		}
+		return Response.json(metrics)
+	}
+
+	private recordRoundHistory(): void {
+		if (!this.round) return
+		const now = new Date()
+		this.roundHistory.push({
+			roundId: this.round.id,
+			status: this.round.status,
+			submissionCount: this.round.submissionCount,
+			minSubmissions: this.round.minSubmissions,
+			openedAt: this.round.openedAt,
+			closedAt: now.toISOString(),
+			durationMs: now.getTime() - new Date(this.round.openedAt).getTime(),
+		})
 	}
 
 	getRound() {
 		return this.round
+	}
+
+	getRoundHistory() {
+		return this.roundHistory
 	}
 }
 
@@ -591,6 +648,92 @@ describe('AggregationDO', () => {
 			// Can open a new round now
 			const newRound = await harness.open()
 			expect(newRound.status).toBe(201)
+		})
+	})
+
+	// ─── Metrics ─────────────────────────────────────────────────────────────
+
+	describe('metrics', () => {
+		it('returns zero metrics when no rounds completed', async () => {
+			const res = harness.metrics()
+			const body = (await res.json()) as FLMetricsResponse
+
+			expect(body.totalRoundsCompleted).toBe(0)
+			expect(body.avgSubmissionsPerRound).toBe(0)
+			expect(body.avgRoundDurationMs).toBe(0)
+			expect(body.recentRounds).toHaveLength(0)
+			expect(body.currentRound).toBeNull()
+		})
+
+		it('shows current round when one is active', async () => {
+			await harness.open({ minSubmissions: 3 })
+			const res = harness.metrics()
+			const body = (await res.json()) as FLMetricsResponse
+
+			expect(body.currentRound).not.toBeNull()
+			expect(body.currentRound!.status).toBe('collecting')
+		})
+
+		it('records round history on publish', async () => {
+			const openRes = await harness.open({ minSubmissions: 2 })
+			const { roundId } = (await openRes.json()) as FLOpenRoundResponse
+
+			await harness.submit({
+				clientId: 'c1', roundId, blobs: ['b'], numExamples: 5, reportedNorm: 1.0,
+			})
+			await harness.submit({
+				clientId: 'c2', roundId, blobs: ['b'], numExamples: 5, reportedNorm: 1.0,
+			})
+			await harness.uploadAggregate(['agg'])
+
+			const res = harness.metrics()
+			const body = (await res.json()) as FLMetricsResponse
+
+			expect(body.totalRoundsCompleted).toBe(1)
+			expect(body.avgSubmissionsPerRound).toBe(2)
+			expect(body.recentRounds).toHaveLength(1)
+			expect(body.recentRounds[0].status).toBe('published')
+			expect(body.recentRounds[0].submissionCount).toBe(2)
+		})
+
+		it('records timed-out rounds in history', async () => {
+			const openRes = await harness.open({ minSubmissions: 3 })
+			const { roundId } = (await openRes.json()) as FLOpenRoundResponse
+
+			await harness.submit({
+				clientId: 'c1', roundId, blobs: ['b'], numExamples: 5, reportedNorm: 1.0,
+			})
+			await harness.alarm() // only 1 submission, min is 3 → timed_out
+
+			const res = harness.metrics()
+			const body = (await res.json()) as FLMetricsResponse
+
+			expect(body.totalRoundsCompleted).toBe(1)
+			expect(body.recentRounds[0].status).toBe('timed_out')
+		})
+
+		it('computes averages across multiple rounds', async () => {
+			// Round 1: 2 submissions, published
+			let openRes = await harness.open({ minSubmissions: 2 })
+			let { roundId } = (await openRes.json()) as FLOpenRoundResponse
+			await harness.submit({ clientId: 'c1', roundId, blobs: ['b'], numExamples: 5, reportedNorm: 1.0 })
+			await harness.submit({ clientId: 'c2', roundId, blobs: ['b'], numExamples: 5, reportedNorm: 1.0 })
+			await harness.uploadAggregate(['agg'])
+
+			// Round 2: 4 submissions, published
+			openRes = await harness.open({ minSubmissions: 4 })
+			roundId = ((await openRes.json()) as FLOpenRoundResponse).roundId
+			for (let i = 1; i <= 4; i++) {
+				await harness.submit({ clientId: `c${i}`, roundId, blobs: ['b'], numExamples: 5, reportedNorm: 1.0 })
+			}
+			await harness.uploadAggregate(['agg'])
+
+			const res = harness.metrics()
+			const body = (await res.json()) as FLMetricsResponse
+
+			expect(body.totalRoundsCompleted).toBe(2)
+			expect(body.avgSubmissionsPerRound).toBe(3) // (2+4)/2 = 3
+			expect(body.recentRounds).toHaveLength(2)
 		})
 	})
 

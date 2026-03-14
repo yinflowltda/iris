@@ -38,6 +38,7 @@ import {
 	TldrawUiMenuCheckboxItem,
 	TldrawUiMenuContextProvider,
 	TldrawUiMenuGroup,
+	TldrawUiMenuItem,
 	TldrawUiMenuToolItem,
 	TldrawUiOrientationProvider,
 	TldrawUiToastsProvider,
@@ -75,6 +76,7 @@ import { CkksService } from './lib/prisma/ckks-service'
 import { registerArrowBindingDetector } from './lib/mandala-arrow-binding'
 import { registerMandalaSnapEffect } from './lib/mandala-snap'
 import { applyNodulePaletteToThemes } from './lib/nodule-color-palette'
+import { FLSettingsPanel } from './components/FLSettingsPanel'
 import { CircularNoteShapeUtil } from './shapes/CircularNoteShapeUtil'
 import { MandalaShapeTool } from './shapes/MandalaShapeTool'
 import { type MandalaShape, MandalaShapeUtil } from './shapes/MandalaShapeUtil'
@@ -86,6 +88,10 @@ import { TargetShapeTool } from './tools/TargetShapeTool'
 const ChatPanelContext = createContext<{ chatOpen: boolean; toggleChat: () => void }>({
 	chatOpen: false,
 	toggleChat: () => {},
+})
+
+const FLSettingsContext = createContext<{ openFLSettings: () => void }>({
+	openFLSettings: () => {},
 })
 
 DefaultSizeStyle.setDefaultValue('s')
@@ -253,6 +259,7 @@ function useArrowsVisible(): [boolean, () => void] {
 
 function IrisMainMenu() {
 	const [arrowsVisible, toggleArrowsVisible] = useArrowsVisible()
+	const { openFLSettings } = useContext(FLSettingsContext)
 
 	return (
 		<DefaultMainMenu>
@@ -263,6 +270,12 @@ function IrisMainMenu() {
 					checked={arrowsVisible}
 					onSelect={toggleArrowsVisible}
 					readonlyOk
+				/>
+				<TldrawUiMenuItem
+					id="fl-settings"
+					label="Privacy & Learning"
+					readonlyOk
+					onSelect={openFLSettings}
 				/>
 			</TldrawUiMenuGroup>
 			<DefaultMainMenuContent />
@@ -316,6 +329,11 @@ function hasNoTextContent(richText: unknown): boolean {
 function App() {
 	const [app, setApp] = useState<TldrawAgentApp | null>(null)
 	const [showTemplate, setShowTemplate] = useState(SHOW_TEMPLATE_CHOOSER)
+	const [showFLSettings, setShowFLSettings] = useState(false)
+	const flSettingsCtx = useMemo(
+		() => ({ openFLSettings: () => setShowFLSettings(true) }),
+		[],
+	)
 	const [chatOpen, setChatOpen] = useState(false)
 	const toggleChat = useCallback(() => setChatOpen((v) => !v), [])
 	const chatInputRef = useRef<HTMLTextAreaElement>(null)
@@ -664,6 +682,7 @@ function App() {
 	return (
 		<MandalaCoverContext.Provider value={{ onCoverSlideClick: handleCoverSlideClick }}>
 			<ChatPanelContext.Provider value={{ chatOpen, toggleChat }}>
+				<FLSettingsContext.Provider value={flSettingsCtx}>
 				<TldrawUiToastsProvider>
 					<div className="tldraw-agent-container">
 						<div className="tldraw-canvas">
@@ -693,8 +712,13 @@ function App() {
 							onSelectTemplate={handleSelectTemplate}
 							onRequestClose={() => setShowTemplate(false)}
 						/>
+						<FLSettingsPanel
+							visible={showFLSettings}
+							onRequestClose={() => setShowFLSettings(false)}
+						/>
 					</div>
 				</TldrawUiToastsProvider>
+				</FLSettingsContext.Provider>
 			</ChatPanelContext.Provider>
 		</MandalaCoverContext.Provider>
 	)

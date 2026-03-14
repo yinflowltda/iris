@@ -7,6 +7,7 @@ import {
 	openRound,
 	submitDelta,
 	roundStatus,
+	roundMetrics,
 	getAggregate,
 	uploadAggregate,
 } from './routes/fl-rounds'
@@ -31,6 +32,7 @@ const router = AutoRouter<IRequest, [env: Environment, ctx: ExecutionContext]>({
 	.post('/fl/rounds/open', openRound)
 	.post('/fl/rounds/submit', submitDelta)
 	.get('/fl/rounds/status', roundStatus)
+	.get('/fl/rounds/metrics', roundMetrics)
 	.get('/fl/rounds/aggregate', getAggregate)
 	.post('/fl/rounds/aggregate', uploadAggregate)
 

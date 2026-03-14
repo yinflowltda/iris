@@ -84,6 +84,17 @@ export async function getAggregate(request: IRequest, env: Environment): Promise
 	return forwardToDO(stub, 'https://do/aggregate', { method: 'GET' })
 }
 
+/** GET /fl/rounds/metrics — Admin metrics for a map's FL rounds */
+export async function roundMetrics(request: IRequest, env: Environment): Promise<Response> {
+	const mapId = request.query.mapId as string
+	if (!mapId) {
+		return Response.json({ error: 'mapId query parameter required' }, { status: 400 })
+	}
+
+	const stub = getAggregationDO(env, mapId)
+	return forwardToDO(stub, 'https://do/metrics', { method: 'GET' })
+}
+
 /** POST /fl/rounds/aggregate — Upload the aggregated ciphertext (from aggregator) */
 export async function uploadAggregate(request: IRequest, env: Environment): Promise<Response> {
 	const mapId = request.query.mapId as string
