@@ -20,10 +20,10 @@ import { registerFramework } from './framework-registry'
 // ─── Ring definitions (bottom half: life domains) ────────────────────────────
 
 const RING_DEFS = [
-	{ id: 'querer', label: 'Querer', innerRatio: 0.1, outerRatio: 0.325 },
-	{ id: 'ser', label: 'Ser', innerRatio: 0.325, outerRatio: 0.55 },
-	{ id: 'ter', label: 'Ter', innerRatio: 0.55, outerRatio: 0.775 },
-	{ id: 'saber', label: 'Saber', innerRatio: 0.775, outerRatio: 1.0 },
+	{ id: 'querer', label: 'Want', innerRatio: 0.1, outerRatio: 0.325 },
+	{ id: 'ser', label: 'Am', innerRatio: 0.325, outerRatio: 0.55 },
+	{ id: 'ter', label: 'Have', innerRatio: 0.55, outerRatio: 0.775 },
+	{ id: 'saber', label: 'Know', innerRatio: 0.775, outerRatio: 1.0 },
 ] as const
 
 const RING_CONTENT: Record<string, { question: string; guidance: string; examples: string[] }> = {
@@ -132,10 +132,10 @@ export const LIFE_MAP: MapDefinition = {
 	id: 'life-map',
 	name: 'Life Map',
 	description:
-		'A holistic mandala for exploring six key life dimensions through four lenses of self-awareness — Querer (desire), Ser (being), Ter (having), and Saber (knowing).',
+		'A holistic mandala for exploring six key life dimensions through four lenses of self-awareness — Want, Am, Have, and Know.',
 	center: {
 		id: 'proposito',
-		label: 'Propósito',
+		label: 'Purpose',
 		radiusRatio: 0.1,
 		question:
 			'What is the driving reason behind your current choices? What are you working toward in this period of your life?',
@@ -150,7 +150,7 @@ export const LIFE_MAP: MapDefinition = {
 	slices: [
 		{
 			id: 'espiritual',
-			label: 'Espiritual',
+			label: 'Spiritual',
 			startAngle: 90,
 			endAngle: 120,
 			cells: buildSliceCells('espiritual'),
@@ -164,7 +164,7 @@ export const LIFE_MAP: MapDefinition = {
 		},
 		{
 			id: 'fisico',
-			label: 'Físico',
+			label: 'Physical',
 			startAngle: 150,
 			endAngle: 180,
 			cells: buildSliceCells('fisico'),
@@ -178,14 +178,14 @@ export const LIFE_MAP: MapDefinition = {
 		},
 		{
 			id: 'profissional',
-			label: 'Profissional',
+			label: 'Professional',
 			startAngle: 210,
 			endAngle: 240,
 			cells: buildSliceCells('profissional'),
 		},
 		{
 			id: 'pessoal',
-			label: 'Pessoal',
+			label: 'Personal',
 			startAngle: 240,
 			endAngle: 270,
 			cells: buildSliceCells('pessoal'),
@@ -236,10 +236,10 @@ function buildDomainNode(slice: { id: string; label: string }): TreeNodeDef {
 }
 
 const DAY_SEGMENTS = [
-	{ id: 'dawn', label: 'Madrugada' },
-	{ id: 'morning', label: 'Manhã' },
-	{ id: 'afternoon', label: 'Tarde' },
-	{ id: 'night', label: 'Noite' },
+	{ id: 'dawn', label: 'Dawn' },
+	{ id: 'morning', label: 'Morning' },
+	{ id: 'afternoon', label: 'Afternoon' },
+	{ id: 'night', label: 'Night' },
 ] as const
 
 /**

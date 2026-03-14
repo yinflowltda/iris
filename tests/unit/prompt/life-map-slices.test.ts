@@ -59,7 +59,7 @@ describe('life-map region-based loading', () => {
 			expect(text).toContain('life design companion')
 			expect(text).toContain('Core Principles')
 			expect(text).toContain('highlight_cell')
-			expect(text).toContain('Propósito')
+			expect(text).toContain('Purpose (Center)')
 		})
 	})
 
@@ -67,8 +67,8 @@ describe('life-map region-based loading', () => {
 		it('includes all layers when no session state', () => {
 			const text = buildPromptText(undefined)
 			expect(text).toContain('life design companion')
-			expect(text).toContain('Want / Querer')
-			expect(text).toContain('Do (Fazer)')
+			expect(text).toContain('Want (Purpose/Desire)')
+			expect(text).toContain('Temporal Region')
 			expect(text).toContain('Anxiety')
 			expect(text).toContain('Free Exploration')
 		})
@@ -78,23 +78,23 @@ describe('life-map region-based loading', () => {
 		it('region null: loads base layer only', () => {
 			const text = buildPromptText(makeSessionState({ region: null }))
 			expect(text).toContain('life design companion')
-			expect(text).not.toContain('Want / Querer (Purpose/Desire)')
-			expect(text).not.toContain('Do (Fazer)')
+			expect(text).not.toContain('Want (Purpose/Desire)')
+			expect(text).not.toContain('Temporal Region')
 		})
 
 		it('region intentional: loads base + intentional', () => {
 			const text = buildPromptText(makeSessionState({ region: 'intentional' }))
-			expect(text).toContain('Want / Querer (Purpose/Desire)')
+			expect(text).toContain('Want (Purpose/Desire)')
 			expect(text).toContain('espiritual-querer')
 			expect(text).not.toContain('monday-dawn')
-			expect(text).not.toContain('Do (Fazer)')
+			expect(text).not.toContain('Temporal Region')
 		})
 
 		it('region temporal: loads base + temporal', () => {
 			const text = buildPromptText(makeSessionState({ region: 'temporal' }))
-			expect(text).toContain('Do (Fazer)')
+			expect(text).toContain('Temporal Region')
 			expect(text).toContain('monday-dawn')
-			expect(text).not.toContain('Want / Querer (Purpose/Desire)')
+			expect(text).not.toContain('Want (Purpose/Desire)')
 		})
 	})
 
@@ -107,8 +107,8 @@ describe('life-map region-based loading', () => {
 				}),
 			)
 			expect(text).toContain('Anxiety')
-			expect(text).not.toContain('Burnout')
-			expect(text).not.toContain('ADHD')
+			expect(text).not.toContain('Overlay: Burnout')
+			expect(text).not.toContain('Overlay: ADHD')
 		})
 
 		it('loads multiple conditions', () => {
@@ -143,8 +143,8 @@ describe('life-map region-based loading', () => {
 			expect(text).toContain('Free Exploration')
 			expect(text).toContain('Content routing')
 			expect(text).toContain('Depression')
-			expect(text).not.toContain('Want / Querer (Purpose/Desire)')
-			expect(text).not.toContain('Do (Fazer)')
+			expect(text).not.toContain('Want (Purpose/Desire)')
+			expect(text).not.toContain('Temporal Region')
 		})
 	})
 
