@@ -70,7 +70,7 @@ export function buildSystemPrompt(
 
 	if (withSchema) {
 		if (useStreamingCells) {
-			lines.push(buildStreamingCellsSchemaSection())
+			lines.push(buildStreamingCellsSchemaSection(modePart))
 		} else {
 			lines.push(buildSchemaPromptSection(modePart, isSelfContained))
 		}
@@ -101,36 +101,64 @@ export function buildSystemPrompt(
 }
 
 function buildStreamingCellsIntro(): string {
-	return `You respond with structured JSON containing two fields: "message" (your response to the user) and "cells" (a mapping of cell IDs to arrays of short content labels).
+	return `You respond with structured JSON containing up to three fields: "message" (your response to the user), "cells" (a mapping of cell IDs to arrays of short content labels), and "actions" (a list of structured actions for non-cell operations).
 
 **Important:** Every response MUST include a "message" field to communicate with the user. The "cells" field contains the mandala content you want to create. Each cell entry is an array of short, concise labels (a few words each). Do NOT repeat context implied by the cell name (time period, category). No trailing periods.
 
-Example response:
+**When to use "actions":** For operations that go beyond filling cells — moving notes, creating arrows, setting metadata, highlighting cells, etc. — include them in the "actions" array. Each action must have a "_type" field and conform to the action schemas below.
+
+Example — filling cells:
 \`\`\`json
 {
   "message": "Looking at your situation, I can identify several key patterns...",
   "cells": {
     "past-events": ["Lost my job", "Moved to new city"],
-    "past-thoughts": ["Felt overwhelmed", "Uncertainty about future"],
-    "evidence": ["Got new job quickly", "Friends supported me"]
+    "past-thoughts": ["Felt overwhelmed", "Uncertainty about future"]
   }
 }
 \`\`\`
 
+Example — moving a note:
+\`\`\`json
+{
+  "message": "I'll move that note to the Want layer where it fits better.",
+  "actions": [
+    { "_type": "move_note", "intent": "relocate salary note", "mandalaId": "mandala-1", "noteId": "mandala-1-profissional-ter-0", "targetCellId": "profissional-querer" }
+  ]
+}
+\`\`\`
+
+You can combine "cells" and "actions" in the same response when needed.
+
 Always return valid JSON. Only use cell IDs that are valid for the current framework.`
 }
 
-function buildStreamingCellsSchemaSection(): string {
+/** Action types that are handled by the streaming cells format and don't need explicit actions */
+const CELL_FORMAT_BUILTIN_TYPES = new Set(['cell_fill', 'message'])
+
+function buildStreamingCellsSchemaSection(modePart: ModePart): string {
+	// Build actions schema for non-cell action types
+	const nonCellActionTypes = modePart.actionTypes.filter(
+		(type) => !CELL_FORMAT_BUILTIN_TYPES.has(type),
+	)
+
+	let actionsSchemaBlock = ''
+	if (nonCellActionTypes.length > 0) {
+		const actionsSchema = buildResponseSchema(nonCellActionTypes, modePart.modeType)
+		actionsSchemaBlock = `\n\nAction schemas for the "actions" array:\n\n${JSON.stringify(actionsSchema)}`
+	}
+
 	return `## JSON schema
 
 Respond with a JSON object matching this schema:
 
 {
   "message": "string (required) — your response to the user",
-  "cells": "object (optional) — mapping of cellId to array of short label strings. Example: { \\"past-events\\": [\\"Lost job\\", \\"Moved\\"] }"
+  "cells": "object (optional) — mapping of cellId to array of short label strings. Example: { \\"past-events\\": [\\"Lost job\\", \\"Moved\\"] }",
+  "actions": "array (optional) — list of structured action objects for non-cell operations (move_note, create_arrow, set_metadata, etc.)"
 }
 
-Do not include any other fields. The "cells" field is optional — if you only need to respond without filling cells, omit it.
+The "cells" field is for creating/filling content. The "actions" field is for everything else (moving notes, arrows, metadata, etc.). Both are optional — include whichever you need.${actionsSchemaBlock}
 `
 }
 
