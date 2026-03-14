@@ -49,13 +49,8 @@ export class AgentService {
 	}
 
 	async *stream(prompt: AgentPrompt): AsyncGenerator<Streaming<AgentAction>> {
-		try {
-			for await (const event of this.streamActions(prompt)) {
-				yield event
-			}
-		} catch (error: any) {
-			console.error('Stream error:', error)
-			throw error
+		for await (const event of this.streamActions(prompt)) {
+			yield event
 		}
 	}
 
@@ -91,10 +86,16 @@ export class AgentService {
 
 		for (const [modelIndex, modelName] of candidates.entries()) {
 			const maxAttempts = modelIndex === 0 ? MAX_SAME_MODEL_RETRIES + 1 : 1
+			// Normalize messages for openai-compatible providers (e.g. claude-max-api-proxy).
+			// The proxy's messagesToPrompt() can't handle array content — it serializes as
+			// "[object Object]" and garbles the prompt. Flatten to plain strings.
+			const modelDef = getAgentModelDefinition(modelName)
+			const effectiveMessages =
+				modelDef.provider === 'openai-compatible' ? normalizeMessagesForProxy(messages) : messages
 
 			for (let attempt = 0; attempt < maxAttempts; attempt++) {
 				try {
-					yield* this.streamActionsWithModel(modelName, messages)
+					yield* this.streamActionsWithModel(modelName, effectiveMessages)
 					return
 				} catch (error: unknown) {
 					lastError = error
@@ -173,7 +174,10 @@ export class AgentService {
 
 			// Detect format on first successful parse
 			if (formatDetected === null) {
-				if (partialObject.cells && typeof partialObject.cells === 'object') {
+				if (
+					(partialObject.cells && typeof partialObject.cells === 'object') ||
+					typeof partialObject.message === 'string'
+				) {
 					formatDetected = 'cells'
 				} else if (Array.isArray(partialObject.actions)) {
 					formatDetected = 'actions'
@@ -313,6 +317,38 @@ export class AgentService {
 			} as Streaming<AgentAction>
 		}
 	}
+}
+
+/**
+ * Normalize messages for the openai-compatible proxy (claude-max-api-proxy).
+ *
+ * The proxy's messagesToPrompt() does `msg.content` for each message, which works
+ * when content is a plain string but produces "[object Object],..." when content is
+ * an array (the OpenAI multimodal format).
+ *
+ * The AI SDK's @ai-sdk/openai provider only optimizes to a plain string when content
+ * has exactly 1 text part. For 2+ text parts OR any non-text parts, it sends an array.
+ *
+ * Fix: flatten each message's content to a single string. Strip images (claude --print
+ * can't process them anyway) and join multiple text parts with newlines.
+ */
+function normalizeMessagesForProxy(messages: ModelMessage[]): ModelMessage[] {
+	return messages.map((msg) => {
+		if (!Array.isArray(msg.content)) return msg
+
+		const textParts: string[] = []
+		for (const part of msg.content as Array<{ type: string; text?: string; [key: string]: unknown }>) {
+			if (part.type === 'text' && part.text) {
+				textParts.push(part.text)
+			}
+			// Skip image/file parts — claude --print can't process them
+		}
+
+		if (textParts.length === 0) return null
+
+		// Return as plain string content so AI SDK sends it as a string (not array)
+		return { ...msg, content: textParts.join('\n') }
+	}).filter((msg): msg is ModelMessage => msg !== null)
 }
 
 function getFallbackModels(preferred: AgentModelName): AgentModelName[] {
