@@ -77,6 +77,7 @@ interface RoundState {
 	expiresAt: string
 	aggregateKey: string | null
 	blobsPerSubmission: number | null
+	extensionCount: number
 }
 
 const DEFAULT_MIN_SUBMISSIONS = 3
@@ -115,6 +116,7 @@ class AggregationDOHarness {
 			expiresAt: new Date(now.getTime() + timeoutMs).toISOString(),
 			aggregateKey: null,
 			blobsPerSubmission: null,
+			extensionCount: 0,
 		}
 
 		await this.storage.put('round', this.round)

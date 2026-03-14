@@ -21,6 +21,8 @@ export interface FLRound {
 	aggregateKey: string | null
 	/** Number of ciphertext blobs per submission (all must match) */
 	blobsPerSubmission: number | null
+	/** Number of times the round alarm has been extended */
+	extensionCount: number
 }
 
 /** Client submission of encrypted weight deltas */

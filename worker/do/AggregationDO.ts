@@ -108,6 +108,7 @@ export class AggregationDO extends DurableObject<Environment> {
 			expiresAt: new Date(now.getTime() + timeoutMs).toISOString(),
 			aggregateKey: null,
 			blobsPerSubmission: null,
+			extensionCount: 0,
 		}
 
 		await this.saveRound()
