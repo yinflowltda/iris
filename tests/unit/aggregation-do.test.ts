@@ -97,7 +97,7 @@ class AggregationDOHarness {
 	}
 
 	async open(body: { minSubmissions?: number; timeoutMs?: number } = {}): Promise<Response> {
-		if (this.round && (this.round.status === 'open' || this.round.status === 'collecting')) {
+		if (this.round && this.round.status === 'collecting') {
 			return Response.json({ error: 'Round already active' }, { status: 409 })
 		}
 

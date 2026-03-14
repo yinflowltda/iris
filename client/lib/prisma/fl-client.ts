@@ -152,7 +152,7 @@ export class FLClient {
 		const roundStatus = await this.getRoundStatus()
 		if (
 			!roundStatus ||
-			(roundStatus.status !== 'open' && roundStatus.status !== 'collecting')
+			roundStatus.status !== 'collecting'
 		) {
 			this._status = 'idle'
 			throw new Error(`No active round (status: ${roundStatus?.status ?? 'none'})`)

@@ -1,7 +1,7 @@
 // ─── Federated Learning Round Types ─────────────────────────────────────────
 
 /** Round lifecycle states */
-export type RoundStatus = 'open' | 'collecting' | 'aggregating' | 'published' | 'timed_out'
+export type RoundStatus = 'collecting' | 'aggregating' | 'published' | 'timed_out'
 
 /** Metadata for a single FL round */
 export interface FLRound {
