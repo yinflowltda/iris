@@ -171,9 +171,10 @@ async function main() {
 	// 10. Decrypt aggregate and verify
 	console.log('Step 10: Decrypting aggregate and verifying sum...')
 	const aggCt = new seal.Ciphertext()
-	aggCt.load(context, aggBlob)
-	const decryptedPlain = decryptor.decrypt(aggCt)
-	const decryptedValues = Float64Array.from(encoder.decode(decryptedPlain))
+	aggCt.loadFromBase64(context, aggBlob)
+	const decryptedPlain = new seal.Plaintext()
+	decryptor.decrypt(aggCt, decryptedPlain)
+	const decryptedValues = Float64Array.from(encoder.decodeFloat64(decryptedPlain))
 
 	const first5 = Array.from(decryptedValues.slice(0, 5))
 	console.log(`   Decrypted first 5: [${first5.map(v => v.toFixed(4))}]`)

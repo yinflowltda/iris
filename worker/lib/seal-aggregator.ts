@@ -4,9 +4,15 @@
 // Creates only SEALContext + Evaluator — never touches plaintext or secret keys.
 // Uses lazy initialization so WASM loads only when aggregation is needed.
 //
-// Requires `nodejs_compat` in wrangler.toml for node-seal's Emscripten module.
+// WASM Loading Strategy:
+// Emscripten (node-seal) tries to load WASM via XMLHttpRequest (browser) or
+// fs.readFileSync (Node.js) — neither available in Cloudflare Workers.
+// We import the WASM as a Cloudflare module binding and use Emscripten's
+// `instantiateWasm` callback to inject it directly, bypassing all I/O.
 
 import { POLY_MODULUS_DEGREE, COEFF_MOD_BIT_SIZES } from '../../shared/constants/ckks-params'
+// @ts-expect-error — Cloudflare Workers .wasm import yields WebAssembly.Module
+import sealWasmModule from '../../node_modules/node-seal/dist/seal_throws.wasm'
 
 type MainModule = Awaited<ReturnType<typeof import('node-seal')['default']>>
 
@@ -31,7 +37,20 @@ export class SealAggregator {
 
 	private async _init(): Promise<void> {
 		const { default: initialize } = await import('node-seal')
-		const seal = await initialize()
+		const seal = await initialize({
+			// Override Emscripten's WASM loading to work in Cloudflare Workers.
+			// The static .wasm import gives us a WebAssembly.Module (already compiled).
+			// We instantiate it directly, bypassing XMLHttpRequest/fs.readFileSync.
+			instantiateWasm(
+				imports: WebAssembly.Imports,
+				receiveInstance: (instance: WebAssembly.Instance, module: WebAssembly.Module) => void,
+			) {
+				WebAssembly.instantiate(sealWasmModule, imports).then((instance) => {
+					receiveInstance(instance, sealWasmModule)
+				})
+				return {} // async path — Emscripten waits for receiveInstance callback
+			},
+		})
 
 		const parms = new seal.EncryptionParameters(seal.SchemeType.ckks)
 		parms.setPolyModulusDegree(POLY_MODULUS_DEGREE)
