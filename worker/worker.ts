@@ -10,6 +10,7 @@ import {
 	roundMetrics,
 	getAggregate,
 	uploadAggregate,
+	aggregateNow,
 } from './routes/fl-rounds'
 import { stream } from './routes/stream'
 import { voice } from './routes/voice'
@@ -35,6 +36,7 @@ const router = AutoRouter<IRequest, [env: Environment, ctx: ExecutionContext]>({
 	.get('/fl/rounds/metrics', roundMetrics)
 	.get('/fl/rounds/aggregate', getAggregate)
 	.post('/fl/rounds/aggregate', uploadAggregate)
+	.post('/fl/rounds/aggregate-now', aggregateNow)
 
 export default class extends WorkerEntrypoint<Environment> {
 	override fetch(request: Request): Promise<Response> {

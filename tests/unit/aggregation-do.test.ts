@@ -35,6 +35,14 @@ class MockR2Bucket {
 		return { objects, truncated: false }
 	}
 
+	async delete(key: string | string[]) {
+		if (Array.isArray(key)) {
+			for (const k of key) this.store.delete(k)
+		} else {
+			this.store.delete(key)
+		}
+	}
+
 	getStore() {
 		return this.store
 	}
@@ -181,7 +189,7 @@ class AggregationDOHarness {
 			response.roundStatus = 'aggregating'
 		}
 
-		await this.storage.put('round', this.round)
+		await this.saveRound()
 		return Response.json(response)
 	}
 
@@ -210,10 +218,69 @@ class AggregationDOHarness {
 
 		this.round.aggregateKey = `rounds/${this.round.id}/aggregate/`
 		this.round.status = 'published'
-		await this.storage.put('round', this.round)
+		await this.saveRound()
 		this.recordRoundHistory()
 
 		return Response.json({ status: 'published', blobCount: blobs.length })
+	}
+
+	async performAggregation(): Promise<void> {
+		if (!this.round || this.round.status !== 'aggregating') return
+
+		const blobCount = this.round.blobsPerSubmission ?? 1
+
+		for (let i = 0; i < blobCount; i++) {
+			const aggregated: string[] = []
+			for (const clientId of this.round.submittedClients) {
+				const key = `rounds/${this.round.id}/submissions/${clientId}/blob-${i}`
+				const obj = await this.r2.get(key)
+				if (obj) aggregated.push(await obj.text())
+			}
+			const aggKey = `rounds/${this.round.id}/aggregate/blob-${i}`
+			await this.r2.put(aggKey, aggregated.join('+'))
+		}
+
+		this.round.aggregateKey = `rounds/${this.round.id}/aggregate/`
+		this.round.status = 'published'
+		await this.saveRound()
+		this.recordRoundHistory()
+
+		// Clean up submission blobs
+		const r2Store = this.r2.getStore()
+		const submissionPrefix = `rounds/${this.round.id}/submissions/`
+		for (const key of [...r2Store.keys()]) {
+			if (key.startsWith(submissionPrefix)) {
+				r2Store.delete(key)
+			}
+		}
+	}
+
+	async aggregateNow(): Promise<Response> {
+		if (!this.round) {
+			return Response.json({ error: 'No round exists' }, { status: 404 })
+		}
+
+		if (this.round.status === 'collecting') {
+			if (this.round.submissionCount >= this.round.minSubmissions) {
+				this.round.status = 'aggregating'
+				await this.saveRound()
+			} else {
+				return Response.json(
+					{ error: 'Not enough submissions to aggregate' },
+					{ status: 400 },
+				)
+			}
+		}
+
+		if (this.round.status !== 'aggregating') {
+			return Response.json(
+				{ error: `Round is in ${this.round.status} state` },
+				{ status: 400 },
+			)
+		}
+
+		await this.performAggregation()
+		return Response.json({ status: 'published' })
 	}
 
 	async getAggregate(): Promise<Response> {
@@ -241,11 +308,11 @@ class AggregationDOHarness {
 		if (this.round.status === 'collecting') {
 			if (this.round.submissionCount < this.round.minSubmissions) {
 				this.round.status = 'timed_out'
-				await this.storage.put('round', this.round)
+				await this.saveRound()
 				this.recordRoundHistory()
 			} else {
 				this.round.status = 'aggregating'
-				await this.storage.put('round', this.round)
+				await this.saveRound()
 			}
 		}
 	}
@@ -282,6 +349,10 @@ class AggregationDOHarness {
 			recentRounds: this.roundHistory.slice(-20),
 		}
 		return Response.json(metrics)
+	}
+
+	private async saveRound(): Promise<void> {
+		await this.storage.put('round', this.round)
 	}
 
 	private recordRoundHistory(): void {
@@ -610,6 +681,146 @@ describe('AggregationDO', () => {
 			const h = new AggregationDOHarness()
 			const res = await h.getAggregate()
 			expect(res.status).toBe(404)
+		})
+	})
+
+	// ─── performAggregation ───────────────────────────────────────────────────
+
+	describe('performAggregation', () => {
+		let roundId: string
+
+		beforeEach(async () => {
+			const res = await harness.open({ minSubmissions: 2 })
+			roundId = ((await res.json()) as FLOpenRoundResponse).roundId
+
+			await harness.submit({
+				clientId: 'c1',
+				roundId,
+				blobs: ['blob-a', 'blob-b'],
+				numExamples: 10,
+				reportedNorm: 1.0,
+			})
+			await harness.submit({
+				clientId: 'c2',
+				roundId,
+				blobs: ['blob-c', 'blob-d'],
+				numExamples: 5,
+				reportedNorm: 0.8,
+			})
+			// After 2nd submit, status is 'aggregating'
+		})
+
+		it('transitions to published after aggregation', async () => {
+			await harness.performAggregation()
+
+			const round = harness.getRound()!
+			expect(round.status).toBe('published')
+			expect(round.aggregateKey).toBe(`rounds/${roundId}/aggregate/`)
+		})
+
+		it('writes aggregate blobs to R2', async () => {
+			await harness.performAggregation()
+
+			const r2Store = harness.r2.getStore()
+			expect(r2Store.has(`rounds/${roundId}/aggregate/blob-0`)).toBe(true)
+			expect(r2Store.has(`rounds/${roundId}/aggregate/blob-1`)).toBe(true)
+		})
+
+		it('combines all submission blobs for each index', async () => {
+			await harness.performAggregation()
+
+			const obj0 = await harness.r2.get(`rounds/${roundId}/aggregate/blob-0`)
+			const obj1 = await harness.r2.get(`rounds/${roundId}/aggregate/blob-1`)
+			expect(await obj0!.text()).toBe('blob-a+blob-c')
+			expect(await obj1!.text()).toBe('blob-b+blob-d')
+		})
+
+		it('cleans up submission blobs after aggregation', async () => {
+			await harness.performAggregation()
+
+			const r2Store = harness.r2.getStore()
+			const submissionKeys = [...r2Store.keys()].filter((k) =>
+				k.startsWith(`rounds/${roundId}/submissions/`),
+			)
+			expect(submissionKeys).toHaveLength(0)
+		})
+
+		it('records round in history after aggregation', async () => {
+			await harness.performAggregation()
+
+			const history = harness.getRoundHistory()
+			expect(history).toHaveLength(1)
+			expect(history[0].status).toBe('published')
+		})
+
+		it('is a no-op when round is not in aggregating state', async () => {
+			// Put round back to collecting
+			const round = harness.getRound()!
+			round.status = 'collecting'
+
+			await harness.performAggregation()
+
+			expect(harness.getRound()!.status).toBe('collecting')
+		})
+	})
+
+	// ─── aggregate-now ────────────────────────────────────────────────────────
+
+	describe('aggregate-now', () => {
+		it('returns 404 when no round exists', async () => {
+			const res = await harness.aggregateNow()
+			expect(res.status).toBe(404)
+		})
+
+		it('returns 400 when round has too few submissions', async () => {
+			const openRes = await harness.open({ minSubmissions: 3 })
+			const { roundId } = (await openRes.json()) as FLOpenRoundResponse
+
+			await harness.submit({
+				clientId: 'c1',
+				roundId,
+				blobs: ['b'],
+				numExamples: 5,
+				reportedNorm: 1.0,
+			})
+
+			const res = await harness.aggregateNow()
+			expect(res.status).toBe(400)
+			const body = (await res.json()) as { error: string }
+			expect(body.error).toContain('Not enough submissions')
+		})
+
+		it('allows manual trigger when already in aggregating state', async () => {
+			const openRes = await harness.open({ minSubmissions: 2 })
+			const { roundId } = (await openRes.json()) as FLOpenRoundResponse
+
+			await harness.submit({ clientId: 'c1', roundId, blobs: ['b'], numExamples: 5, reportedNorm: 1.0 })
+			await harness.submit({ clientId: 'c2', roundId, blobs: ['b'], numExamples: 5, reportedNorm: 1.0 })
+
+			// Status is now aggregating (triggered by 2nd submit reaching minSubmissions)
+			expect(harness.getRound()!.status).toBe('aggregating')
+
+			const res = await harness.aggregateNow()
+			expect(res.status).toBe(200)
+			const body = (await res.json()) as { status: string }
+			expect(body.status).toBe('published')
+			expect(harness.getRound()!.status).toBe('published')
+		})
+
+		it('returns 400 when round is already published', async () => {
+			const openRes = await harness.open({ minSubmissions: 2 })
+			const { roundId } = (await openRes.json()) as FLOpenRoundResponse
+
+			await harness.submit({ clientId: 'c1', roundId, blobs: ['b'], numExamples: 5, reportedNorm: 1.0 })
+			await harness.submit({ clientId: 'c2', roundId, blobs: ['b'], numExamples: 5, reportedNorm: 1.0 })
+			await harness.performAggregation()
+
+			expect(harness.getRound()!.status).toBe('published')
+
+			const res = await harness.aggregateNow()
+			expect(res.status).toBe(400)
+			const body = (await res.json()) as { error: string }
+			expect(body.error).toContain('published')
 		})
 	})
 

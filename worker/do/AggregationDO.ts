@@ -16,6 +16,7 @@ import type {
 	FLSubmitResponse,
 	RoundStatus,
 } from '../../shared/types/FLRound'
+import { SealAggregator } from '../lib/seal-aggregator'
 
 const DEFAULT_MIN_SUBMISSIONS = 3
 const DEFAULT_ROUND_TIMEOUT_MS = 5 * 60 * 1000 // 5 minutes
@@ -42,6 +43,7 @@ export interface FLMetricsResponse {
 export class AggregationDO extends DurableObject<Environment> {
 	private round: FLRound | null = null
 	private roundHistory: FLRoundMetricEntry[] = []
+	private _aggregator: SealAggregator | null = null
 
 	constructor(ctx: DurableObjectState, env: Environment) {
 		super(ctx, env)
@@ -72,6 +74,9 @@ export class AggregationDO extends DurableObject<Environment> {
 			}
 			if (request.method === 'POST' && path === '/aggregate') {
 				return this.handleUploadAggregate(request)
+			}
+			if (request.method === 'POST' && path === '/aggregate-now') {
+				return this.handleAggregateNow()
 			}
 			if (request.method === 'GET' && path === '/metrics') {
 				return this.handleMetrics()
@@ -195,6 +200,16 @@ export class AggregationDO extends DurableObject<Environment> {
 			this.round.status = 'aggregating'
 			await this.saveRound()
 			response.roundStatus = 'aggregating'
+			// Non-blocking: aggregate in background (with error handling)
+			this.ctx.waitUntil(
+				this.performAggregation().catch((err) => {
+					console.error('[AggregationDO] aggregation failed:', err)
+					if (this.round) {
+						this.round.status = 'collecting'
+						this.saveRound()
+					}
+				}),
+			)
 		}
 
 		return Response.json(response)
@@ -248,6 +263,76 @@ export class AggregationDO extends DurableObject<Environment> {
 		await this.recordRoundHistory()
 
 		return Response.json({ status: 'published', blobCount: body.blobs.length })
+	}
+
+	/** Perform CKKS homomorphic aggregation of all submission blobs. */
+	private async performAggregation(): Promise<void> {
+		if (!this.round || this.round.status !== 'aggregating') return
+
+		if (!this._aggregator) {
+			this._aggregator = new SealAggregator()
+		}
+		await this._aggregator.ensureInitialized()
+
+		const r2 = this.env.FL_BUCKET
+		const blobCount = this.round.blobsPerSubmission ?? 1
+		const clients = this.round.submittedClients
+
+		for (let i = 0; i < blobCount; i++) {
+			const firstKey = `rounds/${this.round.id}/submissions/${clients[0]}/blob-${i}`
+			const firstObj = await r2.get(firstKey)
+			if (!firstObj) throw new Error(`Missing blob: ${firstKey}`)
+			let runningSum = await firstObj.text()
+
+			for (let c = 1; c < clients.length; c++) {
+				const key = `rounds/${this.round.id}/submissions/${clients[c]}/blob-${i}`
+				const obj = await r2.get(key)
+				if (!obj) throw new Error(`Missing blob: ${key}`)
+				const nextB64 = await obj.text()
+				runningSum = await this._aggregator.addCiphertexts(runningSum, nextB64)
+			}
+
+			await r2.put(`rounds/${this.round.id}/aggregate/blob-${i}`, runningSum)
+		}
+
+		this.round.aggregateKey = `rounds/${this.round.id}/aggregate/`
+		this.round.status = 'published'
+		await this.saveRound()
+		await this.recordRoundHistory()
+
+		// Clean up submission blobs
+		const listResult = await r2.list({ prefix: `rounds/${this.round.id}/submissions/` })
+		for (const obj of listResult.objects) {
+			await r2.delete(obj.key)
+		}
+	}
+
+	private async handleAggregateNow(): Promise<Response> {
+		if (!this.round) {
+			return Response.json({ error: 'No round exists' }, { status: 404 })
+		}
+
+		if (this.round.status === 'collecting') {
+			if (this.round.submissionCount >= this.round.minSubmissions) {
+				this.round.status = 'aggregating'
+				await this.saveRound()
+			} else {
+				return Response.json(
+					{ error: 'Not enough submissions to aggregate' },
+					{ status: 400 },
+				)
+			}
+		}
+
+		if (this.round.status !== 'aggregating') {
+			return Response.json(
+				{ error: `Round is in ${this.round.status} state` },
+				{ status: 400 },
+			)
+		}
+
+		await this.performAggregation()
+		return Response.json({ status: 'published' })
 	}
 
 	/**
