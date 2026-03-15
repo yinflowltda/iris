@@ -312,11 +312,11 @@ ${flagged(
 
 ${flagged(
 		flags.hasMoveNote,
-		`**\`move_note\`**:
+		`**\`move_note\`** (HARD REQUIREMENT):
 - Parameters: \`noteId\` (the note shape to move), \`targetCellId\` (destination cell), \`mandalaId\`
-- Use when the user asks to move, relocate, or reassign a note to a different cell.
+- When the user asks to move, relocate, shift, or reassign a note to a different cell, you MUST use \`move_note\` in the "actions" array. Do NOT use "cells" to fill the target cell — that creates a duplicate instead of moving.
 - The action handles removing the note from its source cell, adding it to the target, and repositioning all affected notes automatically.
-- Do NOT delete and recreate — always use \`move_note\` to preserve the note's identity, metadata, and arrows.`,
+- \`move_note\` preserves the note's identity, metadata, and arrows. Filling via "cells" loses all of this.`,
 	)}
 
 ${flagged(
