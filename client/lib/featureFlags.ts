@@ -14,7 +14,7 @@ export const MODEL_SELECTION_ENABLED =
 	import.meta.env.DEV && !isExplicitlyDisabled(import.meta.env.VITE_MODEL_SELECTION_ENABLED)
 
 /**
- * Gate for browser-side Prisma embedding model.
+ * Gate for browser-side Flora embedding model.
  *
  * Disabled by default. Enable via VITE_PRISMA_ENABLED=1.
  */

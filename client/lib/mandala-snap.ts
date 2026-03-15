@@ -20,7 +20,7 @@ import {
 	getCellBoundsFromArcs,
 	getCellBoundsFromTree,
 } from './mandala-geometry'
-import { emitPlacement } from './prisma/placement-events'
+import { emitPlacement } from './flora/placement-events'
 import { computeSunburstLayout, isNodeInSubtree } from './sunburst-layout'
 import type { ArcAnimationState } from './sunburst-zoom'
 import { computeZoomTargets } from './sunburst-zoom'
@@ -346,7 +346,7 @@ function processPendingSnaps(
 				cellsToRelayout.add(targetCellId)
 				stateChanged = true
 
-				// Emit placement event for Prisma local training
+				// Emit placement event for Flora local training
 				const noteUtil = editor.getShapeUtil(shape)
 				const noteText = (noteUtil as any).getText?.(shape) ?? ''
 				if (noteText.trim()) {

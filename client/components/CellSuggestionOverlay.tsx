@@ -5,8 +5,8 @@ import {
 	classifyNoteBatch,
 	type NoteClassificationEntry,
 	type NoteDescriptor,
-} from '../lib/prisma/note-classifier'
-import { usePrisma } from '../lib/prisma/use-prisma'
+} from '../lib/flora/note-classifier'
+import { useFlora } from '../lib/flora/use-flora'
 import type { MandalaShape } from '../shapes/MandalaShapeUtil'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -125,7 +125,7 @@ function SuggestionLabel({
 
 export const CellSuggestionOverlay = memo(function CellSuggestionOverlay() {
 	const editor = useEditor()
-	const prisma = usePrisma()
+	const flora = useFlora()
 	const [suggestions, setSuggestions] = useState<CellSuggestion[]>([])
 	const dismissedRef = useRef<Set<string>>(new Set())
 	const classifyingRef = useRef(false)
@@ -146,16 +146,16 @@ export const CellSuggestionOverlay = memo(function CellSuggestionOverlay() {
 		setSuggestions((prev) => prev.filter((s) => s.shapeId !== shapeId))
 	}, [])
 
-	// Auto-initialize Prisma when a mandala is present
+	// Auto-initialize Flora when a mandala is present
 	useEffect(() => {
-		if (mandala && prisma.status === 'idle') {
-			prisma.init().catch(() => {})
+		if (mandala && flora.status === 'idle') {
+			flora.init().catch(() => {})
 		}
-	}, [mandala, prisma.status, prisma.init])
+	}, [mandala, flora.status, flora.init])
 
 	// Re-classify when state changes
 	useEffect(() => {
-		if (!prisma.isReady || !mandalaState || !frameworkId || !mandalaId) {
+		if (!flora.isReady || !mandalaState || !frameworkId || !mandalaId) {
 			setSuggestions([])
 			return
 		}
@@ -174,7 +174,7 @@ export const CellSuggestionOverlay = memo(function CellSuggestionOverlay() {
 		}
 
 		classifyingRef.current = true
-		classifyNoteBatch(descriptors, mandalaState as any, treeDef, prisma.embed)
+		classifyNoteBatch(descriptors, mandalaState as any, treeDef, flora.embed)
 			.then((result) => {
 				const newSuggestions = buildSuggestions(result.misplaced, treeDef).filter(
 					(s) => !dismissedRef.current.has(s.shapeId),
@@ -187,7 +187,7 @@ export const CellSuggestionOverlay = memo(function CellSuggestionOverlay() {
 			.finally(() => {
 				classifyingRef.current = false
 			})
-	}, [mandalaState, prisma.isReady, prisma.embed, frameworkId, mandalaId, editor])
+	}, [mandalaState, flora.isReady, flora.embed, frameworkId, mandalaId, editor])
 
 	if (suggestions.length === 0) return null
 

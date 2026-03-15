@@ -19,7 +19,7 @@ import type {
 import type { SimpleShapeId } from '../../shared/types/ids-schema'
 import type { MandalaShape } from '../shapes/MandalaShapeUtil'
 import { getFramework } from './frameworks/framework-registry'
-import { emitArrowCreated } from './prisma/placement-events'
+import { emitArrowCreated } from './flora/placement-events'
 
 // ─── Pending Arrow State ────────────────────────────────────────────────────
 

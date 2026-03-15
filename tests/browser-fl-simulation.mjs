@@ -19,7 +19,7 @@ import SEAL from 'node-seal'
 const BASE = process.argv[2] || 'https://iris.yinflow.life'
 const MAP_ID = `browser-sim-${Date.now()}`
 
-// ─── LoRA Config (matches client/lib/prisma/lora-adapter.ts) ────────────────
+// ─── LoRA Config (matches client/lib/flora/lora-adapter.ts) ────────────────
 
 const INPUT_DIM = 384
 const HIDDEN_DIM = 128
@@ -36,7 +36,7 @@ const POLY_MODULUS_DEGREE = 8192
 const COEFF_MOD_BIT_SIZES = [60, 40, 40, 60]
 const CKKS_SCALE = Math.pow(2, 40)
 
-// ─── DP Config (matches client/lib/prisma/differential-privacy.ts) ──────────
+// ─── DP Config (matches client/lib/flora/differential-privacy.ts) ──────────
 
 const MAX_NORM = 1.0
 const EPSILON = 1.0

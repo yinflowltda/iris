@@ -2,9 +2,9 @@ import type { SemanticSearchPart } from '../../shared/schema/PromptPartDefinitio
 import type { AgentRequest } from '../../shared/types/AgentRequest'
 import { getActiveMandala } from '../lib/frameworks/active-framework'
 import { getFramework } from '../lib/frameworks/framework-registry'
-import { collectAnchorCells } from '../lib/prisma/cell-anchors'
-import { PrismaEmbeddingService } from '../lib/prisma/embedding-service'
-import { NoteVectorIndex } from '../lib/prisma/note-vector-index'
+import { collectAnchorCells } from '../lib/flora/cell-anchors'
+import { FloraEmbeddingService } from '../lib/flora/embedding-service'
+import { NoteVectorIndex } from '../lib/flora/note-vector-index'
 import type { MandalaShape } from '../shapes/MandalaShapeUtil'
 import { PromptPartUtil, registerPromptPartUtil } from './PromptPartUtil'
 
@@ -30,7 +30,7 @@ export const SemanticSearchPartUtil = registerPromptPartUtil(
 			const treeDef = framework.treeDefinition
 			if (!treeDef) return null as unknown as SemanticSearchPart
 
-			const service = PrismaEmbeddingService.getInstance()
+			const service = FloraEmbeddingService.getInstance()
 			if (service.status !== 'ready') return null as unknown as SemanticSearchPart
 
 			// Extract user query from the request

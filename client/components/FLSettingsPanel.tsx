@@ -4,8 +4,8 @@ import {
 	FLConsentManager,
 	getFLConsent,
 	type FLConsentState,
-} from '../lib/prisma/fl-consent'
-import { getFLTelemetry, type FLTelemetryState } from '../lib/prisma/fl-telemetry'
+} from '../lib/flora/fl-consent'
+import { getFLTelemetry, type FLTelemetryState } from '../lib/flora/fl-telemetry'
 import './FLSettingsPanel.css'
 
 // ─── Component ──────────────────────────────────────────────────────────────
