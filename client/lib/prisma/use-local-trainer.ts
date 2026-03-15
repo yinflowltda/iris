@@ -86,6 +86,7 @@ export function useLocalTrainer(options?: {
 			// Enable LoRA if FL consent is active
 			if (getFLConsent().isOptedIn && !trainer.lora) {
 				trainer.enableLora()
+				console.debug('[FL] LoRA enabled (FL consent active)')
 			}
 
 			if (!cancelled) {
@@ -115,9 +116,11 @@ export function useLocalTrainer(options?: {
 
 			if (consent.isOptedIn && !trainer.lora) {
 				trainer.enableLora()
+				console.debug('[FL] LoRA enabled (user opted in)')
 				setState((prev) => ({ ...prev, loraEnabled: true }))
 			} else if (!consent.isOptedIn && trainer.lora) {
 				trainer.disableLora({ mergeWeights: true })
+				console.debug('[FL] LoRA disabled + weights merged (user opted out)')
 				trainer.save().catch(() => {})
 				setState((prev) => ({ ...prev, loraEnabled: false }))
 			}
@@ -136,8 +139,10 @@ export function useLocalTrainer(options?: {
 			// Snapshot params BEFORE training for accurate FL delta computation
 			const preSnapshot = trainer.lora?.getTrainableParams() ?? null
 
+			console.debug(`[Training] Starting ${TRAIN_STEPS} steps (${trainer.exampleCount} examples, LoRA=${!!trainer.lora})`)
 			const result = await trainer.train(TRAIN_STEPS)
 			placementsSinceTrainRef.current = 0
+			console.debug(`[Training] Complete: loss=${result.loss.toFixed(6)}, steps=${trainer.trainStepCount}`)
 
 			// Persist to IndexedDB
 			await trainer.save().catch(() => {})
@@ -150,7 +155,8 @@ export function useLocalTrainer(options?: {
 			}))
 
 			onAfterTrainRef.current?.(result, trainer.lora, preSnapshot)
-		} catch {
+		} catch (e) {
+			console.warn('[Training] Failed:', e)
 			setState((prev) => ({ ...prev, isTraining: false }))
 		}
 	}, []) // stable — reads from refs
@@ -178,9 +184,11 @@ export function useLocalTrainer(options?: {
 			trainer.addPlacement(event.noteText, event.cellId)
 			setState((prev) => ({ ...prev, exampleCount: trainer.exampleCount }))
 			placementsSinceTrainRef.current++
+			console.debug(`[Training] Placement ${placementsSinceTrainRef.current}/${TRAIN_AFTER_PLACEMENTS}: "${event.noteText.slice(0, 30)}" → ${event.cellId}`)
 
 			// Debounced training trigger
 			if (placementsSinceTrainRef.current >= TRAIN_AFTER_PLACEMENTS) {
+				console.debug(`[Training] Threshold reached — training in ${DEBOUNCE_MS / 1000}s...`)
 				if (trainTimerRef.current) clearTimeout(trainTimerRef.current)
 				trainTimerRef.current = setTimeout(triggerTrain, DEBOUNCE_MS)
 			}

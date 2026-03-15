@@ -128,9 +128,11 @@ export class CkksService {
 			case 'init:complete':
 				this._slotCount = msg.slotCount
 				this.setStatus('ready')
+				console.debug(`[CKKS] WASM initialized (${msg.slotCount} slots per ciphertext)`)
 				initResolve?.()
 				break
 			case 'init:error':
+				console.warn('[CKKS] Init failed:', msg.error)
 				this._error = msg.error
 				this.setStatus('error')
 				this.emit('error', msg.error)
@@ -170,6 +172,13 @@ export class CkksService {
 				this.resolvePending(msg.id, undefined)
 				break
 			case 'loadKeys:error':
+				this.rejectPending(msg.id, msg.error)
+				break
+
+			case 'loadPublicKey:result':
+				this.resolvePending(msg.id, undefined)
+				break
+			case 'loadPublicKey:error':
 				this.rejectPending(msg.id, msg.error)
 				break
 		}
@@ -219,6 +228,16 @@ export class CkksService {
 		return new Promise<void>((resolve, reject) => {
 			this.pendingOps.set(id, { resolve, reject })
 			this.worker!.postMessage({ type: 'loadKeys', id, keys })
+		})
+	}
+
+	/** Load only a public key (encrypt-only, no decryption). Used for FL. */
+	async loadPublicKey(publicKey: string): Promise<void> {
+		await this.ensureReady()
+		const id = this.nextId()
+		return new Promise<void>((resolve, reject) => {
+			this.pendingOps.set(id, { resolve, reject })
+			this.worker!.postMessage({ type: 'loadPublicKey', id, publicKey })
 		})
 	}
 

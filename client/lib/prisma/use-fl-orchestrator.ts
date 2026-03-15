@@ -40,14 +40,18 @@ export function createFLOrchestrator(config: FLOrchestratorConfig) {
 		const ckks = CkksService.getInstance()
 		await ckks.init()
 
-		// Try to load persisted keys
-		const stored = await ckks.loadKeysFromIDB()
-		if (stored) {
-			await ckks.loadKeys(stored)
-		} else {
-			const keys = await ckks.generateKeys()
-			await ckks.saveKeysToIDB(keys)
+		// Fetch the server's public key for this map.
+		// All clients encrypt with the same key → homomorphic addition works.
+		console.debug('[FL] Fetching CKKS public key from server...')
+		const resp = await fetch(
+			`${config.apiBase}/fl/keys?mapId=${encodeURIComponent(config.mapId)}`,
+		)
+		if (!resp.ok) {
+			throw new Error(`Failed to fetch FL public key: ${resp.status}`)
 		}
+		const { publicKey } = (await resp.json()) as { publicKey: string }
+		await ckks.loadPublicKey(publicKey)
+		console.debug('[FL] Public key loaded (encrypt-only, server decrypts aggregate)')
 		_keysReady = true
 	}
 
@@ -57,15 +61,24 @@ export function createFLOrchestrator(config: FLOrchestratorConfig) {
 		preSnapshot: Float32Array | null,
 	): Promise<void> {
 		// 1. Check consent
-		if (!getFLConsent().isOptedIn) return
+		if (!getFLConsent().isOptedIn) {
+			console.debug('[FL] Skipping — not opted in')
+			return
+		}
 
 		// Concurrency guard
-		if (_submitting) return
+		if (_submitting) {
+			console.debug('[FL] Skipping — submission already in progress')
+			return
+		}
 		_submitting = true
 		_error = null
 
+		console.debug(`[FL] Training complete (${numExamples} examples). Starting FL round participation...`)
+
 		try {
 			await ensureKeys()
+			console.debug('[FL] CKKS keys ready')
 
 			// Use pre-training snapshot for accurate delta computation.
 			// Falls back to current params if no snapshot provided (delta = 0, safe no-op).
@@ -75,9 +88,11 @@ export function createFLOrchestrator(config: FLOrchestratorConfig) {
 
 			// 2. Check round status
 			const status = await flClient.getRoundStatus()
+			console.debug(`[FL] Round status: ${status?.status ?? 'none'}`)
 
 			if (!status) {
 				// No round → open one
+				console.debug('[FL] No round exists — opening new round...')
 				const openResp = await fetch(
 					`${config.apiBase}/fl/rounds/open?mapId=${encodeURIComponent(config.mapId)}`,
 					{
@@ -88,17 +103,26 @@ export function createFLOrchestrator(config: FLOrchestratorConfig) {
 				)
 				if (!openResp.ok) {
 					_error = 'Failed to open round'
+					console.warn('[FL]', _error)
 					return
 				}
+				const openData = (await openResp.json()) as { roundId: string }
+				console.debug(`[FL] Round opened: ${openData.roundId}`)
 				// Submit to the newly opened round
 				await flClient.submitDelta(adapter, _snapshot, numExamples)
+				console.debug('[FL] Delta submitted successfully')
 			} else if (status.status === 'collecting') {
+				console.debug('[FL] Round collecting — submitting delta...')
 				await flClient.submitDelta(adapter, _snapshot, numExamples)
+				console.debug('[FL] Delta submitted successfully')
 			} else if (status.status === 'published') {
 				// Apply aggregate first
-				await flClient.applyAggregate(adapter)
+				console.debug('[FL] Round published — applying aggregate...')
+				const applied = await flClient.applyAggregate(adapter)
+				console.debug(`[FL] Aggregate applied: ${applied}`)
 
 				// Open new round and submit
+				console.debug('[FL] Opening new round...')
 				await fetch(
 					`${config.apiBase}/fl/rounds/open?mapId=${encodeURIComponent(config.mapId)}`,
 					{
@@ -109,13 +133,15 @@ export function createFLOrchestrator(config: FLOrchestratorConfig) {
 				)
 				_snapshot = flClient.snapshotParams(adapter)
 				await flClient.submitDelta(adapter, _snapshot, numExamples)
+				console.debug('[FL] Delta submitted to new round')
+			} else {
+				console.debug(`[FL] Round is ${status.status} — skipping`)
 			}
-			// aggregating or timed_out → skip
 
 			_snapshot = null
 		} catch (e) {
 			_error = e instanceof Error ? e.message : 'FL submission failed'
-			console.warn('[FL Orchestrator]', _error)
+			console.warn('[FL] Error:', _error)
 		} finally {
 			_submitting = false
 		}

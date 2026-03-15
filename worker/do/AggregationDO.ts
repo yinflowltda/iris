@@ -4,7 +4,10 @@
 // Collects encrypted weight deltas from clients, stores in R2, and triggers
 // homomorphic aggregation when enough submissions arrive.
 //
-// This DO never possesses secret key material.
+// Key management: The DO generates one CKKS keypair per map and serves the
+// public key to clients. After aggregation, it decrypts the aggregate and
+// publishes plaintext values. This ensures all clients encrypt with the
+// same public key (required for homomorphic addition).
 
 import { DurableObject } from 'cloudflare:workers'
 import type { Environment } from '../environment'
@@ -16,7 +19,7 @@ import type {
 	FLSubmitResponse,
 	RoundStatus,
 } from '../../shared/types/FLRound'
-import { SealAggregator } from '../lib/seal-aggregator'
+import { SealAggregator, type SealKeyMaterial } from '../lib/seal-aggregator'
 
 const DEFAULT_MIN_SUBMISSIONS = 3
 const DEFAULT_ROUND_TIMEOUT_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
@@ -44,6 +47,7 @@ export class AggregationDO extends DurableObject<Environment> {
 	private round: FLRound | null = null
 	private roundHistory: FLRoundMetricEntry[] = []
 	private _aggregator: SealAggregator | null = null
+	private _keyMaterial: SealKeyMaterial | null = null
 
 	constructor(ctx: DurableObjectState, env: Environment) {
 		super(ctx, env)
@@ -52,6 +56,7 @@ export class AggregationDO extends DurableObject<Environment> {
 			this.round = (await this.ctx.storage.get<FLRound>('round')) ?? null
 			this.roundHistory =
 				(await this.ctx.storage.get<FLRoundMetricEntry[]>('roundHistory')) ?? []
+			// Keys loaded lazily from R2 (too large for DO storage's 128KB limit)
 		})
 	}
 
@@ -60,6 +65,9 @@ export class AggregationDO extends DurableObject<Environment> {
 		const path = url.pathname
 
 		try {
+			if (request.method === 'GET' && path === '/keys') {
+				return this.handleGetKeys()
+			}
 			if (request.method === 'POST' && path === '/open') {
 				return this.handleOpen(request)
 			}
@@ -88,12 +96,48 @@ export class AggregationDO extends DurableObject<Environment> {
 		}
 	}
 
+	// ─── Key Management ──────────────────────────────────────────────────────
+
+	/** R2 key for this DO's CKKS keypair (stable per map). */
+	private get keyR2Path(): string {
+		return `keys/${this.ctx.id.toString()}/ckks-keypair.json`
+	}
+
+	/** Ensure CKKS keypair exists for this map. Generated once, stored in R2. */
+	private async ensureKeys(): Promise<SealKeyMaterial> {
+		if (this._keyMaterial) return this._keyMaterial
+
+		// Try to load from R2 first
+		const r2 = this.env.FL_BUCKET
+		const keyObj = await r2.get(this.keyR2Path)
+		if (keyObj) {
+			this._keyMaterial = JSON.parse(await keyObj.text()) as SealKeyMaterial
+			return this._keyMaterial
+		}
+
+		// Generate new keypair
+		const aggregator = await this.getAggregator()
+		this._keyMaterial = await aggregator.generateKeys()
+		await r2.put(this.keyR2Path, JSON.stringify(this._keyMaterial))
+		console.log('[AggregationDO] Generated new CKKS keypair → R2')
+		return this._keyMaterial
+	}
+
+	/** GET /keys — Returns the public key for clients to encrypt with. */
+	private async handleGetKeys(): Promise<Response> {
+		const keys = await this.ensureKeys()
+		return Response.json({ publicKey: keys.publicKey })
+	}
+
 	// ─── Round Lifecycle ──────────────────────────────────────────────────────
 
 	private async handleOpen(request: Request): Promise<Response> {
 		if (this.round && this.round.status === 'collecting') {
 			return Response.json({ error: 'Round already active' }, { status: 409 })
 		}
+
+		// Ensure keypair exists before opening rounds
+		await this.ensureKeys()
 
 		const body = (await request.json().catch(() => ({}))) as {
 			minSubmissions?: number
@@ -265,19 +309,26 @@ export class AggregationDO extends DurableObject<Environment> {
 		return Response.json({ status: 'published', blobCount: body.blobs.length })
 	}
 
-	/** Perform CKKS homomorphic aggregation of all submission blobs. */
-	private async performAggregation(): Promise<void> {
-		if (!this.round || this.round.status !== 'aggregating') return
-
+	/** Get or create the SealAggregator (with secret key loaded for decryption). */
+	private async getAggregator(): Promise<SealAggregator> {
 		if (!this._aggregator) {
 			this._aggregator = new SealAggregator()
 		}
 		await this._aggregator.ensureInitialized()
+		return this._aggregator
+	}
 
+	/** Perform CKKS homomorphic aggregation, decrypt, and store plaintext values. */
+	private async performAggregation(): Promise<void> {
+		if (!this.round || this.round.status !== 'aggregating') return
+
+		const aggregator = await this.getAggregator()
 		const r2 = this.env.FL_BUCKET
 		const blobCount = this.round.blobsPerSubmission ?? 1
 		const clients = this.round.submittedClients
 
+		// 1. Homomorphic addition across all clients' blobs
+		const aggregatedBlobs: string[] = []
 		for (let i = 0; i < blobCount; i++) {
 			const firstKey = `rounds/${this.round.id}/submissions/${clients[0]}/blob-${i}`
 			const firstObj = await r2.get(firstKey)
@@ -289,11 +340,26 @@ export class AggregationDO extends DurableObject<Environment> {
 				const obj = await r2.get(key)
 				if (!obj) throw new Error(`Missing blob: ${key}`)
 				const nextB64 = await obj.text()
-				runningSum = await this._aggregator.addCiphertexts(runningSum, nextB64)
+				runningSum = await aggregator.addCiphertexts(runningSum, nextB64)
 			}
 
-			await r2.put(`rounds/${this.round.id}/aggregate/blob-${i}`, runningSum)
+			aggregatedBlobs.push(runningSum)
 		}
+
+		// 2. Decrypt aggregate using server's secret key
+		const keys = await this.ensureKeys()
+		await aggregator.loadSecretKey(keys.secretKey)
+
+		const slotCount = aggregator.slotCount
+		const totalParams = (blobCount - 1) * slotCount + slotCount // upper bound
+		const plainValues = await aggregator.decryptBlobs(aggregatedBlobs, totalParams)
+		console.log(`[AggregationDO] Decrypted aggregate: ${plainValues.length} values`)
+
+		// 3. Store plaintext aggregate in R2
+		await r2.put(
+			`rounds/${this.round.id}/aggregate/plaintext.json`,
+			JSON.stringify(plainValues),
+		)
 
 		this.round.aggregateKey = `rounds/${this.round.id}/aggregate/`
 		this.round.status = 'published'
@@ -343,8 +409,9 @@ export class AggregationDO extends DurableObject<Environment> {
 	}
 
 	/**
-	 * Download the aggregated result.
-	 * Clients call this after the round is published to get the new weights.
+	 * Download the aggregated result as plaintext values.
+	 * Clients call this after the round is published to apply the averaged delta.
+	 * The server decrypts the CKKS aggregate and returns plaintext numbers.
 	 */
 	private async handleGetAggregate(): Promise<Response> {
 		if (!this.round || this.round.status !== 'published' || !this.round.aggregateKey) {
@@ -352,20 +419,16 @@ export class AggregationDO extends DurableObject<Environment> {
 		}
 
 		const r2 = this.env.FL_BUCKET
-		const blobs: string[] = []
-		const blobCount = this.round.blobsPerSubmission ?? 1
-
-		for (let i = 0; i < blobCount; i++) {
-			const key = `rounds/${this.round.id}/aggregate/blob-${i}`
-			const obj = await r2.get(key)
-			if (obj) {
-				blobs.push(await obj.text())
-			}
+		const obj = await r2.get(`rounds/${this.round.id}/aggregate/plaintext.json`)
+		if (!obj) {
+			return Response.json({ error: 'Aggregate plaintext not found' }, { status: 404 })
 		}
+
+		const values: number[] = JSON.parse(await obj.text())
 
 		return Response.json({
 			roundId: this.round.id,
-			blobs,
+			values,
 			submissionCount: this.round.submissionCount,
 		})
 	}
