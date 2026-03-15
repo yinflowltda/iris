@@ -2,6 +2,8 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { FLClient, type FLClientConfig } from '../../../client/lib/prisma/fl-client'
 import { LoraAdapter, LORA_RANK } from '../../../client/lib/prisma/lora-adapter'
 import { ProjectionHead } from '../../../client/lib/prisma/projection-head'
+import type { FLTransport, FLAggregateResult } from '../../../shared/types/FLTransport'
+import type { FLRoundSummary, FLSubmitResponse, FLOpenRoundResponse, FLSubmission } from '../../../shared/types/FLRound'
 
 // ─── Mock FL Consent ────────────────────────────────────────────────────────
 
@@ -18,22 +20,33 @@ vi.mock('../../../client/lib/prisma/fl-telemetry', () => ({
 // ─── Mock CKKS Service ──────────────────────────────────────────────────────
 
 const mockEncryptVector = vi.fn()
-const mockDecryptVector = vi.fn()
 
 vi.mock('../../../client/lib/prisma/ckks-service', () => ({
 	CkksService: {
 		getInstance: () => ({
 			encryptVector: mockEncryptVector,
-			decryptVector: mockDecryptVector,
 			slotCount: 4096,
 		}),
 	},
 }))
 
-// ─── Mock fetch ─────────────────────────────────────────────────────────────
+// ─── Mock Transport ─────────────────────────────────────────────────────────
 
-const mockFetch = vi.fn()
-vi.stubGlobal('fetch', mockFetch)
+function createMockTransport(): FLTransport & {
+	getPublicKey: ReturnType<typeof vi.fn>
+	openRound: ReturnType<typeof vi.fn>
+	submitDelta: ReturnType<typeof vi.fn>
+	getRoundStatus: ReturnType<typeof vi.fn>
+	getAggregate: ReturnType<typeof vi.fn>
+} {
+	return {
+		getPublicKey: vi.fn(),
+		openRound: vi.fn(),
+		submitDelta: vi.fn(),
+		getRoundStatus: vi.fn(),
+		getAggregate: vi.fn(),
+	}
+}
 
 // ─── Test setup ─────────────────────────────────────────────────────────────
 
@@ -41,9 +54,11 @@ const INPUT_DIM = 384
 const HIDDEN_DIM = 128
 const PARAM_COUNT = (HIDDEN_DIM + INPUT_DIM) * LORA_RANK // 9216
 
+let mockTransport: ReturnType<typeof createMockTransport>
+
 function makeConfig(overrides?: Partial<FLClientConfig>): FLClientConfig {
 	return {
-		apiBase: 'https://test.example.com',
+		transport: mockTransport,
 		mapId: 'test-map',
 		clientId: 'client-1',
 		maxNorm: 1.0,
@@ -63,10 +78,9 @@ describe('FLClient', () => {
 	let client: FLClient
 
 	beforeEach(() => {
+		mockTransport = createMockTransport()
 		client = new FLClient(makeConfig())
-		mockFetch.mockReset()
 		mockEncryptVector.mockReset()
-		mockDecryptVector.mockReset()
 	})
 
 	afterEach(() => {
@@ -90,8 +104,8 @@ describe('FLClient', () => {
 
 	// ─── getRoundStatus ──────────────────────────────────────────────────
 
-	it('should fetch round status', async () => {
-		const summary = {
+	it('should fetch round status via transport', async () => {
+		const summary: FLRoundSummary = {
 			id: 'round-1',
 			status: 'collecting',
 			submissionCount: 1,
@@ -99,26 +113,21 @@ describe('FLClient', () => {
 			expiresAt: new Date(Date.now() + 60000).toISOString(),
 			hasAggregate: false,
 		}
-		mockFetch.mockResolvedValueOnce({
-			ok: true,
-			json: () => Promise.resolve(summary),
-		})
+		mockTransport.getRoundStatus.mockResolvedValueOnce(summary)
 
 		const result = await client.getRoundStatus()
 		expect(result).toEqual(summary)
-		expect(mockFetch).toHaveBeenCalledWith(
-			'https://test.example.com/fl/rounds/status?mapId=test-map',
-		)
+		expect(mockTransport.getRoundStatus).toHaveBeenCalledWith('test-map')
 	})
 
-	it('should return null on fetch error', async () => {
-		mockFetch.mockRejectedValueOnce(new Error('Network error'))
+	it('should return null on transport error', async () => {
+		mockTransport.getRoundStatus.mockRejectedValueOnce(new Error('Network error'))
 		const result = await client.getRoundStatus()
 		expect(result).toBeNull()
 	})
 
-	it('should return null on non-ok response', async () => {
-		mockFetch.mockResolvedValueOnce({ ok: false })
+	it('should return null when transport returns null', async () => {
+		mockTransport.getRoundStatus.mockResolvedValueOnce(null)
 		const result = await client.getRoundStatus()
 		expect(result).toBeNull()
 	})
@@ -146,17 +155,13 @@ describe('FLClient', () => {
 		for (let i = 0; i < adapter.b2.length; i++) adapter.b2[i] = -0.005
 
 		// Mock round status (called internally)
-		mockFetch.mockResolvedValueOnce({
-			ok: true,
-			json: () =>
-				Promise.resolve({
-					id: 'round-1',
-					status: 'collecting',
-					submissionCount: 0,
-					minSubmissions: 3,
-					expiresAt: new Date(Date.now() + 60000).toISOString(),
-					hasAggregate: false,
-				}),
+		mockTransport.getRoundStatus.mockResolvedValueOnce({
+			id: 'round-1',
+			status: 'collecting',
+			submissionCount: 0,
+			minSubmissions: 3,
+			expiresAt: new Date(Date.now() + 60000).toISOString(),
+			hasAggregate: false,
 		})
 
 		// Mock encrypt
@@ -166,15 +171,11 @@ describe('FLClient', () => {
 			{ data: 'blob-2-base64', valueCount: 1024 },
 		])
 
-		// Mock upload
-		mockFetch.mockResolvedValueOnce({
-			ok: true,
-			json: () =>
-				Promise.resolve({
-					accepted: true,
-					submissionCount: 1,
-					roundStatus: 'collecting',
-				}),
+		// Mock submit
+		mockTransport.submitDelta.mockResolvedValueOnce({
+			accepted: true,
+			submissionCount: 1,
+			roundStatus: 'collecting',
 		})
 
 		const result = await client.submitDelta(adapter, before, 10)
@@ -190,14 +191,13 @@ describe('FLClient', () => {
 		expect(encryptArg).toBeInstanceOf(Float32Array)
 		expect(encryptArg.length).toBe(PARAM_COUNT)
 
-		// Verify upload payload
-		const uploadCall = mockFetch.mock.calls[1]
-		expect(uploadCall[0]).toContain('/fl/rounds/submit')
-		const body = JSON.parse(uploadCall[1].body)
-		expect(body.clientId).toBe('client-1')
-		expect(body.roundId).toBe('round-1')
-		expect(body.blobs).toHaveLength(3)
-		expect(body.numExamples).toBe(10)
+		// Verify transport.submitDelta was called with correct submission
+		expect(mockTransport.submitDelta).toHaveBeenCalledWith('test-map', expect.objectContaining({
+			clientId: 'client-1',
+			roundId: 'round-1',
+			blobs: ['blob-0-base64', 'blob-1-base64', 'blob-2-base64'],
+			numExamples: 10,
+		}))
 	})
 
 	it('should throw if privacy budget exhausted', async () => {
@@ -209,24 +209,18 @@ describe('FLClient', () => {
 			makeConfig({ maxEpsilon: 0.001, noiseMultiplier: 0.01 }),
 		)
 
-		// Fake a round status + submission to burn the budget
-		mockFetch.mockResolvedValueOnce({
-			ok: true,
-			json: () =>
-				Promise.resolve({
-					id: 'round-1',
-					status: 'collecting',
-					submissionCount: 0,
-					minSubmissions: 3,
-					expiresAt: new Date(Date.now() + 60000).toISOString(),
-					hasAggregate: false,
-				}),
+		// Mock round status + submit for first round
+		mockTransport.getRoundStatus.mockResolvedValueOnce({
+			id: 'round-1',
+			status: 'collecting',
+			submissionCount: 0,
+			minSubmissions: 3,
+			expiresAt: new Date(Date.now() + 60000).toISOString(),
+			hasAggregate: false,
 		})
 		mockEncryptVector.mockResolvedValueOnce([{ data: 'blob', valueCount: 4096 }])
-		mockFetch.mockResolvedValueOnce({
-			ok: true,
-			json: () =>
-				Promise.resolve({ accepted: true, submissionCount: 1, roundStatus: 'collecting' }),
+		mockTransport.submitDelta.mockResolvedValueOnce({
+			accepted: true, submissionCount: 1, roundStatus: 'collecting',
 		})
 
 		// First submit should work
@@ -242,17 +236,13 @@ describe('FLClient', () => {
 		const { adapter } = makeAdapter()
 		const before = client.snapshotParams(adapter)
 
-		mockFetch.mockResolvedValueOnce({
-			ok: true,
-			json: () =>
-				Promise.resolve({
-					id: 'round-1',
-					status: 'published',
-					submissionCount: 3,
-					minSubmissions: 3,
-					expiresAt: new Date().toISOString(),
-					hasAggregate: true,
-				}),
+		mockTransport.getRoundStatus.mockResolvedValueOnce({
+			id: 'round-1',
+			status: 'published',
+			submissionCount: 3,
+			minSubmissions: 3,
+			expiresAt: new Date().toISOString(),
+			hasAggregate: true,
 		})
 
 		await expect(client.submitDelta(adapter, before, 5)).rejects.toThrow('No active round')
@@ -262,25 +252,17 @@ describe('FLClient', () => {
 		const { adapter } = makeAdapter()
 		const before = client.snapshotParams(adapter)
 
-		mockFetch.mockResolvedValueOnce({
-			ok: true,
-			json: () =>
-				Promise.resolve({
-					id: 'round-1',
-					status: 'collecting',
-					submissionCount: 0,
-					minSubmissions: 3,
-					expiresAt: new Date(Date.now() + 60000).toISOString(),
-					hasAggregate: false,
-				}),
+		mockTransport.getRoundStatus.mockResolvedValueOnce({
+			id: 'round-1',
+			status: 'collecting',
+			submissionCount: 0,
+			minSubmissions: 3,
+			expiresAt: new Date(Date.now() + 60000).toISOString(),
+			hasAggregate: false,
 		})
 
 		mockEncryptVector.mockResolvedValueOnce([{ data: 'blob', valueCount: 4096 }])
-
-		mockFetch.mockResolvedValueOnce({
-			ok: false,
-			json: () => Promise.resolve({ error: 'Server error' }),
-		})
+		mockTransport.submitDelta.mockRejectedValueOnce(new Error('Server error'))
 
 		await expect(client.submitDelta(adapter, before, 5)).rejects.toThrow('Server error')
 		expect(client.status).toBe('error')
@@ -288,26 +270,19 @@ describe('FLClient', () => {
 
 	// ─── applyAggregate ──────────────────────────────────────────────────
 
-	it('should download and apply aggregated delta', async () => {
+	it('should download and apply plaintext aggregate', async () => {
 		const { adapter } = makeAdapter()
 
 		// Set some initial B values
 		for (let i = 0; i < adapter.b1.length; i++) adapter.b1[i] = 0.1
 
-		const aggregatedDelta = new Float32Array(PARAM_COUNT)
-		for (let i = 0; i < aggregatedDelta.length; i++) aggregatedDelta[i] = 0.3
-
-		mockFetch.mockResolvedValueOnce({
-			ok: true,
-			json: () =>
-				Promise.resolve({
-					roundId: 'round-1',
-					blobs: ['agg-blob-0', 'agg-blob-1', 'agg-blob-2'],
-					submissionCount: 3,
-				}),
+		// Mock plaintext aggregate from transport
+		const aggregateValues = new Array(PARAM_COUNT).fill(0.3)
+		mockTransport.getAggregate.mockResolvedValueOnce({
+			roundId: 'round-1',
+			values: aggregateValues,
+			submissionCount: 3,
 		})
-
-		mockDecryptVector.mockResolvedValueOnce(aggregatedDelta)
 
 		const success = await client.applyAggregate(adapter)
 		expect(success).toBe(true)
@@ -320,49 +295,20 @@ describe('FLClient', () => {
 
 	it('should return false if no aggregate available', async () => {
 		const { adapter } = makeAdapter()
-
-		mockFetch.mockResolvedValueOnce({ ok: false })
-
-		const success = await client.applyAggregate(adapter)
-		expect(success).toBe(false)
-	})
-
-	it('should return false if blobs are empty', async () => {
-		const { adapter } = makeAdapter()
-
-		mockFetch.mockResolvedValueOnce({
-			ok: true,
-			json: () =>
-				Promise.resolve({
-					roundId: 'round-1',
-					blobs: [],
-					submissionCount: 3,
-				}),
-		})
+		mockTransport.getAggregate.mockResolvedValueOnce(null)
 
 		const success = await client.applyAggregate(adapter)
 		expect(success).toBe(false)
 	})
 
-	it('should handle decrypt error gracefully', async () => {
+	it('should handle transport error gracefully', async () => {
 		const { adapter } = makeAdapter()
-
-		mockFetch.mockResolvedValueOnce({
-			ok: true,
-			json: () =>
-				Promise.resolve({
-					roundId: 'round-1',
-					blobs: ['blob'],
-					submissionCount: 3,
-				}),
-		})
-
-		mockDecryptVector.mockRejectedValueOnce(new Error('Decryption failed'))
+		mockTransport.getAggregate.mockRejectedValueOnce(new Error('Transport error'))
 
 		const success = await client.applyAggregate(adapter)
 		expect(success).toBe(false)
 		expect(client.status).toBe('error')
-		expect(client.error).toBe('Decryption failed')
+		expect(client.error).toBe('Transport error')
 	})
 
 	// ─── Privacy tracking ────────────────────────────────────────────────
@@ -373,27 +319,19 @@ describe('FLClient', () => {
 		for (let round = 0; round < 3; round++) {
 			const before = client.snapshotParams(adapter)
 
-			mockFetch.mockResolvedValueOnce({
-				ok: true,
-				json: () =>
-					Promise.resolve({
-						id: `round-${round}`,
-						status: 'collecting',
-						submissionCount: 0,
-						minSubmissions: 3,
-						expiresAt: new Date(Date.now() + 60000).toISOString(),
-						hasAggregate: false,
-					}),
+			mockTransport.getRoundStatus.mockResolvedValueOnce({
+				id: `round-${round}`,
+				status: 'collecting',
+				submissionCount: 0,
+				minSubmissions: 3,
+				expiresAt: new Date(Date.now() + 60000).toISOString(),
+				hasAggregate: false,
 			})
 			mockEncryptVector.mockResolvedValueOnce([{ data: 'blob', valueCount: 4096 }])
-			mockFetch.mockResolvedValueOnce({
-				ok: true,
-				json: () =>
-					Promise.resolve({
-						accepted: true,
-						submissionCount: round + 1,
-						roundStatus: 'collecting',
-					}),
+			mockTransport.submitDelta.mockResolvedValueOnce({
+				accepted: true,
+				submissionCount: round + 1,
+				roundStatus: 'collecting',
 			})
 
 			await client.submitDelta(adapter, before, 5)
@@ -410,23 +348,17 @@ describe('FLClient', () => {
 		const { adapter } = makeAdapter()
 		const before = client.snapshotParams(adapter)
 
-		mockFetch.mockResolvedValueOnce({
-			ok: true,
-			json: () =>
-				Promise.resolve({
-					id: 'round-0',
-					status: 'collecting',
-					submissionCount: 0,
-					minSubmissions: 3,
-					expiresAt: new Date(Date.now() + 60000).toISOString(),
-					hasAggregate: false,
-				}),
+		mockTransport.getRoundStatus.mockResolvedValueOnce({
+			id: 'round-0',
+			status: 'collecting',
+			submissionCount: 0,
+			minSubmissions: 3,
+			expiresAt: new Date(Date.now() + 60000).toISOString(),
+			hasAggregate: false,
 		})
 		mockEncryptVector.mockResolvedValueOnce([{ data: 'blob', valueCount: 4096 }])
-		mockFetch.mockResolvedValueOnce({
-			ok: true,
-			json: () =>
-				Promise.resolve({ accepted: true, submissionCount: 1, roundStatus: 'collecting' }),
+		mockTransport.submitDelta.mockResolvedValueOnce({
+			accepted: true, submissionCount: 1, roundStatus: 'collecting',
 		})
 
 		await client.submitDelta(adapter, before, 5)

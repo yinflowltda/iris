@@ -8,6 +8,7 @@
 //   4. Apply aggregate if a published round is found
 
 import { useCallback, useEffect, useRef } from 'react'
+import type { FLTransport } from '../../../shared/types/FLTransport'
 import type { LoraAdapter } from './lora-adapter'
 import { FLClient } from './fl-client'
 import { CkksService } from './ckks-service'
@@ -16,7 +17,7 @@ import { getFLConsent } from './fl-consent'
 // ─── Config ────────────────────────────────────────────────────────────────
 
 export interface FLOrchestratorConfig {
-	apiBase: string
+	transport: FLTransport
 	mapId: string
 }
 
@@ -25,7 +26,7 @@ export interface FLOrchestratorConfig {
 export function createFLOrchestrator(config: FLOrchestratorConfig) {
 	const clientId = getOrCreateClientId()
 	const flClient = new FLClient({
-		apiBase: config.apiBase,
+		transport: config.transport,
 		mapId: config.mapId,
 		clientId,
 	})
@@ -40,16 +41,10 @@ export function createFLOrchestrator(config: FLOrchestratorConfig) {
 		const ckks = CkksService.getInstance()
 		await ckks.init()
 
-		// Fetch the server's public key for this map.
+		// Fetch the public key via transport (Cloudflare, blockchain, etc.)
 		// All clients encrypt with the same key → homomorphic addition works.
 		console.debug('[FL] Fetching CKKS public key from server...')
-		const resp = await fetch(
-			`${config.apiBase}/fl/keys?mapId=${encodeURIComponent(config.mapId)}`,
-		)
-		if (!resp.ok) {
-			throw new Error(`Failed to fetch FL public key: ${resp.status}`)
-		}
-		const { publicKey } = (await resp.json()) as { publicKey: string }
+		const publicKey = await config.transport.getPublicKey(config.mapId)
 		await ckks.loadPublicKey(publicKey)
 		console.debug('[FL] Public key loaded (encrypt-only, server decrypts aggregate)')
 		_keysReady = true
@@ -93,20 +88,7 @@ export function createFLOrchestrator(config: FLOrchestratorConfig) {
 			if (!status) {
 				// No round → open one
 				console.debug('[FL] No round exists — opening new round...')
-				const openResp = await fetch(
-					`${config.apiBase}/fl/rounds/open?mapId=${encodeURIComponent(config.mapId)}`,
-					{
-						method: 'POST',
-						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify({}),
-					},
-				)
-				if (!openResp.ok) {
-					_error = 'Failed to open round'
-					console.warn('[FL]', _error)
-					return
-				}
-				const openData = (await openResp.json()) as { roundId: string }
+				const openData = await config.transport.openRound(config.mapId)
 				console.debug(`[FL] Round opened: ${openData.roundId}`)
 				// Submit to the newly opened round
 				await flClient.submitDelta(adapter, _snapshot, numExamples)
@@ -123,14 +105,7 @@ export function createFLOrchestrator(config: FLOrchestratorConfig) {
 
 				// Open new round and submit
 				console.debug('[FL] Opening new round...')
-				await fetch(
-					`${config.apiBase}/fl/rounds/open?mapId=${encodeURIComponent(config.mapId)}`,
-					{
-						method: 'POST',
-						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify({}),
-					},
-				)
+				await config.transport.openRound(config.mapId)
 				_snapshot = flClient.snapshotParams(adapter)
 				await flClient.submitDelta(adapter, _snapshot, numExamples)
 				console.debug('[FL] Delta submitted to new round')
@@ -166,7 +141,7 @@ export function useFLOrchestrator(config: FLOrchestratorConfig | null) {
 			return
 		}
 		orchestratorRef.current = createFLOrchestrator(config)
-	}, [config?.apiBase, config?.mapId])
+	}, [config?.transport, config?.mapId])
 
 	const onAfterTrain = useCallback(
 		(adapter: LoraAdapter | null, numExamples: number, preSnapshot: Float32Array | null) => {

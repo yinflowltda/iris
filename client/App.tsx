@@ -79,6 +79,7 @@ import { applyNodulePaletteToThemes } from './lib/nodule-color-palette'
 import { FLSettingsPanel } from './components/FLSettingsPanel'
 import { useLocalTrainer } from './lib/prisma/use-local-trainer'
 import { useFLOrchestrator } from './lib/prisma/use-fl-orchestrator'
+import { CloudflareFLTransport } from './lib/prisma/cloudflare-fl-transport'
 import { CircularNoteShapeUtil } from './shapes/CircularNoteShapeUtil'
 import { MandalaShapeTool } from './shapes/MandalaShapeTool'
 import { type MandalaShape, MandalaShapeUtil } from './shapes/MandalaShapeUtil'
@@ -236,7 +237,7 @@ function FLHooksMount() {
 	const mapId = mandala?.props.frameworkId ?? null
 
 	const flConfig = useMemo(
-		() => (mapId ? { apiBase: '', mapId } : null),
+		() => (mapId ? { transport: new CloudflareFLTransport(''), mapId } : null),
 		[mapId],
 	)
 

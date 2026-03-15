@@ -11,7 +11,8 @@
 //   8. Download and apply aggregated deltas
 //   9. Track cumulative privacy budget
 
-import type { FLRoundSummary, FLSubmitResponse } from '../../../shared/types/FLRound'
+import type { FLRoundSummary } from '../../../shared/types/FLRound'
+import type { FLTransport } from '../../../shared/types/FLTransport'
 import { CkksService } from './ckks-service'
 import { clipAndNoise, computeSigma, l2Norm } from './differential-privacy'
 import { getFLConsent } from './fl-consent'
@@ -22,8 +23,8 @@ import type { LoraAdapter } from './lora-adapter'
 // ─── Config ────────────────────────────────────────────────────────────────
 
 export interface FLClientConfig {
-	/** Base URL for the worker (e.g., https://iris.yinflow.life) */
-	apiBase: string
+	/** Transport layer for FL coordination (Cloudflare, blockchain, etc.) */
+	transport: FLTransport
 	/** Map ID — each map has its own FL round coordinator */
 	mapId: string
 	/** Unique client identifier */
@@ -60,7 +61,7 @@ export interface FLRoundResult {
 // ─── FL Client ─────────────────────────────────────────────────────────────
 
 export class FLClient {
-	private _apiBase: string
+	private _transport: FLTransport
 	private _mapId: string
 	private _clientId: string
 	private _maxNorm: number
@@ -71,7 +72,7 @@ export class FLClient {
 	private _error: string | null = null
 
 	constructor(config: FLClientConfig) {
-		this._apiBase = config.apiBase.replace(/\/$/, '')
+		this._transport = config.transport
 		this._mapId = config.mapId
 		this._clientId = config.clientId
 		this._maxNorm = config.maxNorm ?? 1.0
@@ -103,12 +104,9 @@ export class FLClient {
 	async getRoundStatus(): Promise<FLRoundSummary | null> {
 		try {
 			this._status = 'checking'
-			const resp = await fetch(
-				`${this._apiBase}/fl/rounds/status?mapId=${encodeURIComponent(this._mapId)}`,
-			)
+			const result = await this._transport.getRoundStatus(this._mapId)
 			this._status = 'idle'
-			if (!resp.ok) return null
-			return resp.json()
+			return result
 		} catch {
 			this._status = 'idle'
 			return null
@@ -183,29 +181,17 @@ export class FLClient {
 		// 5. Upload
 		this._status = 'uploading'
 		console.debug(`[FL Client] Uploading to round ${roundStatus.id}...`)
-		const submitResp = await fetch(
-			`${this._apiBase}/fl/rounds/submit?mapId=${encodeURIComponent(this._mapId)}`,
-			{
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					clientId: this._clientId,
-					roundId: roundStatus.id,
-					blobs: blobData,
-					numExamples,
-					reportedNorm: rawNorm,
-				}),
-			},
-		)
-
-		if (!submitResp.ok) {
-			const err = await submitResp.json().catch(() => ({ error: 'Upload failed' }))
+		const result = await this._transport.submitDelta(this._mapId, {
+			clientId: this._clientId,
+			roundId: roundStatus.id,
+			blobs: blobData,
+			numExamples,
+			reportedNorm: rawNorm,
+		}).catch((e) => {
 			this._status = 'error'
-			this._error = (err as { error: string }).error || 'Upload failed'
-			throw new Error(this._error)
-		}
-
-		const result: FLSubmitResponse = await submitResp.json()
+			this._error = e instanceof Error ? e.message : 'Upload failed'
+			throw e
+		})
 		console.debug(`[FL Client] Submitted: count=${result.submissionCount}, status=${result.roundStatus}`)
 
 		// 6. Track privacy budget
@@ -243,17 +229,8 @@ export class FLClient {
 		this._status = 'downloading'
 
 		try {
-			const resp = await fetch(
-				`${this._apiBase}/fl/rounds/aggregate?mapId=${encodeURIComponent(this._mapId)}`,
-			)
-			if (!resp.ok) {
-				this._status = 'idle'
-				return false
-			}
-
-			const data: { roundId: string; values: number[]; submissionCount: number } =
-				await resp.json()
-			if (!data.values || data.values.length === 0) {
+			const data = await this._transport.getAggregate(this._mapId)
+			if (!data) {
 				this._status = 'idle'
 				return false
 			}

@@ -3,6 +3,7 @@ import { FLClient, type FLClientConfig } from '../../../client/lib/prisma/fl-cli
 import { LoraAdapter, LORA_RANK } from '../../../client/lib/prisma/lora-adapter'
 import { ProjectionHead } from '../../../client/lib/prisma/projection-head'
 import { _resetFLConsent, getFLConsent } from '../../../client/lib/prisma/fl-consent'
+import type { FLTransport } from '../../../shared/types/FLTransport'
 
 // ─── Mock localStorage ──────────────────────────────────────────────────────
 
@@ -24,7 +25,6 @@ vi.mock('../../../client/lib/prisma/ckks-service', () => ({
 	CkksService: {
 		getInstance: () => ({
 			encryptVector: vi.fn().mockResolvedValue([{ data: 'blob', valueCount: 4096 }]),
-			decryptVector: vi.fn().mockResolvedValue(new Float32Array(0)),
 			slotCount: 4096,
 		}),
 	},
@@ -36,20 +36,28 @@ vi.mock('../../../client/lib/prisma/fl-telemetry', () => ({
 	getFLTelemetry: () => ({ recordRound: vi.fn() }),
 }))
 
-// ─── Mock fetch ─────────────────────────────────────────────────────────────
+// ─── Mock Transport ─────────────────────────────────────────────────────────
 
-const mockFetch = vi.fn()
-vi.stubGlobal('fetch', mockFetch)
+function createMockTransport() {
+	return {
+		getPublicKey: vi.fn().mockResolvedValue('pk'),
+		openRound: vi.fn().mockResolvedValue({ roundId: 'r', minSubmissions: 3, expiresAt: '' }),
+		submitDelta: vi.fn().mockResolvedValue({ accepted: true, submissionCount: 1, roundStatus: 'collecting' }),
+		getRoundStatus: vi.fn().mockResolvedValue(null),
+		getAggregate: vi.fn().mockResolvedValue(null),
+	} satisfies FLTransport
+}
 
 describe('FL Consent Integration', () => {
 	let client: FLClient
+	let mockTransport: ReturnType<typeof createMockTransport>
 
 	beforeEach(() => {
 		storageMap.clear()
 		_resetFLConsent()
-		mockFetch.mockReset()
+		mockTransport = createMockTransport()
 		client = new FLClient({
-			apiBase: 'https://test.example.com',
+			transport: mockTransport,
 			mapId: 'test-map',
 			clientId: 'client-1',
 		})
@@ -71,8 +79,8 @@ describe('FL Consent Integration', () => {
 			'FL participation requires user consent',
 		)
 
-		// Verify no network requests were made
-		expect(mockFetch).not.toHaveBeenCalled()
+		// Verify no transport calls were made
+		expect(mockTransport.getRoundStatus).not.toHaveBeenCalled()
 	})
 
 	it('should reject submitDelta after user opts out', async () => {
@@ -90,7 +98,7 @@ describe('FL Consent Integration', () => {
 		await expect(client.submitDelta(adapter, before, 10)).rejects.toThrow(
 			'FL participation requires user consent',
 		)
-		expect(mockFetch).not.toHaveBeenCalled()
+		expect(mockTransport.getRoundStatus).not.toHaveBeenCalled()
 	})
 
 	it('should allow submitDelta when user has opted in', async () => {
@@ -102,29 +110,19 @@ describe('FL Consent Integration', () => {
 		const before = client.snapshotParams(adapter)
 
 		// Mock round status
-		mockFetch.mockResolvedValueOnce({
-			ok: true,
-			json: () =>
-				Promise.resolve({
-					id: 'round-1',
-					status: 'collecting',
-					submissionCount: 0,
-					minSubmissions: 3,
-					expiresAt: new Date(Date.now() + 60000).toISOString(),
-					hasAggregate: false,
-				}),
-		})
-
-		// Mock upload
-		mockFetch.mockResolvedValueOnce({
-			ok: true,
-			json: () =>
-				Promise.resolve({ accepted: true, submissionCount: 1, roundStatus: 'collecting' }),
+		mockTransport.getRoundStatus.mockResolvedValueOnce({
+			id: 'round-1',
+			status: 'collecting',
+			submissionCount: 0,
+			minSubmissions: 3,
+			expiresAt: new Date(Date.now() + 60000).toISOString(),
+			hasAggregate: false,
 		})
 
 		const result = await client.submitDelta(adapter, before, 10)
 		expect(result.roundId).toBe('round-1')
-		expect(mockFetch).toHaveBeenCalledTimes(2) // status + submit
+		expect(mockTransport.getRoundStatus).toHaveBeenCalled()
+		expect(mockTransport.submitDelta).toHaveBeenCalled()
 	})
 
 	it('EU users should start as undecided (not pre-opted-in)', () => {
