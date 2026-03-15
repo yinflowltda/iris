@@ -52,7 +52,6 @@ export function SunburstSvg({
 
 	// ── Zoom animation state ─────────────────────────────────────────────
 	const animatingArcsRef = useRef<Map<string, ArcAnimationState> | null>(null)
-	const isAnimatingRef = useRef(false)
 	const [, setAnimFrame] = useState(0)
 	const cancelRef = useRef<(() => void) | null>(null)
 
@@ -82,7 +81,6 @@ export function SunburstSvg({
 			}
 		}
 
-		isAnimatingRef.current = true
 		const cancel = animateSunburstZoom({
 			current,
 			target,
@@ -93,9 +91,7 @@ export function SunburstSvg({
 			},
 			onComplete: () => {
 				// Keep final state in ref so next animation starts from here
-				isAnimatingRef.current = false
 				cancelRef.current = null
-				setAnimFrame((n) => n + 1) // trigger re-render to show labels
 				onZoomComplete?.(target)
 			},
 		})
@@ -103,7 +99,6 @@ export function SunburstSvg({
 		cancelRef.current = cancel
 		return () => {
 			cancel()
-			isAnimatingRef.current = false
 		}
 	}, [zoomedNodeId, arcs, onZoomComplete])
 
@@ -544,7 +539,7 @@ export function SunburstSvg({
 			<defs>{arcDefs}</defs>
 			<g transform={`translate(${cx},${cy})`}>{cellPaths}</g>
 			{centerCircle}
-			<g style={{ opacity: isAnimatingRef.current ? 0 : 1, transition: 'opacity 0.15s ease' }}>{cellLabels}</g>
+			<g>{cellLabels}</g>
 			{coverContent && (
 				<>
 					<clipPath id="mandala-cover-clip">
