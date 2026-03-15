@@ -8,21 +8,21 @@ import {
 	useState,
 } from 'react'
 import { useEditor, useToasts, useValue } from 'tldraw'
-import { PrismaEmbeddingService } from '../lib/prisma/embedding-service'
-import { LocalPrismaTrainer } from '../lib/prisma/local-trainer'
-import { classifyNote, classifyNoteBatch } from '../lib/prisma/note-classifier'
+import { FloraEmbeddingService } from '../lib/flora/embedding-service'
+import { LocalFloraTrainer } from '../lib/flora/local-trainer'
+import { classifyNote, classifyNoteBatch } from '../lib/flora/note-classifier'
 
-// Expose Prisma tools to window for console debugging
-import { extractNoteDescriptors, getTreeDefFromMandala } from '../lib/prisma/use-note-classifier'
+// Expose Flora tools to window for console debugging
+import { extractNoteDescriptors, getTreeDefFromMandala } from '../lib/flora/use-note-classifier'
 import type { TldrawAgent } from './TldrawAgent'
 import { TldrawAgentApp } from './TldrawAgentApp'
-;(window as any).prisma = {
-	service: PrismaEmbeddingService.getInstance(),
+;(window as any).flora = {
+	service: FloraEmbeddingService.getInstance(),
 	classifyNote,
 	classifyNoteBatch,
 	extractNoteDescriptors,
 	getTreeDefFromMandala,
-	LocalPrismaTrainer,
+	LocalFloraTrainer,
 }
 
 const TldrawAgentAppContext = createContext<TldrawAgentApp | null>(null)

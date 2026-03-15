@@ -144,8 +144,8 @@ export interface SemanticSearchPart {
 	}[]
 }
 
-export interface PrismaContextPart {
-	type: 'prismaContext'
+export interface FloraContextPart {
+	type: 'floraContext'
 	noteClassifications: {
 		textSnippet: string
 		currentCellId: string | null
@@ -608,7 +608,7 @@ export const SessionStatePartDefinition: PromptPartDefinition<SessionStatePart> 
 // SemanticSearch - RAG over mandala notes, ranked by relevance to the user's query
 export const SemanticSearchPartDefinition: PromptPartDefinition<SemanticSearchPart> = {
 	type: 'semanticSearch',
-	priority: -42, // after Prisma context (-45), before screenshot (-40)
+	priority: -42, // after Flora context (-45), before screenshot (-40)
 	buildContent(part: SemanticSearchPart) {
 		if (part.results.length === 0) return []
 
@@ -622,15 +622,15 @@ export const SemanticSearchPartDefinition: PromptPartDefinition<SemanticSearchPa
 	},
 }
 
-// PrismaContext - Prisma's note classification context for the model
-export const PrismaContextPartDefinition: PromptPartDefinition<PrismaContextPart> = {
-	type: 'prismaContext',
+// FloraContext - Flora's note classification context for the model
+export const FloraContextPartDefinition: PromptPartDefinition<FloraContextPart> = {
+	type: 'floraContext',
 	priority: -45, // after screenshot, before user message
-	buildContent(part: PrismaContextPart) {
+	buildContent(part: FloraContextPart) {
 		const lines: string[] = []
 
 		lines.push(
-			`[PRISMA CONTEXT]: Cell coverage: ${part.filledCellCount}/${part.totalCells} filled. ${part.totalNotes} note(s) placed.`,
+			`[FLORA CONTEXT]: Cell coverage: ${part.filledCellCount}/${part.totalCells} filled. ${part.totalNotes} note(s) placed.`,
 		)
 
 		// Note classifications — only flag misplacements with sufficient confidence

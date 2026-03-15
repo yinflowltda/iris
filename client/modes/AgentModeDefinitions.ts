@@ -49,7 +49,7 @@ import { MessagesPartUtil } from '../parts/MessagesPartUtil'
 import { ModelNamePartUtil } from '../parts/ModelNamePartUtil'
 import { ModePartUtil } from '../parts/ModePartUtil'
 import { PeripheralShapesPartUtil } from '../parts/PeripheralShapesPartUtil'
-import { PrismaContextPartUtil } from '../parts/PrismaContextPartUtil'
+import { FloraContextPartUtil } from '../parts/FloraContextPartUtil'
 import { SemanticSearchPartUtil } from '../parts/SemanticSearchPartUtil'
 import { ScreenshotPartUtil } from '../parts/ScreenshotPartUtil'
 import { SelectedShapesPartUtil } from '../parts/SelectedShapesPartUtil'
@@ -203,7 +203,7 @@ export const AGENT_MODE_DEFINITIONS = [
 			ModePartUtil.type,
 			DebugPartUtil.type,
 			SessionStatePartUtil.type,
-			PrismaContextPartUtil.type,
+			FloraContextPartUtil.type,
 			SemanticSearchPartUtil.type,
 			ModelNamePartUtil.type,
 			MessagesPartUtil.type,
