@@ -105,7 +105,10 @@ function buildStreamingCellsIntro(): string {
 
 **Important:** Every response MUST include a "message" field to communicate with the user. The "cells" field contains the mandala content you want to create. Each cell entry is an array of short, concise labels (a few words each). Do NOT repeat context implied by the cell name (time period, category). No trailing periods.
 
-**When to use "actions":** For operations that go beyond filling cells — moving notes, creating arrows, setting metadata, highlighting cells, etc. — include them in the "actions" array. Each action must have a "_type" field and conform to the action schemas below.
+**When to use "actions" vs "cells":**
+- "cells" = creating NEW content in cells (fill operations only)
+- "actions" = everything else: moving notes between cells, creating arrows, setting metadata, highlighting cells, etc.
+- CRITICAL: when the user asks to MOVE a note, use \`move_note\` in "actions". Do NOT fill the target cell via "cells" — that creates a duplicate, it does not move.
 
 Example — filling cells:
 \`\`\`json
