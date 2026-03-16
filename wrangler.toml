@@ -53,7 +53,7 @@ bucket_name = "iris-fl-rounds"
 [[d1_databases]]
 binding = "DB"
 database_name = "iris-users"
-database_id = "placeholder-create-via-wrangler-d1-create"
+database_id = "b57943a1-2ba4-4f32-8cbe-3cef9a4b6d68"
 
 [vars]
 TTS_ENABLED = "false"
