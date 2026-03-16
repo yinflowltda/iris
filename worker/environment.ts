@@ -7,4 +7,9 @@ export interface Environment {
 	TTS_ENABLED: string | undefined
 	OPENAI_COMPATIBLE_BASE_URL: string | undefined
 	OPENAI_COMPATIBLE_API_KEY: string | undefined
+	// Auth
+	TEAM_DOMAIN: string | undefined
+	POLICY_AUD: string | undefined
+	DEV_MODE: string | undefined
+	DB: D1Database
 }
