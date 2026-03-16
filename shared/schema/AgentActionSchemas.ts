@@ -536,6 +536,28 @@ export const DetectConflictAction = z
 
 export type DetectConflictAction = z.infer<typeof DetectConflictAction>
 
+// Flip Note Action (mandala-specific)
+export const FlipNoteAction = z
+	.object({
+		_type: z.literal('flip_note'),
+		intent: z.string(),
+		mandalaId: SimpleShapeIdSchema,
+		noteId: SimpleShapeIdSchema.describe(
+			'The ID of the note shape to add or update a flip side on (e.g. "mandala-1-profissional-ser-0").',
+		),
+		content: z.string().describe(
+			'The text for the other side of the note.',
+		),
+	})
+	.meta({
+		title: 'Flip Note',
+		description:
+			'Add or update the alternate side of a mandala note. Use when the user expresses dissatisfaction or desire for change — the flip side captures the aspiration.',
+		_systemPromptCategory: 'edit',
+	})
+
+export type FlipNoteAction = z.infer<typeof FlipNoteAction>
+
 // Unknown Action (catch-all for unrecognized actions)
 export const UnknownAction = z
 	.object({
