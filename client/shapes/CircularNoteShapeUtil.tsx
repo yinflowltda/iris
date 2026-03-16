@@ -95,16 +95,11 @@ export class CircularNoteShapeUtil extends NoteShapeUtil {
 			richText.content.length === 1 &&
 			!(richText.content[0] as { content?: unknown }).content
 
-		// Task 5: Present-future color override
 		const meta = shape.meta as Record<string, unknown>
 		const elementMetadata = (meta.elementMetadata ?? {}) as Record<string, unknown>
 		const tense = elementMetadata.tense as string | undefined
 		const isPresentFuture = tense === 'present-future'
-
-		// Task 6: Flip icon on hover
 		const hasFlipContent = meta.flipContent != null
-
-		// Task 7: Flip animation
 		// biome-ignore lint/correctness/useHookAtTopLevel: tldraw component() methods use hooks
 		const [isFlipping, setIsFlipping] = useState(false)
 
@@ -195,17 +190,17 @@ export class CircularNoteShapeUtil extends NoteShapeUtil {
 						className="flip-icon"
 						style={{
 							position: 'absolute',
-							top: 4,
-							right: 4,
-							width: 24,
-							height: 24,
+							top: 4 * scale,
+							right: 4 * scale,
+							width: 24 * scale,
+							height: 24 * scale,
 							borderRadius: '50%',
-							backgroundColor: 'rgba(0,0,0,0.5)',
+							backgroundColor: 'rgba(0,0,0,0.6)',
 							color: 'white',
 							display: 'flex',
 							alignItems: 'center',
 							justifyContent: 'center',
-							fontSize: 14,
+							fontSize: 14 * scale,
 							cursor: 'pointer',
 							opacity: 0,
 							pointerEvents: 'all',
@@ -227,7 +222,7 @@ export class CircularNoteShapeUtil extends NoteShapeUtil {
 										...m,
 										flipContent: currentShape.props.richText as any,
 										flipTense: (em.tense as string) ?? 'past-present',
-										elementMetadata: { ...em, tense: (m.flipTense as string) ?? undefined },
+										elementMetadata: { ...em, tense: (m.flipTense as string) ?? 'past-present' },
 									},
 								})
 							}, 150)
@@ -237,9 +232,9 @@ export class CircularNoteShapeUtil extends NoteShapeUtil {
 						&#8635;
 					</div>
 				)}
-				<style>{`.has-flip:hover .flip-icon { opacity: 1 !important; }`}</style>
-				{isFlipping && (
+				{hasFlipContent && (
 					<style>{`
+						.has-flip:hover .flip-icon { opacity: 1 !important; }
 						@keyframes flip-card {
 							0% { transform: scaleX(1); }
 							50% { transform: scaleX(0); }
