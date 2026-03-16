@@ -79,7 +79,7 @@ Worker (DEV_MODE=true)
 
 1. **Public route check** — `/fl/keys`, `/fl/rounds/status`, `GET /fl/rounds/aggregate`, `/fl/rounds/metrics` skip auth
 2. **Dev bypass** — if `DEV_MODE=true`, read `X-Dev-User` header (default `dev-user-1`), build mock user, skip to step 6
-3. **Extract JWT** from `Cf-Access-Jwt-Assertion` header. Missing → 401
+3. **Extract JWT** from `Cf-Access-Jwt-Assertion` header (HTTP requests) or `CF_Authorization` cookie (WebSocket upgrades). Missing from both → 401
 4. **Verify JWT** — RS256 via `jose` library's `createRemoteJWKSet()` which fetches JWKS from `https://{TEAM_DOMAIN}/cdn-cgi/access/certs` and caches keys internally using HTTP cache headers. The Worker's `caches` API provides automatic caching of the JWKS fetch across requests. Check issuer, audience, expiry. Invalid → 403
 5. **Upsert user in D1** — `INSERT INTO users (...) ON CONFLICT(sub) DO UPDATE SET email=excluded.email, name=excluded.name, avatar_url=excluded.avatar_url, last_seen_at=datetime('now')` (preserves `created_at`)
 6. **Attach user to request context** — handler receives `{ sub, email, name }`
@@ -202,7 +202,8 @@ Replace in `client/App.tsx`:
 const store = useSync({
   uri: async () => {
     // currentUser.sub obtained from GET /me on app startup
-    return `${wsBase}/sync/${currentUser.sub}`
+    // useSync accepts an HTTP(S) URI and upgrades to WebSocket internally
+    return `/sync/${currentUser.sub}`
   },
   assets: multiplayerAssetStore,
 })
@@ -290,7 +291,7 @@ Builds on Phase 1. Canvas data moves from browser to server.
 | Step | Description |
 |---|---|
 | **2a** | TldrawSyncDO: new DO class extending `TldrawDurableObject` from `@tldraw/sync-cloudflare`, register in wrangler.toml with new migration tag (v5), configure R2 bucket |
-| **2b** | WebSocket route + auth gate: `GET /sync/:roomId` handler, token from query param, JWT validation, ownership check, forward to DO |
+| **2b** | WebSocket route + auth gate: `GET /sync/:roomId` handler, JWT from `CF_Authorization` cookie on upgrade request, ownership check (`sub === roomId`), forward to DO |
 | **2c** | Asset routes: `POST/GET /sync/assets/:assetId` with R2 storage, auth required |
 | **2d** | Client migration: replace `persistenceKey` with `useSync` hook, configure `uri` with JWT, configure `multiplayerAssetStore`, remove old persistence code |
 | **2e** | Agent ↔ sync coordination: the agent currently creates shapes via `editor.createShape()` which writes to the local store; with `useSync`, these writes propagate through the sync layer automatically. Verify custom shape serialization (MandalaShapeUtil, CircularNoteShapeUtil) round-trips correctly through sync. Test concurrent agent + user edits. |
