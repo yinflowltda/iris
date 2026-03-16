@@ -19,12 +19,13 @@ import { getFLConsent } from './fl-consent'
 export interface FLOrchestratorConfig {
 	transport: FLTransport
 	mapId: string
+	clientId: string
 }
 
 // ─── Orchestrator (non-React, for testing) ─────────────────────────────────
 
 export function createFLOrchestrator(config: FLOrchestratorConfig) {
-	const clientId = getOrCreateClientId()
+	const clientId = config.clientId
 	const flClient = new FLClient({
 		transport: config.transport,
 		mapId: config.mapId,
@@ -141,7 +142,7 @@ export function useFLOrchestrator(config: FLOrchestratorConfig | null) {
 			return
 		}
 		orchestratorRef.current = createFLOrchestrator(config)
-	}, [config?.transport, config?.mapId])
+	}, [config?.transport, config?.mapId, config?.clientId])
 
 	const onAfterTrain = useCallback(
 		(adapter: LoraAdapter | null, numExamples: number, preSnapshot: Float32Array | null) => {
@@ -155,14 +156,3 @@ export function useFLOrchestrator(config: FLOrchestratorConfig | null) {
 	return { onAfterTrain, orchestratorRef }
 }
 
-// ─── Helpers ───────────────────────────────────────────────────────────────
-
-function getOrCreateClientId(): string {
-	const key = 'iris-fl-client-id'
-	let id = localStorage.getItem(key)
-	if (!id) {
-		id = crypto.randomUUID()
-		localStorage.setItem(key, id)
-	}
-	return id
-}
