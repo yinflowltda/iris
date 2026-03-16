@@ -65,4 +65,5 @@ export default class extends WorkerEntrypoint<Environment> {
 
 export { AgentDurableObject } from './do/AgentDurableObject'
 export { AggregationDO } from './do/AggregationDO'
+export { TldrawSyncDO } from './do/TldrawSyncDO'
 export { VoiceAgentDurableObject } from './do/VoiceAgentDurableObject'
