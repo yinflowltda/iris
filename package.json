@@ -25,6 +25,7 @@
 		"@ai-sdk/openai": "^3.0.33",
 		"@cloudflare/vite-plugin": "^1.13.2",
 		"@huggingface/transformers": "^3.8.1",
+		"@tldraw/sync": "^4.4.1",
 		"@tldraw/tlschema": "^4.3.1",
 		"@worker-tools/json-stream": "^0.1.0-pre.12",
 		"ai": "^6.0.90",

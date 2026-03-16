@@ -12,4 +12,7 @@ export interface Environment {
 	POLICY_AUD: string | undefined
 	DEV_MODE: string | undefined
 	DB: D1Database
+	// tldraw-sync
+	TLDRAW_SYNC_DO: DurableObjectNamespace
+	TLDRAW_BUCKET: R2Bucket
 }

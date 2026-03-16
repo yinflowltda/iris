@@ -24,6 +24,7 @@ bindings = [
     { name = "AGENT_DURABLE_OBJECT", class_name = "AgentDurableObject" },
     { name = "VOICE_AGENT_DO", class_name = "VoiceAgentDurableObject" },
     { name = "AGGREGATION_DO", class_name = "AggregationDO" },
+    { name = "TLDRAW_SYNC_DO", class_name = "TldrawSyncDO" },
 ]
 
 # Durable objects require migrations to create/modify/delete them
@@ -45,9 +46,18 @@ new_classes = ["VoiceAgentDurableObject"]
 tag = "v4"
 new_classes = ["AggregationDO"]
 
+[[migrations]]
+tag = "v5"
+new_classes = ["TldrawSyncDO"]
+new_sqlite_classes = ["TldrawSyncDO"]
+
 [[r2_buckets]]
 binding = "FL_BUCKET"
 bucket_name = "iris-fl-rounds"
+
+[[r2_buckets]]
+binding = "TLDRAW_BUCKET"
+bucket_name = "iris-tldraw-assets"
 
 # D1 database for user accounts
 [[d1_databases]]
