@@ -1,4 +1,4 @@
-import { type TLShapeId } from 'tldraw'
+import { type TLShapeId, toRichText } from 'tldraw'
 import type { FlipNoteAction } from '../../shared/schema/AgentActionSchemas'
 import type { Streaming } from '../../shared/types/Streaming'
 import type { AgentHelpers } from '../AgentHelpers'
@@ -57,7 +57,7 @@ export const FlipNoteActionUtil = registerActionUtil(
 				type: 'note',
 				meta: {
 					...meta,
-					flipContent: action.content,
+					flipContent: toRichText(action.content) as any,
 					flipTense: oppositeTense,
 					elementMetadata: {
 						...elementMetadata,
