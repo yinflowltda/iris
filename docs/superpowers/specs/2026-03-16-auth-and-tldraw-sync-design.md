@@ -49,6 +49,8 @@ Worker (auth middleware)
   ├── GET  /voice        → VoiceAgentDO(sub)   — voice WebSocket
   ├── WS   /sync/:roomId → TldrawSyncDO(sub)   — canvas sync
   ├── GET  /me           → D1 query            — user profile
+  ├── GET  /models       → direct response      — model list (auth required)
+  ├── *    /sync/assets  → R2 TLDRAW_BUCKET    — tldraw assets (auth required)
   ├── POST /fl/rounds/*  → AggregationDO(mapId) — FL (auth required)
   └── GET  /fl/keys,status,aggregate,metrics    — FL (public)
 ```
@@ -75,11 +77,11 @@ Worker (DEV_MODE=true)
 
 ### Flow (every request)
 
-1. **Public route check** — `/fl/keys`, `/fl/rounds/status`, `/fl/rounds/aggregate`, `/fl/rounds/metrics` skip auth
+1. **Public route check** — `/fl/keys`, `/fl/rounds/status`, `GET /fl/rounds/aggregate`, `/fl/rounds/metrics` skip auth
 2. **Dev bypass** — if `DEV_MODE=true`, read `X-Dev-User` header (default `dev-user-1`), build mock user, skip to step 6
 3. **Extract JWT** from `Cf-Access-Jwt-Assertion` header. Missing → 401
-4. **Verify JWT** — RS256 via `jose` library, JWKS from `https://{TEAM_DOMAIN}/cdn-cgi/access/certs`. Check issuer, audience, expiry. Invalid → 403
-5. **Upsert user in D1** — `INSERT OR REPLACE` with email, name, avatar_url, last_seen_at
+4. **Verify JWT** — RS256 via `jose` library's `createRemoteJWKSet()` which fetches JWKS from `https://{TEAM_DOMAIN}/cdn-cgi/access/certs` and caches keys internally using HTTP cache headers. The Worker's `caches` API provides automatic caching of the JWKS fetch across requests. Check issuer, audience, expiry. Invalid → 403
+5. **Upsert user in D1** — `INSERT INTO users (...) ON CONFLICT(sub) DO UPDATE SET email=excluded.email, name=excluded.name, avatar_url=excluded.avatar_url, last_seen_at=datetime('now')` (preserves `created_at`)
 6. **Attach user to request context** — handler receives `{ sub, email, name }`
 
 ### New File: `worker/lib/auth.ts`
@@ -133,9 +135,14 @@ User upsert happens on every authenticated request. First login creates the row;
 | `/fl/keys` | GET | Public | AggregationDO(mapId) |
 | `/fl/rounds/status` | GET | Public | AggregationDO(mapId) |
 | `/fl/rounds/aggregate` | GET | Public | AggregationDO(mapId) |
+| `/fl/rounds/aggregate` | POST | Required | AggregationDO(mapId) |
+| `/fl/rounds/aggregate-now` | POST | Required | AggregationDO(mapId) |
 | `/fl/rounds/metrics` | GET | Public | AggregationDO(mapId) |
+| `/models` | GET | Required | Direct response |
+| `/sync/assets/:assetId` | POST | Required | R2 TLDRAW_BUCKET |
+| `/sync/assets/:assetId` | GET | Required | R2 TLDRAW_BUCKET |
 
-Change from current state: `/fl/rounds/open` and `/fl/rounds/submit` move from public to auth-required. The authenticated `sub` replaces the browser-generated UUID as `clientId` in FL submissions.
+Change from current state: `/fl/rounds/open`, `/fl/rounds/submit`, `POST /fl/rounds/aggregate`, and `/fl/rounds/aggregate-now` move from public to auth-required. The authenticated `sub` replaces the browser-generated UUID as `clientId` in FL submissions. FL admin routes (`POST /fl/rounds/aggregate`, `/fl/rounds/aggregate-now`) are auth-required; future phases may add admin-only role checks.
 
 ## 8. tldraw-sync Integration
 
@@ -145,9 +152,9 @@ One room per user. Room ID = user's `sub`. Multi-page within each room (tldraw n
 
 ### WebSocket Connection Flow
 
-1. **Client** calls `useSync({ uri: async () => { ... } })` with JWT token in query param
+1. **Client** calls `useSync({ uri: async () => `/sync/${roomId}` })` — no token in URL needed
 2. **Worker** receives WebSocket upgrade on `GET /sync/:roomId`
-3. Worker extracts token from query param (WebSockets can't use custom headers)
+3. Worker extracts JWT from the `CF_Authorization` cookie (sent automatically by the browser on same-origin WebSocket upgrade). In dev mode (`DEV_MODE=true`), skips JWT validation and uses `X-Dev-User` header same as HTTP routes
 4. Worker validates JWT using same auth middleware
 5. Worker checks authorization: `user.sub === roomId` (owner check)
 6. Worker forwards WebSocket to `TldrawSyncDO.fetch()`
@@ -157,7 +164,7 @@ One room per user. Room ID = user's `sub`. Multi-page within each room (tldraw n
 
 New Durable Object class based on `tldraw-sync-cloudflare` template:
 
-- Extends or wraps `TldrawDurableObject` from `@tldraw/sync-core`
+- Extends `TldrawDurableObject` from `@tldraw/sync-cloudflare` (the official Cloudflare DO base class)
 - Persists document state to DO SQLite automatically
 - Handles WebSocket lifecycle (connect, message, close, error)
 - One instance per user (keyed by `sub`)
@@ -167,6 +174,21 @@ New Durable Object class based on `tldraw-sync-cloudflare` template:
 - `POST /sync/assets/:assetId` — upload to R2 `TLDRAW_BUCKET` (auth required)
 - `GET /sync/assets/:assetId` — download from R2 (auth required)
 - Client uses `multiplayerAssetStore` from tldraw-sync to wire upload/download
+
+### Client Auth Token Access
+
+Cloudflare Access sets the JWT in a `CF_Authorization` httpOnly cookie on the browser. For same-origin requests (fetch to `/stream`, `/voice`, `/me`), the cookie is sent automatically — no explicit token handling needed. For WebSocket upgrade requests, same-origin cookies are also sent automatically by the browser.
+
+**Startup sequence:**
+1. App loads → Cloudflare Access has already authenticated the user (redirected to IdP if needed before the SPA loads)
+2. App calls `GET /me` (cookie sent automatically) → response includes `{ sub, email, name }`
+3. Stored in React context as `currentUser`
+4. `currentUser.sub` is used as `roomId` for the sync connection
+5. WebSocket connects to `/sync/${currentUser.sub}` (cookie sent on upgrade)
+
+**Error handling:** If `GET /me` returns 401 (Access session expired while SPA is open), the client should redirect to the Cloudflare Access login URL to re-authenticate.
+
+In dev mode (`DEV_MODE=true`), the `GET /me` endpoint returns the mock user derived from `X-Dev-User`, so the same startup sequence works.
 
 ### Client Migration
 
@@ -179,8 +201,8 @@ Replace in `client/App.tsx`:
 // After (synced)
 const store = useSync({
   uri: async () => {
-    const token = getAccessJwt()
-    return `${wsBase}/sync/${roomId}?token=${token}`
+    // currentUser.sub obtained from GET /me on app startup
+    return `${wsBase}/sync/${currentUser.sub}`
   },
   assets: multiplayerAssetStore,
 })
@@ -244,7 +266,7 @@ DEV_MODE = "false"
 | Package | Purpose | Where |
 |---|---|---|
 | `@tldraw/sync` | Client-side `useSync` hook | client |
-| `@tldraw/sync-core` | Server-side sync primitives | worker |
+| `@tldraw/sync-cloudflare` | Server-side DO base class (`TldrawDurableObject`) | worker |
 | `jose` | JWT verification (RS256 + JWKS) | worker |
 
 ## 11. Implementation Phases
@@ -259,7 +281,7 @@ Independently deployable. App works as before but behind login, with per-user DO
 | **1b** | Auth middleware: `worker/lib/auth.ts` (JWT validation, JWKS cache, dev bypass), `worker/middleware/auth-middleware.ts` (route protection, user context), update `worker/worker.ts` and `worker/environment.ts` |
 | **1c** | D1 database: create `iris-users`, schema migration (users table), upsert logic, `GET /me` endpoint |
 | **1d** | Per-user DO routing: change `idFromName('anonymous')` → `idFromName(user.sub)` in stream + voice routes. FL open/submit require auth, use `sub` as clientId |
-| **1e** | Client auth integration: pass JWT in fetch headers, `GET /me` on app load, remove localStorage FL client ID |
+| **1e** | Client auth integration: verify cookie-based auth works for all fetch calls (automatic for same-origin), `GET /me` on app load for user context, handle 401 (redirect to Access login), remove localStorage FL client ID |
 
 ### Phase 2: tldraw-sync Integration
 
@@ -267,11 +289,11 @@ Builds on Phase 1. Canvas data moves from browser to server.
 
 | Step | Description |
 |---|---|
-| **2a** | TldrawSyncDO: new DO class based on tldraw-sync-cloudflare template, register in wrangler.toml, configure R2 |
+| **2a** | TldrawSyncDO: new DO class extending `TldrawDurableObject` from `@tldraw/sync-cloudflare`, register in wrangler.toml with new migration tag (v5), configure R2 bucket |
 | **2b** | WebSocket route + auth gate: `GET /sync/:roomId` handler, token from query param, JWT validation, ownership check, forward to DO |
 | **2c** | Asset routes: `POST/GET /sync/assets/:assetId` with R2 storage, auth required |
 | **2d** | Client migration: replace `persistenceKey` with `useSync` hook, configure `uri` with JWT, configure `multiplayerAssetStore`, remove old persistence code |
-| **2e** | Agent ↔ sync coordination: verify agent shape creation/modification works through sync layer, test custom shape serialization |
+| **2e** | Agent ↔ sync coordination: the agent currently creates shapes via `editor.createShape()` which writes to the local store; with `useSync`, these writes propagate through the sync layer automatically. Verify custom shape serialization (MandalaShapeUtil, CircularNoteShapeUtil) round-trips correctly through sync. Test concurrent agent + user edits. |
 
 ## 12. Testing Strategy
 
@@ -295,7 +317,7 @@ Builds on Phase 1. Canvas data moves from browser to server.
 ### Remaining Attack Surface
 - **JWT validation bugs** — mitigated by well-tested middleware with small surface area
 - **Authorization logic errors** — wrong DO routing could leak data. Mitigated by deterministic `idFromName(sub)` with tests
-- **CORS misconfiguration** — restrict to production domain only
+- **CORS misconfiguration** — restrict `Access-Control-Allow-Origin` from `*` to `https://iris.yinflow.life` in production (Phase 1 step 1b)
 - **Note content visibility** — Worker can see plaintext note content during agent processing. E2E encryption is a future layer, out of scope for this spec
 
 ### What You Don't Store
