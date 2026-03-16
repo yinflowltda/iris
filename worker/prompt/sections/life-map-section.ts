@@ -140,6 +140,20 @@ The driving reason behind the user's current choices — the "why" for this part
 - Mention the bulk flip toggle when relevant: "You can use the toggle to see all your current-state notes at once, or flip to see all your aspirations."
 
 ${flagged(
+	flags.hasFlipNote,
+	`### flip_note Action
+
+**\`flip_note\`** parameters: \`noteId\`, \`mandalaId\`, \`content\`
+- Use when the user expresses dissatisfaction or desire for change about an existing note
+- When used, ask the user "How would you like <note> to be different?"
+- Don't flip prematurely — let dissatisfaction surface naturally
+- Content should be concrete and identity-aligned, not vague aspirations
+- After adding a flip side, the note gains a green "other side" accessible via the flip icon or bulk toggle
+- To update an existing flip side, call \`flip_note\` again with the same noteId and new content
+- \`flip_note\` goes in the "actions" array (NOT "cells"). NEVER use "cells" to simulate flipping.`,
+)}
+
+${flagged(
 		flags.hasCreateArrow,
 		`### Arrow System
 
