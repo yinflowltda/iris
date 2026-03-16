@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import {
 	Circle2d,
 	FONT_FAMILIES,
@@ -94,6 +95,19 @@ export class CircularNoteShapeUtil extends NoteShapeUtil {
 			richText.content.length === 1 &&
 			!(richText.content[0] as { content?: unknown }).content
 
+		// Task 5: Present-future color override
+		const meta = shape.meta as Record<string, unknown>
+		const elementMetadata = (meta.elementMetadata ?? {}) as Record<string, unknown>
+		const tense = elementMetadata.tense as string | undefined
+		const isPresentFuture = tense === 'present-future'
+
+		// Task 6: Flip icon on hover
+		const hasFlipContent = meta.flipContent != null
+
+		// Task 7: Flip animation
+		// biome-ignore lint/correctness/useHookAtTopLevel: tldraw component() methods use hooks
+		const [isFlipping, setIsFlipping] = useState(false)
+
 		// Inscribed square: side = diameter / √2, offset = (diameter - side) / 2
 		const inscribedSide = nw / Math.SQRT2
 		const inscribedOffset = (nw - inscribedSide) / 2
@@ -105,14 +119,19 @@ export class CircularNoteShapeUtil extends NoteShapeUtil {
 		return (
 			<div
 				id={id}
-				className="tl-note__container"
+				className={`tl-note__container${hasFlipContent ? ' has-flip' : ''}`}
 				style={{
 					width: nw,
 					height: nh,
-					backgroundColor: getColorValue(theme, color, 'noteFill'),
-					borderBottom: isDarkMode
-						? `${2 * scale}px solid rgb(20, 20, 20)`
-						: `${2 * scale}px solid rgb(144, 144, 144)`,
+					backgroundColor: isPresentFuture
+						? '#d1fae5'
+						: getColorValue(theme, color, 'noteFill'),
+					borderBottom: isPresentFuture
+						? `${2 * scale}px solid #10b981`
+						: isDarkMode
+							? `${2 * scale}px solid rgb(20, 20, 20)`
+							: `${2 * scale}px solid rgb(144, 144, 144)`,
+					animation: isFlipping ? 'flip-card 0.3s ease-in-out' : undefined,
 				}}
 			>
 				{(isSelected || isEditing || !isEmpty) && (
@@ -138,9 +157,11 @@ export class CircularNoteShapeUtil extends NoteShapeUtil {
 							richText={richText}
 							isSelected={isSelected}
 							labelColor={
-								labelColor === 'black'
-									? getColorValue(theme, color, 'noteText')
-									: getColorValue(theme, labelColor, 'fill')
+								isPresentFuture
+									? '#065f46'
+									: labelColor === 'black'
+										? getColorValue(theme, color, 'noteText')
+										: getColorValue(theme, labelColor, 'fill')
 							}
 							wrap
 							padding={CONTENT_PADDING * scale}
@@ -168,6 +189,63 @@ export class CircularNoteShapeUtil extends NoteShapeUtil {
 						</div>
 					)}
 					</div>
+				)}
+				{hasFlipContent && (
+					<div
+						className="flip-icon"
+						style={{
+							position: 'absolute',
+							top: 4,
+							right: 4,
+							width: 24,
+							height: 24,
+							borderRadius: '50%',
+							backgroundColor: 'rgba(0,0,0,0.5)',
+							color: 'white',
+							display: 'flex',
+							alignItems: 'center',
+							justifyContent: 'center',
+							fontSize: 14,
+							cursor: 'pointer',
+							opacity: 0,
+							pointerEvents: 'all',
+						}}
+						onPointerDown={(e) => {
+							e.stopPropagation()
+							e.preventDefault()
+							setIsFlipping(true)
+							setTimeout(() => {
+								const currentShape = editor.getShape(shape.id) as TLNoteShape | undefined
+								if (!currentShape) return
+								const m = currentShape.meta as Record<string, unknown>
+								const em = (m.elementMetadata ?? {}) as Record<string, unknown>
+								editor.updateShape({
+									id: shape.id,
+									type: 'note',
+									props: { richText: m.flipContent as any },
+									meta: {
+										...m,
+										flipContent: currentShape.props.richText as any,
+										flipTense: (em.tense as string) ?? 'past-present',
+										elementMetadata: { ...em, tense: (m.flipTense as string) ?? undefined },
+									},
+								})
+							}, 150)
+							setTimeout(() => setIsFlipping(false), 300)
+						}}
+					>
+						&#8635;
+					</div>
+				)}
+				<style>{`.has-flip:hover .flip-icon { opacity: 1 !important; }`}</style>
+				{isFlipping && (
+					<style>{`
+						@keyframes flip-card {
+							0% { transform: scaleX(1); }
+							50% { transform: scaleX(0); }
+							100% { transform: scaleX(1); }
+						}
+					`}</style>
 				)}
 			</div>
 		)
