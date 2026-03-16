@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 // Mock D1Database interface for testing
 function createMockD1() {
@@ -27,9 +27,7 @@ describe('upsertUser', () => {
 			avatar_url: 'https://example.com/avatar.jpg',
 		})
 
-		expect(db.prepare).toHaveBeenCalledWith(
-			expect.stringContaining('INSERT INTO users'),
-		)
+		expect(db.prepare).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO users'))
 		expect(db._statement.bind).toHaveBeenCalledWith(
 			'user-123',
 			'test@example.com',

@@ -1,8 +1,8 @@
-import { createRemoteJWKSet } from 'jose'
 import type { IRequest } from 'itty-router'
+import { createRemoteJWKSet } from 'jose'
 import type { Environment } from '../environment'
+import { buildDevUser, extractJwt, verifyAccessJwt } from './auth'
 import type { AuthUser } from './auth-types'
-import { extractJwt, verifyAccessJwt, buildDevUser } from './auth'
 import { upsertUser } from './user-store'
 
 /**
@@ -97,8 +97,8 @@ export async function authMiddleware(
 		const user: AuthUser = {
 			sub: payload.sub,
 			email: payload.email,
-			name: (payload as Record<string, unknown>).name as string | null ?? null,
-			avatar_url: (payload as Record<string, unknown>).picture as string | null ?? null,
+			name: ((payload as Record<string, unknown>).name as string | null) ?? null,
+			avatar_url: ((payload as Record<string, unknown>).picture as string | null) ?? null,
 			isDev: false,
 		}
 

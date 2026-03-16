@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
 import * as jose from 'jose'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 // We'll test the pure functions from auth.ts
 // Need to generate real RS256 keys for testing
@@ -29,7 +29,12 @@ describe('verifyAccessJwt', () => {
 	it('returns payload for a valid JWT', async () => {
 		const { verifyAccessJwt } = await import('../../worker/lib/auth')
 		const token = await signTestJwt(
-			{ sub: 'user-123', email: 'test@example.com', aud: 'test-aud', iss: 'https://test.cloudflareaccess.com' },
+			{
+				sub: 'user-123',
+				email: 'test@example.com',
+				aud: 'test-aud',
+				iss: 'https://test.cloudflareaccess.com',
+			},
 			privateKey,
 		)
 
@@ -62,14 +67,23 @@ describe('verifyAccessJwt', () => {
 		})
 
 		await expect(
-			verifyAccessJwt(token, { audience: 'test-aud', issuer: 'https://test.cloudflareaccess.com', jwks }),
+			verifyAccessJwt(token, {
+				audience: 'test-aud',
+				issuer: 'https://test.cloudflareaccess.com',
+				jwks,
+			}),
 		).rejects.toThrow()
 	})
 
 	it('throws for wrong audience', async () => {
 		const { verifyAccessJwt } = await import('../../worker/lib/auth')
 		const token = await signTestJwt(
-			{ sub: 'user-123', email: 'test@example.com', aud: 'wrong-aud', iss: 'https://test.cloudflareaccess.com' },
+			{
+				sub: 'user-123',
+				email: 'test@example.com',
+				aud: 'wrong-aud',
+				iss: 'https://test.cloudflareaccess.com',
+			},
 			privateKey,
 		)
 
@@ -78,7 +92,11 @@ describe('verifyAccessJwt', () => {
 		})
 
 		await expect(
-			verifyAccessJwt(token, { audience: 'test-aud', issuer: 'https://test.cloudflareaccess.com', jwks }),
+			verifyAccessJwt(token, {
+				audience: 'test-aud',
+				issuer: 'https://test.cloudflareaccess.com',
+				jwks,
+			}),
 		).rejects.toThrow()
 	})
 })

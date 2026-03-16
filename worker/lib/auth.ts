@@ -1,4 +1,4 @@
-import { jwtVerify, type JWTVerifyGetKey, type JWTPayload } from 'jose'
+import { type JWTPayload, type JWTVerifyGetKey, jwtVerify } from 'jose'
 import type { AuthUser } from './auth-types'
 
 export interface VerifyOptions {

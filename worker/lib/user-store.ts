@@ -30,8 +30,5 @@ export async function upsertUser(
  * Get a user by their Cloudflare Access sub (unique ID).
  */
 export async function getUserBySub(db: D1Database, sub: string): Promise<UserRow | null> {
-	return db
-		.prepare('SELECT * FROM users WHERE sub = ?')
-		.bind(sub)
-		.first<UserRow>()
+	return db.prepare('SELECT * FROM users WHERE sub = ?').bind(sub).first<UserRow>()
 }

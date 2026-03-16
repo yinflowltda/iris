@@ -3,26 +3,28 @@ import type { ExecutionContext } from '@cloudflare/workers-types'
 import { AutoRouter, cors, error, type IRequest } from 'itty-router'
 import type { Environment } from './environment'
 import { authMiddleware } from './lib/auth-middleware'
-import { getAvailableModels } from './routes/models'
 import {
+	aggregateNow,
+	getAggregate,
 	getPublicKey,
 	openRound,
-	submitDelta,
-	roundStatus,
 	roundMetrics,
-	getAggregate,
+	roundStatus,
+	submitDelta,
 	uploadAggregate,
-	aggregateNow,
 } from './routes/fl-rounds'
+import { me } from './routes/me'
+import { getAvailableModels } from './routes/models'
 import { stream } from './routes/stream'
 import { voice } from './routes/voice'
-import { me } from './routes/me'
 
 const { preflight, corsify } = cors({
 	origin: (origin) => {
-		// Allow any origin in dev, restrict in production
-		if (!origin) return '*'
-		if (origin.includes('localhost') || origin.includes('127.0.0.1')) return origin
+		if (!origin) return undefined
+		try {
+			const { hostname } = new URL(origin)
+			if (hostname === 'localhost' || hostname === '127.0.0.1') return origin
+		} catch {}
 		if (origin === 'https://iris.yinflow.life') return origin
 		return undefined
 	},
