@@ -102,6 +102,12 @@ export class CircularNoteShapeUtil extends NoteShapeUtil {
 		const isPresentFuture = tense === 'present-future'
 		const hasFlipContent = meta.flipContent != null
 		// biome-ignore lint/correctness/useHookAtTopLevel: tldraw component() methods use hooks
+		const isHovered = useValue(
+			'isHovered',
+			() => editor.getHoveredShapeId() === id,
+			[editor, id],
+		)
+		// biome-ignore lint/correctness/useHookAtTopLevel: tldraw component() methods use hooks
 		const [isFlipping, setIsFlipping] = useState(false)
 
 		// Inscribed square: side = diameter / √2, offset = (diameter - side) / 2
@@ -111,6 +117,12 @@ export class CircularNoteShapeUtil extends NoteShapeUtil {
 		const fontSize = (fontSizeAdjustment || LABEL_FONT_SIZES[size]) * scale
 
 		const debug = typeof window !== 'undefined' && localStorage.getItem('CIRCULAR_NOTE_DEBUG') === '1'
+		const flipDebug = typeof window !== 'undefined' && localStorage.getItem('FLIP_DEBUG') === '1'
+
+		// Debug: log every render with hover/editing state
+		if (flipDebug) {
+			console.log(`[FLIP-DEBUG] shape=${id} isHovered=${isHovered} isEditing=${isEditing} isSelected=${isSelected} hoveredId=${editor.getHoveredShapeId()} opacity=${isHovered || isEditing ? 1 : 0}`)
+		}
 
 		return (
 			<div
@@ -190,8 +202,9 @@ export class CircularNoteShapeUtil extends NoteShapeUtil {
 						className="flip-icon"
 						style={{
 							position: 'absolute',
-							top: 4 * scale,
-							right: 4 * scale,
+							top: '50%',
+							right: inscribedOffset * 0.5 - 25 * scale,
+							transform: 'translateY(-50%)',
 							width: 24 * scale,
 							height: 24 * scale,
 							borderRadius: '50%',
@@ -202,7 +215,7 @@ export class CircularNoteShapeUtil extends NoteShapeUtil {
 							justifyContent: 'center',
 							fontSize: 14 * scale,
 							cursor: 'pointer',
-							opacity: 0,
+							opacity: isHovered || isEditing ? 1 : 0,
 							pointerEvents: 'all',
 						}}
 						onPointerDown={(e) => {
@@ -236,7 +249,6 @@ export class CircularNoteShapeUtil extends NoteShapeUtil {
 						&#8635;
 					</div>
 				<style>{`
-					.has-flip:hover .flip-icon { opacity: 1 !important; }
 					@keyframes flip-card {
 						0% { transform: scaleX(1); }
 						50% { transform: scaleX(0); }
