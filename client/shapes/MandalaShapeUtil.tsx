@@ -400,6 +400,11 @@ export class MandalaShapeUtil extends ShapeUtil<MandalaShape> {
 			x: pagePoint.x - halfSize,
 			y: pagePoint.y - halfSize,
 			props: { scale },
+			meta: {
+				elementMetadata: {
+					tense: shape.props.viewTense ?? 'past-present',
+				},
+			},
 		})
 		this.editor.setSelectedShapes([noteId])
 		return { id: shape.id, type: 'mandala' as const }
