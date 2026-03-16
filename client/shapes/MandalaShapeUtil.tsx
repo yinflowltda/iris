@@ -46,6 +46,7 @@ export type MandalaShapeProps = {
 	zoomedNodeId: string | null
 	zoomMode: string
 	cover: CoverConfig | null
+	viewTense: string
 }
 
 declare module 'tldraw' {
@@ -290,6 +291,7 @@ export class MandalaShapeUtil extends ShapeUtil<MandalaShape> {
 		zoomedNodeId: T.jsonValue as any,
 		zoomMode: T.string,
 		cover: T.jsonValue as any,
+		viewTense: T.string,
 	}
 
 	getDefaultProps(): MandalaShapeProps {
@@ -303,6 +305,7 @@ export class MandalaShapeUtil extends ShapeUtil<MandalaShape> {
 			zoomedNodeId: null,
 			zoomMode: 'navigate',
 			cover: null,
+			viewTense: 'past-present',
 		}
 	}
 
