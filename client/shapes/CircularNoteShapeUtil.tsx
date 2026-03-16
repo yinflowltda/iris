@@ -11,6 +11,7 @@ import {
 	RichTextLabel,
 	TEXT_PROPS,
 	type TLNoteShape,
+	toRichText,
 	useEditor,
 	useValue,
 } from 'tldraw'
@@ -114,7 +115,7 @@ export class CircularNoteShapeUtil extends NoteShapeUtil {
 		return (
 			<div
 				id={id}
-				className={`tl-note__container${hasFlipContent ? ' has-flip' : ''}`}
+				className="tl-note__container has-flip"
 				style={{
 					width: nw,
 					height: nh,
@@ -185,8 +186,7 @@ export class CircularNoteShapeUtil extends NoteShapeUtil {
 					)}
 					</div>
 				)}
-				{hasFlipContent && (
-					<div
+				<div
 						className="flip-icon"
 						style={{
 							position: 'absolute',
@@ -214,15 +214,19 @@ export class CircularNoteShapeUtil extends NoteShapeUtil {
 								if (!currentShape) return
 								const m = currentShape.meta as Record<string, unknown>
 								const em = (m.elementMetadata ?? {}) as Record<string, unknown>
+								const currentTense = (em.tense as string) ?? 'past-present'
+								const oppositeTense = currentTense === 'past-present' ? 'present-future' : 'past-present'
+								// If no flip content yet, create an empty other side
+								const flipContent = m.flipContent ?? toRichText('')
 								editor.updateShape({
 									id: shape.id,
 									type: 'note',
-									props: { richText: m.flipContent as any },
+									props: { richText: flipContent as any },
 									meta: {
 										...m,
 										flipContent: currentShape.props.richText as any,
-										flipTense: (em.tense as string) ?? 'past-present',
-										elementMetadata: { ...em, tense: (m.flipTense as string) ?? 'past-present' },
+										flipTense: currentTense,
+										elementMetadata: { ...em, tense: (m.flipTense as string) ?? oppositeTense },
 									},
 								})
 							}, 150)
@@ -231,17 +235,14 @@ export class CircularNoteShapeUtil extends NoteShapeUtil {
 					>
 						&#8635;
 					</div>
-				)}
-				{hasFlipContent && (
-					<style>{`
-						.has-flip:hover .flip-icon { opacity: 1 !important; }
-						@keyframes flip-card {
-							0% { transform: scaleX(1); }
-							50% { transform: scaleX(0); }
-							100% { transform: scaleX(1); }
-						}
-					`}</style>
-				)}
+				<style>{`
+					.has-flip:hover .flip-icon { opacity: 1 !important; }
+					@keyframes flip-card {
+						0% { transform: scaleX(1); }
+						50% { transform: scaleX(0); }
+						100% { transform: scaleX(1); }
+					}
+				`}</style>
 			</div>
 		)
 	}
