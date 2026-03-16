@@ -15,6 +15,7 @@ import {
 } from 'tldraw'
 import type { CoverConfig, MandalaArrowRecord, MandalaState } from '../../shared/types/MandalaTypes'
 import { MandalaCover } from '../components/MandalaCover'
+import { ViewTenseToggle } from '../components/ViewTenseToggle'
 import { ZoomModeToggle } from '../components/ZoomModeToggle'
 import { setActiveMandalaId } from '../lib/frameworks/active-framework'
 import { EMOTIONS_MAP } from '../lib/frameworks/emotions-map'
@@ -273,6 +274,7 @@ function MandalaInteractive({ shape }: { shape: MandalaShape }) {
 				}
 			/>
 			<ZoomModeToggle shape={shape} />
+			<ViewTenseToggle shape={shape} />
 		</div>
 	)
 }
