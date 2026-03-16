@@ -14,6 +14,7 @@ import {
 	uploadAggregate,
 } from './routes/fl-rounds'
 import { me } from './routes/me'
+import { syncRoom } from './routes/sync'
 import { uploadAsset, downloadAsset } from './routes/sync-assets'
 import { getAvailableModels } from './routes/models'
 import { stream } from './routes/stream'
@@ -55,6 +56,7 @@ const router = AutoRouter<IRequest, [env: Environment, ctx: ExecutionContext]>({
 	.post('/fl/rounds/aggregate', uploadAggregate)
 	.post('/sync/assets/:assetId', uploadAsset)
 	.get('/sync/assets/:assetId', downloadAsset)
+	.get('/sync/:roomId', syncRoom)
 	.post('/fl/rounds/aggregate-now', aggregateNow)
 
 export default class extends WorkerEntrypoint<Environment> {
