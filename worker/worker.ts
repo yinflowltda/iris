@@ -2,6 +2,7 @@ import { WorkerEntrypoint } from 'cloudflare:workers'
 import type { ExecutionContext } from '@cloudflare/workers-types'
 import { AutoRouter, cors, error, type IRequest } from 'itty-router'
 import type { Environment } from './environment'
+import { authMiddleware } from './lib/auth-middleware'
 import { getAvailableModels } from './routes/models'
 import {
 	getPublicKey,
@@ -15,17 +16,28 @@ import {
 } from './routes/fl-rounds'
 import { stream } from './routes/stream'
 import { voice } from './routes/voice'
+import { me } from './routes/me'
 
-const { preflight, corsify } = cors({ origin: '*' })
+const { preflight, corsify } = cors({
+	origin: (origin) => {
+		// Allow any origin in dev, restrict in production
+		if (!origin) return '*'
+		if (origin.includes('localhost') || origin.includes('127.0.0.1')) return origin
+		if (origin === 'https://iris.yinflow.life') return origin
+		return undefined
+	},
+	credentials: true,
+})
 
 const router = AutoRouter<IRequest, [env: Environment, ctx: ExecutionContext]>({
-	before: [preflight],
+	before: [preflight, authMiddleware],
 	finally: [corsify],
 	catch: (e) => {
 		console.error(e)
 		return error(e)
 	},
 })
+	.get('/me', me)
 	.post('/stream', stream)
 	.get('/voice', voice)
 	.get('/models', (_req: IRequest, env: Environment) => {
