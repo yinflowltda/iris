@@ -88,6 +88,7 @@ import { MandalaIcon } from '../shared/icons/MandalaIcon'
 import { NoteIcon } from '../shared/icons/NoteIcon'
 import { TargetShapeTool } from './tools/TargetShapeTool'
 import type { User } from '../shared/types/User'
+import { useAuthSync } from './lib/use-auth-sync'
 
 const ChatPanelContext = createContext<{ chatOpen: boolean; toggleChat: () => void }>({
 	chatOpen: false,
@@ -400,6 +401,7 @@ function hasNoTextContent(richText: unknown): boolean {
 
 function App() {
 	const { user, loading, error: authError } = useAuth()
+	const syncStore = useAuthSync(user?.sub ?? '')
 	const [app, setApp] = useState<TldrawAgentApp | null>(null)
 	const [showTemplate, setShowTemplate] = useState(SHOW_TEMPLATE_CHOOSER)
 	const [showFLSettings, setShowFLSettings] = useState(false)
@@ -764,7 +766,7 @@ function App() {
 						<div className="tldraw-agent-container">
 							<div className="tldraw-canvas">
 								<Tldraw
-									persistenceKey="tldraw-agent-demo"
+									store={syncStore}
 									options={options}
 									shapeUtils={shapeUtils}
 									tools={tools}
