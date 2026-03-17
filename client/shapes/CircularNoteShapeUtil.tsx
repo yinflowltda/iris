@@ -117,13 +117,6 @@ export class CircularNoteShapeUtil extends NoteShapeUtil {
 		const fontSize = (fontSizeAdjustment || LABEL_FONT_SIZES[size]) * scale
 
 		const debug = typeof window !== 'undefined' && localStorage.getItem('CIRCULAR_NOTE_DEBUG') === '1'
-		const flipDebug = typeof window !== 'undefined' && localStorage.getItem('FLIP_DEBUG') === '1'
-
-		// Debug: log every render with hover/editing state
-		if (flipDebug) {
-			console.log(`[FLIP-DEBUG] shape=${id} isHovered=${isHovered} isEditing=${isEditing} isSelected=${isSelected} hoveredId=${editor.getHoveredShapeId()} opacity=${isHovered || isEditing ? 1 : 0}`)
-		}
-
 		return (
 			<div
 				id={id}
