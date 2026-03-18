@@ -24,6 +24,7 @@ bindings = [
     { name = "AGENT_DURABLE_OBJECT", class_name = "AgentDurableObject" },
     { name = "VOICE_AGENT_DO", class_name = "VoiceAgentDurableObject" },
     { name = "AGGREGATION_DO", class_name = "AggregationDO" },
+    { name = "TLDRAW_SYNC_DO", class_name = "TldrawSyncDO" },
 ]
 
 # Durable objects require migrations to create/modify/delete them
@@ -45,11 +46,26 @@ new_classes = ["VoiceAgentDurableObject"]
 tag = "v4"
 new_classes = ["AggregationDO"]
 
+[[migrations]]
+tag = "v5"
+new_sqlite_classes = ["TldrawSyncDO"]
+
 [[r2_buckets]]
 binding = "FL_BUCKET"
 bucket_name = "iris-fl-rounds"
+
+[[r2_buckets]]
+binding = "TLDRAW_BUCKET"
+bucket_name = "iris-tldraw-assets"
+
+# D1 database for user accounts
+[[d1_databases]]
+binding = "DB"
+database_name = "iris-users"
+database_id = "b57943a1-2ba4-4f32-8cbe-3cef9a4b6d68"
 
 [vars]
 TTS_ENABLED = "false"
 OPENAI_COMPATIBLE_BASE_URL = "http://127.0.0.1:3456/v1"
 OPENAI_COMPATIBLE_API_KEY = "not-needed"
+DEV_MODE = "true"

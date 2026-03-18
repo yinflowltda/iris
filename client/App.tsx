@@ -87,6 +87,8 @@ import { TargetAreaTool } from './tools/TargetAreaTool'
 import { MandalaIcon } from '../shared/icons/MandalaIcon'
 import { NoteIcon } from '../shared/icons/NoteIcon'
 import { TargetShapeTool } from './tools/TargetShapeTool'
+import type { User } from '../shared/types/User'
+import { useAuthSync } from './lib/use-auth-sync'
 
 const ChatPanelContext = createContext<{ chatOpen: boolean; toggleChat: () => void }>({
 	chatOpen: false,
@@ -96,6 +98,39 @@ const ChatPanelContext = createContext<{ chatOpen: boolean; toggleChat: () => vo
 const FLSettingsContext = createContext<{ openFLSettings: () => void }>({
 	openFLSettings: () => {},
 })
+
+// ─── Auth ────────────────────────────────────────────────────────────────────
+const AuthUserContext = createContext<User | null>(null)
+
+export function useAuthUser(): User {
+	const user = useContext(AuthUserContext)
+	if (!user) throw new Error('useAuthUser must be used within AuthUserContext')
+	return user
+}
+
+function useAuth() {
+	const [user, setUser] = useState<User | null>(null)
+	const [loading, setLoading] = useState(true)
+	const [error, setError] = useState<string | null>(null)
+
+	useEffect(() => {
+		fetch('/me', { credentials: 'include' })
+			.then(async (res) => {
+				if (res.status === 401 || res.status === 403) {
+					// Access session expired — redirect to login
+					window.location.reload()
+					return
+				}
+				if (!res.ok) throw new Error(`/me failed: ${res.status}`)
+				const data = await res.json()
+				setUser(data as User)
+			})
+			.catch((err) => setError(err.message))
+			.finally(() => setLoading(false))
+	}, [])
+
+	return { user, loading, error }
+}
 
 DefaultSizeStyle.setDefaultValue('s')
 applyNodulePaletteToThemes(DefaultColorThemePalette.lightMode, DefaultColorThemePalette.darkMode)
@@ -227,6 +262,7 @@ const ToolbarWithStylePanel = memo(function ToolbarWithStylePanel() {
  */
 function FLHooksMount() {
 	const editor = useEditor()
+	const user = useAuthUser()
 	const mandala = useValue(
 		'fl-mandala',
 		() =>
@@ -237,8 +273,8 @@ function FLHooksMount() {
 	const mapId = mandala?.props.frameworkId ?? null
 
 	const flConfig = useMemo(
-		() => (mapId ? { transport: new CloudflareFLTransport(''), mapId } : null),
-		[mapId],
+		() => (mapId ? { transport: new CloudflareFLTransport(''), mapId, clientId: user.sub } : null),
+		[mapId, user.sub],
 	)
 
 	const { onAfterTrain: flOnAfterTrain } = useFLOrchestrator(flConfig)
@@ -364,6 +400,8 @@ function hasNoTextContent(richText: unknown): boolean {
 }
 
 function App() {
+	const { user, loading, error: authError } = useAuth()
+	const syncStore = useAuthSync(user?.sub ?? '')
 	const [app, setApp] = useState<TldrawAgentApp | null>(null)
 	const [showTemplate, setShowTemplate] = useState(SHOW_TEMPLATE_CHOOSER)
 	const [showFLSettings, setShowFLSettings] = useState(false)
@@ -716,49 +754,54 @@ function App() {
 		}
 	}, [app])
 
+	if (loading) return <div className="auth-loading">Loading...</div>
+	if (authError || !user) return <div className="auth-error">Authentication required. Refreshing...</div>
+
 	return (
-		<MandalaCoverContext.Provider value={{ onCoverSlideClick: handleCoverSlideClick }}>
-			<ChatPanelContext.Provider value={{ chatOpen, toggleChat }}>
-				<FLSettingsContext.Provider value={flSettingsCtx}>
-				<TldrawUiToastsProvider>
-					<div className="tldraw-agent-container">
-						<div className="tldraw-canvas">
-							<Tldraw
-								persistenceKey="tldraw-agent-demo"
-								options={options}
-								shapeUtils={shapeUtils}
-								tools={tools}
-								overrides={overrides}
-								components={components}
-								textOptions={textOptions}
-							>
-								<TldrawAgentAppProvider onMount={setApp} onUnmount={handleUnmount} />
-								<FLHooksMount />
-							</Tldraw>
+		<AuthUserContext.Provider value={user}>
+			<MandalaCoverContext.Provider value={{ onCoverSlideClick: handleCoverSlideClick }}>
+				<ChatPanelContext.Provider value={{ chatOpen, toggleChat }}>
+					<FLSettingsContext.Provider value={flSettingsCtx}>
+					<TldrawUiToastsProvider>
+						<div className="tldraw-agent-container">
+							<div className="tldraw-canvas">
+								<Tldraw
+									store={syncStore}
+									options={options}
+									shapeUtils={shapeUtils}
+									tools={tools}
+									overrides={overrides}
+									components={components}
+									textOptions={textOptions}
+								>
+									<TldrawAgentAppProvider onMount={setApp} onUnmount={handleUnmount} />
+									<FLHooksMount />
+								</Tldraw>
+							</div>
+							<div className={`agent-chat-slot${chatOpen ? ' agent-chat-slot--open' : ''}`}>
+								<ErrorBoundary fallback={ChatPanelFallback}>
+									{app && (
+										<TldrawAgentAppContextProvider app={app}>
+											<ChatPanel inputRef={chatInputRef} />
+										</TldrawAgentAppContextProvider>
+									)}
+								</ErrorBoundary>
+							</div>
+							<TemplateChooser
+								visible={showTemplate}
+								onSelectTemplate={handleSelectTemplate}
+								onRequestClose={() => setShowTemplate(false)}
+							/>
+							<FLSettingsPanel
+								visible={showFLSettings}
+								onRequestClose={() => setShowFLSettings(false)}
+							/>
 						</div>
-						<div className={`agent-chat-slot${chatOpen ? ' agent-chat-slot--open' : ''}`}>
-							<ErrorBoundary fallback={ChatPanelFallback}>
-								{app && (
-									<TldrawAgentAppContextProvider app={app}>
-										<ChatPanel inputRef={chatInputRef} />
-									</TldrawAgentAppContextProvider>
-								)}
-							</ErrorBoundary>
-						</div>
-						<TemplateChooser
-							visible={showTemplate}
-							onSelectTemplate={handleSelectTemplate}
-							onRequestClose={() => setShowTemplate(false)}
-						/>
-						<FLSettingsPanel
-							visible={showFLSettings}
-							onRequestClose={() => setShowFLSettings(false)}
-						/>
-					</div>
-				</TldrawUiToastsProvider>
-				</FLSettingsContext.Provider>
-			</ChatPanelContext.Provider>
-		</MandalaCoverContext.Provider>
+					</TldrawUiToastsProvider>
+					</FLSettingsContext.Provider>
+				</ChatPanelContext.Provider>
+			</MandalaCoverContext.Provider>
+		</AuthUserContext.Provider>
 	)
 }
 

@@ -10,3 +10,4 @@ test-results/
 playwright-report/
 tools/prompt-lab/results/
 .worktrees/
+.superpowers/

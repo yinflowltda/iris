@@ -1,9 +1,10 @@
 import type { IRequest } from 'itty-router'
 import type { Environment } from '../environment'
+import type { AuthUser } from '../lib/auth-types'
 
 export async function stream(request: IRequest, env: Environment) {
-	// eventually... use some kind of per-user id, so that each user has their own worker
-	const id = env.AGENT_DURABLE_OBJECT.idFromName('anonymous')
+	const user = (request as IRequest & { user: AuthUser }).user
+	const id = env.AGENT_DURABLE_OBJECT.idFromName(user.sub)
 	const DO = env.AGENT_DURABLE_OBJECT.get(id)
 	const response = await DO.fetch(request.url, {
 		method: 'POST',
@@ -17,9 +18,6 @@ export async function stream(request: IRequest, env: Environment) {
 			Connection: 'keep-alive',
 			'X-Accel-Buffering': 'no',
 			'Transfer-Encoding': 'chunked',
-			'Access-Control-Allow-Origin': '*',
-			'Access-Control-Allow-Methods': 'POST, OPTIONS',
-			'Access-Control-Allow-Headers': 'Content-Type',
 		},
 	})
 }

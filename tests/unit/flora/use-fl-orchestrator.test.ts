@@ -4,16 +4,6 @@ import type { FLRoundSummary, FLSubmitResponse, FLOpenRoundResponse, FLSubmissio
 
 // ─── Mocks ────────────────────────────────────────────────────────────────
 
-const storageMap = new Map<string, string>()
-vi.stubGlobal('localStorage', {
-	getItem: vi.fn((key: string) => storageMap.get(key) ?? null),
-	setItem: vi.fn((key: string, value: string) => storageMap.set(key, value)),
-	removeItem: vi.fn((key: string) => storageMap.delete(key)),
-	clear: vi.fn(() => storageMap.clear()),
-	get length() { return storageMap.size },
-	key: vi.fn(() => null),
-})
-
 vi.mock('../../../client/lib/flora/ckks-service', () => ({
 	CkksService: {
 		getInstance: () => ({
@@ -57,12 +47,12 @@ describe('FL Orchestrator', () => {
 	let mockTransport: ReturnType<typeof createMockTransport>
 
 	beforeEach(() => {
-		storageMap.clear()
 		_resetFLConsent()
 		mockTransport = createMockTransport()
 		config = {
 			transport: mockTransport,
 			mapId: 'test-map',
+			clientId: 'test-client',
 		}
 	})
 
