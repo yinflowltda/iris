@@ -38,8 +38,10 @@ export function ShareDialog({
     if (open) fetchShares()
   }, [open, fetchShares])
 
+  const isValidEmail = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)
+
   const handleInvite = async () => {
-    if (!email.trim()) return
+    if (!email.trim() || !isValidEmail(email.trim())) return
     setSending(true)
     await fetch(`/rooms/${roomId}/shares`, {
       method: 'POST',
@@ -115,7 +117,7 @@ export function ShareDialog({
                 </Select.Content>
               </Select.Portal>
             </Select.Root>
-            <button className="sd-invite-btn" onClick={handleInvite} disabled={sending || !email.trim()}>
+            <button className="sd-invite-btn" onClick={handleInvite} disabled={sending || !email.trim() || !isValidEmail(email.trim())}>
               Invite
             </button>
           </div>
