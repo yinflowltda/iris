@@ -1,0 +1,102 @@
+.rr-container {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  font-family: "Source Sans 3", sans-serif;
+}
+
+.rr-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 560px;
+  width: calc(100% - 48px);
+  padding: 32px;
+}
+
+.rr-title {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 600;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+}
+
+.rr-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rr-section-title {
+  margin: 8px 0 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.rr-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-radius: 12px;
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.rr-card:hover {
+  background: rgba(51, 65, 85, 0.8);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.rr-card--own {
+  border-color: rgba(99, 102, 241, 0.3);
+}
+
+.rr-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rr-card-name {
+  font-size: 16px;
+  font-weight: 500;
+  color: #f1f5f9;
+}
+
+.rr-card-slug {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.rr-badge {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.rr-badge--owner {
+  background: rgba(99, 102, 241, 0.15);
+  color: #a5b4fc;
+}
+
+.rr-badge--edit {
+  background: rgba(74, 222, 128, 0.12);
+  color: #4ade80;
+}
+
+.rr-badge--view {
+  background: rgba(251, 191, 36, 0.12);
+  color: #fbbf24;
+}
