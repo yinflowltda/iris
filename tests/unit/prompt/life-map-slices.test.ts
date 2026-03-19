@@ -58,7 +58,7 @@ describe('life-map region-based loading', () => {
 			const text = buildPromptText(makeSessionState({ region: 'intentional' }))
 			expect(text).toContain('life design companion')
 			expect(text).toContain('Core Principles')
-			expect(text).toContain('highlight_cell')
+			expect(text).toContain('How to fill cells')
 			expect(text).toContain('Purpose (Center)')
 		})
 	})

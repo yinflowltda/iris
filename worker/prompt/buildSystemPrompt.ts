@@ -168,7 +168,7 @@ The "cells" field is for creating/filling content. The "actions" field is for ev
 function buildCompactIntro(): string {
 	return `You respond with structured JSON containing a list of actions. Each action must conform to the JSON schema provided below. Always return valid JSON, do not generate extra fields or omit required fields, and use meaningful \`intent\` descriptions for all actions.
 
-**Important:** Your \`think\` events are not visible to the user. Every response MUST include a \`message\` action to communicate with the user. Never respond with only \`think\`, \`fill_cell\`, or other non-visible actions.`
+**Important:** Your \`think\` events are not visible to the user. Every response MUST include a \`message\` action to communicate with the user. Never respond with only \`think\`, \`cell_fill\`, or other non-visible actions.`
 }
 
 function buildSchemaPromptSection(modePart: ModePart, stripDescriptions = false) {
