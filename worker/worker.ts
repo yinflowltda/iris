@@ -15,6 +15,14 @@ import {
 } from './routes/fl-rounds'
 import { me } from './routes/me'
 import { syncRoom } from './routes/sync'
+import {
+	createShareRoute,
+	deleteShareRoute,
+	updateShareRoute,
+	listSharesRoute,
+	sharedWithMeRoute,
+	resolveSlugRoute,
+} from './routes/rooms'
 import { uploadAsset, downloadAsset } from './routes/sync-assets'
 import { getAvailableModels } from './routes/models'
 import { stream } from './routes/stream'
@@ -56,6 +64,12 @@ const router = AutoRouter<IRequest, [env: Environment, ctx: ExecutionContext]>({
 	.post('/fl/rounds/aggregate', uploadAggregate)
 	.post('/sync/assets/:assetId', uploadAsset)
 	.get('/sync/assets/:assetId', downloadAsset)
+	.get('/rooms/shared-with-me', sharedWithMeRoute)
+	.get('/rooms/resolve/:slug', resolveSlugRoute)
+	.get('/rooms/:roomId/shares', listSharesRoute)
+	.post('/rooms/:roomId/shares', createShareRoute)
+	.delete('/rooms/:roomId/shares', deleteShareRoute)
+	.patch('/rooms/:roomId/shares', updateShareRoute)
 	.get('/sync/:roomId', syncRoom)
 	.post('/fl/rounds/aggregate-now', aggregateNow)
 
