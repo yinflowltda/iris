@@ -18,11 +18,6 @@ export const WORKERSAI_MODEL_DEFINITIONS: Record<string, AgentModelDefinition> =
 		id: '@cf/qwen/qwen3-30b-a3b-fp8',
 		provider: 'workersai',
 	},
-	'@cf/google/gemma-3-12b-it': {
-		name: '@cf/google/gemma-3-12b-it',
-		id: '@cf/google/gemma-3-12b-it',
-		provider: 'workersai',
-	},
 } as const
 
 export const OPENAI_COMPATIBLE_MODEL_DEFINITIONS: Record<string, AgentModelDefinition> = {

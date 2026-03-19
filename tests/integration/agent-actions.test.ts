@@ -347,8 +347,8 @@ describe('action util registration', () => {
 	const allUtils = getAllActionUtils()
 	const allTypes = allUtils.map((u) => u.type)
 
-	it('has a registered util for fill_cell', () => {
-		expect(allTypes).toContain('fill_cell')
+	it('has a registered util for cell_fill (streaming format)', () => {
+		expect(allTypes).toContain('cell_fill')
 	})
 
 	it('has a registered util for highlight_cell', () => {
@@ -392,7 +392,7 @@ describe('mandala mode definition', () => {
 	it('includes mandala-specific actions', () => {
 		const mode = getAgentModeDefinition('mandala' as any)
 		if (!mode.active) throw new Error('Mode should be active')
-		expect(mode.actions).toContain('fill_cell')
+		expect(mode.actions).toContain('cell_fill')
 		expect(mode.actions).toContain('highlight_cell')
 		expect(mode.actions).toContain('detect_conflict')
 		expect(mode.actions).toContain('create_arrow')

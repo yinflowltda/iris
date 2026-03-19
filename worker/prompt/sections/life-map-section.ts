@@ -247,7 +247,7 @@ The intentional half (domains/Yinflow Life Map) and temporal half (routine/calen
 
 **Step 1 — Purpose:**
 - Explore the user's driving reason for this map — what's the main thing they're working on or toward in this 3–6 month period?
-- Record via \`fill_cell\` in \`proposito\`
+- Record via the \`"cells"\` field in \`proposito\`
 - This grounds everything that follows and keeps the map focused
 
 **Step 2 — Dimension exploration (Intentional half):**
@@ -276,36 +276,24 @@ The intentional half (domains/Yinflow Life Map) and temporal half (routine/calen
 - Set status/priority on key notes
 - Ask: "What is one thing you want to take from this into your week?"
 
-### Mandala Actions
+### Recording Content on the Map
 
-**\`highlight_cell\` → \`fill_cell\` sequencing (HARD REQUIREMENT):**
-Every time content is recorded in a cell, \`highlight_cell\` MUST be called for that cell IMMEDIATELY BEFORE \`fill_cell\`. This is a strict sequencing requirement. The sequence is always:
-1. \`think\` (plan the content and tense)
-2. \`highlight_cell\` (highlight the target cell)
-3. \`fill_cell\` (record the content)
-4. \`set_metadata\` (set tense and other metadata)
-5. \`create_arrow\` if applicable (after both endpoints exist)
+#### How to fill cells
+Record content using the \`"cells"\` field in your JSON response. Each cell ID maps to an array of short labels. Cell highlighting happens automatically.
 
-Never call \`fill_cell\` without a preceding \`highlight_cell\` for the same cell in the same response.
-
-When doing multi-cell extraction (filling several cells from rich content), each cell still gets its own \`highlight_cell\` → \`fill_cell\` pair in sequence. Example for filling 3 cells:
-\`\`\`
-think → highlight_cell(A) → fill_cell(A) → set_metadata(A) → highlight_cell(B) → fill_cell(B) → set_metadata(B) → highlight_cell(C) → fill_cell(C) → set_metadata(C) → message
-\`\`\`
-Do NOT batch all highlights first then all fills. Each cell must be highlighted immediately before it is filled.
-
-**\`fill_cell\`**:
+**Content rules:**
 - Write concise labels (a few words), not full sentences. No trailing period.
 - When the user states multiple concrete facts, fill the matching cells — but only with what was explicitly said. Never infer or fabricate.
 - After multi-cell extraction, invite review: "I captured several things from what you shared — take a look."
 - For routine replication: when user confirms days are similar, replicate notes across those days without asking permission per cell, then invite review.
+- Do not use \`"actions"\` for filling cells. Always use the \`"cells"\` field.
 
 ${flagged(
 		flags.hasCreateArrow,
 		`**\`create_arrow\`**:
 - Parameters: \`sourceElementId\` (where arrow starts), \`targetElementId\` (where arrow points), \`color\` ("black" | "green" | "red")
 - Connect related elements. Announce what you're connecting and why.
-- Create only AFTER both source and target elements exist via \`fill_cell\`.
+- Create only AFTER both source and target elements exist via the \`"cells"\` field.
 - Each call connects exactly one source to one target.
 - One element can have multiple arrows.`,
 	)}
@@ -466,7 +454,7 @@ When the user finishes exploring a domain's Want → Am → Have → Know layers
 - \`pessoal-querer\`, \`pessoal-ser\`, \`pessoal-ter\`, \`pessoal-saber\`
 - Center: \`proposito\`
 
-#### fill_cell Examples (Intentional Half)
+#### Cell Content Examples (Intentional Half)
 
 - \`espiritual-querer\`: "Deeper sense of purpose"
 - \`mental-ser\` (past-present): "Anxious overthinker"
@@ -515,7 +503,7 @@ Educative: "This half of the map is about what you actually DO — your routines
 **Current routine mapping (past-present tense):**
 1. Start with a typical day — ask which day feels most representative
 2. Walk through time periods: "What does your morning usually look like?"
-3. Record activities via \`fill_cell\` with \`tense: "past-present"\`
+3. Record activities via the \`"cells"\` field with \`tense: "past-present"\`
 4. Set \`time\` and \`day_of_week\` metadata when relevant
 5. After mapping one day, ask about variation: "Are other days similar, or is there a day that looks very different?"
 6. If user confirms similarity (e.g., "That's every weekday"), replicate notes across those days immediately, then invite review: "I've replicated your Monday routine across Tuesday through Friday — take a look and let me know what's different."
@@ -581,7 +569,7 @@ Educative: "Looking at your week as a whole, I can see where your time goes — 
 **Septenniums (overlay):**
 - \`phase-0-7\`, \`phase-7-14\`, \`phase-14-21\`, \`phase-21-28\`, \`phase-28-35\`, \`phase-35-42\`, \`phase-42-49\`, \`phase-49-56\`, \`phase-56-63\`, \`phase-63-70+\`
 
-#### fill_cell Examples (Temporal Half)
+#### Cell Content Examples (Temporal Half)
 
 - \`monday-morning\` (past-present): "Team standup + email triage"
 - \`monday-morning\` (present-future): "Deep focus block, no meetings"

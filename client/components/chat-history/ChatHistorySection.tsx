@@ -28,10 +28,10 @@ export function ChatHistorySection({
 	return (
 		<div className="chat-history-section">
 			<ChatHistoryPrompt item={section.prompt} editor={agent.editor} />
-			{groups.map((group) => {
+			{groups.map((group, i) => {
 				const first = group.items[0]
 				const last = group.items.at(-1)
-				const key = `${group.withDiff ? 'diff' : 'nodiff'}:${group.items.length}:${first?.acceptance ?? 'unknown'}:${first?.action.time ?? 0}:${last?.action.time ?? 0}`
+				const key = `${i}:${group.withDiff ? 'diff' : 'nodiff'}:${group.items.length}:${first?.acceptance ?? 'unknown'}:${first?.action.time ?? 0}:${last?.action.time ?? 0}`
 				return <ChatHistoryGroup key={key} group={group} />
 			})}
 			{loading && <SmallSpinner />}
