@@ -1,6 +1,6 @@
 // client/components/LeftPanel.tsx
 import { useCallback, useEffect } from 'react'
-import { useEditor, useValue } from 'tldraw'
+import { useValue } from 'tldraw'
 import type { FormEventHandler } from 'react'
 import { useAgent } from '../agent/TldrawAgentAppProvider'
 import { PanelHeader } from './PanelHeader'

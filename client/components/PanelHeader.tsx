@@ -1,6 +1,7 @@
 // client/components/PanelHeader.tsx
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { type TLShapeId, useEditor, useValue } from 'tldraw'
+import { type TLShapeId, useValue } from 'tldraw'
+import { useTldrawAgentApp } from '../agent/TldrawAgentAppProvider'
 import type { MandalaShape } from '../shapes/MandalaShapeUtil'
 
 // NOTE: This hook is moved verbatim from App.tsx (lines 296-334).
@@ -8,7 +9,7 @@ import type { MandalaShape } from '../shapes/MandalaShapeUtil'
 const ARROW_VISIBLE_OPACITY = 0.6
 
 function useArrowsVisible(): [boolean, () => void] {
-	const editor = useEditor()
+	const editor = useTldrawAgentApp().editor
 	const mandala = useValue(
 		'mandala',
 		() =>
@@ -42,7 +43,7 @@ function useArrowsVisible(): [boolean, () => void] {
 }
 
 export function PanelHeader({ onOpenFLSettings }: { onOpenFLSettings: () => void }) {
-	const editor = useEditor()
+	const editor = useTldrawAgentApp().editor
 	const [menuOpen, setMenuOpen] = useState(false)
 	const [arrowsVisible, toggleArrowsVisible] = useArrowsVisible()
 	const menuRef = useRef<HTMLDivElement>(null)

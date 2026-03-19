@@ -1,4 +1,5 @@
-import { useEditor, useValue } from 'tldraw'
+import { useValue } from 'tldraw'
+import { useTldrawAgentApp } from '../agent/TldrawAgentAppProvider'
 import { MandalaIcon } from '../../shared/icons/MandalaIcon'
 import { NoteIcon } from '../../shared/icons/NoteIcon'
 
@@ -26,7 +27,7 @@ export function ToolRail({
 	onTogglePanel: () => void
 	onMandalaToolSelect: () => void
 }) {
-	const editor = useEditor()
+	const editor = useTldrawAgentApp().editor
 	const activeToolId = useValue('current tool id', () => editor.getCurrentToolId(), [editor])
 
 	return (
