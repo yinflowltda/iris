@@ -4,6 +4,7 @@ import type { Environment } from '../environment'
 import { buildDevUser, extractJwt, verifyAccessJwt } from './auth'
 import type { AuthUser } from './auth-types'
 import { upsertUser } from './user-store'
+import { ensureRoomSlug, backfillSub } from './room-store'
 
 /**
  * Public routes that don't require authentication.
@@ -62,6 +63,9 @@ export async function authMiddleware(
 		const devUserHeader = request.headers.get('X-Dev-User')
 		const user = buildDevUser(devUserHeader)
 		;(request as IRequest & { user: AuthUser }).user = user
+		// Dev users also need slug + backfill
+		await upsertUser(env.DB, user)
+		await ensureRoomSlug(env.DB, user.sub)
 		return // continue to handler
 	}
 
@@ -102,7 +106,15 @@ export async function authMiddleware(
 			isDev: false,
 		}
 
-		await upsertUser(env.DB, user)
+		const { isNew } = await upsertUser(env.DB, user)
+
+		// Generate room slug if needed (first login)
+		await ensureRoomSlug(env.DB, user.sub)
+
+		// Backfill shared_with_sub for any pending shares (only on first login)
+		if (isNew) {
+			await backfillSub(env.DB, user.sub, user.email)
+		}
 
 		// 6. Attach user to request
 		;(request as IRequest & { user: AuthUser }).user = user
