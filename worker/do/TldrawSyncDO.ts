@@ -12,6 +12,7 @@ import {
 	SQLiteSyncStorage,
 } from '@tldraw/sync-core'
 import type { Environment } from '../environment'
+import { irisSchema } from '../../shared/schema/tldraw-schema'
 
 export class TldrawSyncDO extends DurableObject<Environment> {
 	private room: TLSocketRoom | null = null
@@ -21,6 +22,7 @@ export class TldrawSyncDO extends DurableObject<Environment> {
 			const sqlWrapper = new DurableObjectSqliteSyncWrapper(this.ctx.storage)
 			const storage = new SQLiteSyncStorage({ sql: sqlWrapper })
 			this.room = new TLSocketRoom({
+				schema: irisSchema,
 				storage,
 				log: { error: console.error, warn: console.warn },
 			})
@@ -39,7 +41,9 @@ export class TldrawSyncDO extends DurableObject<Environment> {
 		const [client, server] = Object.values(pair)
 		server.accept()
 
-		const sessionId = crypto.randomUUID()
+		// Use the client's sessionId from query params so tldraw can track reconnections
+		const url = new URL(request.url)
+		const sessionId = url.searchParams.get('sessionId') ?? crypto.randomUUID()
 		room.handleSocketConnect({
 			sessionId,
 			socket: server as any,

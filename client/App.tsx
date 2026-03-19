@@ -401,7 +401,7 @@ function hasNoTextContent(richText: unknown): boolean {
 
 function App() {
 	const { user, loading, error: authError } = useAuth()
-	const syncStore = useAuthSync(user?.sub ?? '')
+	const syncStore = useAuthSync(user?.sub ?? '', shapeUtils)
 	const [app, setApp] = useState<TldrawAgentApp | null>(null)
 	const [showTemplate, setShowTemplate] = useState(SHOW_TEMPLATE_CHOOSER)
 	const [showFLSettings, setShowFLSettings] = useState(false)
