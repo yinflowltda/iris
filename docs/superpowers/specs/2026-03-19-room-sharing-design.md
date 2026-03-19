@@ -110,19 +110,20 @@ This avoids running a D1 query on every authenticated request. The `AND shared_w
 
 | Context | URL | Behavior |
 |---------|-----|----------|
-| Own room | `iris.yinflow.life` | Default, connects to own room |
-| Shared room | `iris.yinflow.life/r/k7x9m2` | Resolves slug → owner sub, connects to that room |
+| Root | `iris.yinflow.life` | Redirects to `/rooms` registry |
+| Room registry | `iris.yinflow.life/rooms` | Lists your room + rooms shared with you |
+| Enter a room | `iris.yinflow.life/r/k7x9m2` | Resolves slug → owner sub, enters the canvas |
 | Invite email CTA | `iris.yinflow.life/r/k7x9m2` | Same as above |
 
 ### Client-side routing
 
-The `/r/:slug` path is handled client-side via `window.location.pathname` parsing in a `useRoom` hook (no router library needed). The hook:
+Routes are handled client-side via `window.location.pathname` parsing (no router library needed):
 
-1. Checks if the path matches `/r/:slug`
-2. If yes, calls `GET /rooms/resolve/:slug` to get the owner's sub
-3. Passes the resolved sub to `useAuthSync` instead of the user's own sub
+- **`/`** → redirect to `/rooms`
+- **`/rooms`** → render the Room Registry page
+- **`/r/:slug`** → resolve slug via `GET /rooms/resolve/:slug`, then enter the canvas with `useAuthSync`
 
-If no `/r/:slug` path, defaults to the user's own room.
+A `useRoom` hook manages the current route state, slug resolution, and room context.
 
 ### Slug resolution API
 
@@ -377,14 +378,41 @@ Components:
 - Share list: simple flexbox list with email, permission dropdown, remove button
 - Room link: read-only text with copy button
 
-### Room Switcher
+### Room Registry Page (`/rooms`)
 
-- Position: top-left or alongside the share button area
-- Visibility: only when user has shared rooms (checked via `GET /rooms/shared-with-me` on app load, cached)
-- Implementation: Radix Select or Radix DropdownMenu
-- Items: "My Room" (always first, default) + shared rooms labeled by owner name
-- Read-only badge: shown when permission is `view`
-- Selection triggers navigation to the room's slug URL
+The landing page. Shows all rooms the user can access.
+
+```
+┌─────────────────────────────────────────────────┐
+│  Your Rooms                                     │
+├─────────────────────────────────────────────────┤
+│                                                 │
+│  ┌───────────────────────────────────────────┐  │
+│  │  My Room                        [Share]   │  │
+│  │  iris.yinflow.life/r/k7x9m2     Owner     │  │
+│  └───────────────────────────────────────────┘  │
+│                                                 │
+│  Shared with you                                │
+│                                                 │
+│  ┌───────────────────────────────────────────┐  │
+│  │  Rafael's Room                  Can edit   │  │
+│  │  rafael@yinflow.com.br                    │  │
+│  └───────────────────────────────────────────┘  │
+│                                                 │
+│  ┌───────────────────────────────────────────┐  │
+│  │  Ana's Room                     View only  │  │
+│  │  ana@example.com                          │  │
+│  └───────────────────────────────────────────┘  │
+│                                                 │
+└─────────────────────────────────────────────────┘
+```
+
+- **Your room** is always first, with a "Share" button that opens the share dialog
+- **Shared rooms** listed below with owner name, email, and permission badge
+- Clicking a room navigates to `/r/:slug` (enters the canvas)
+- Styled with Iris dark slate glassmorphism theme
+- Data from `GET /me` (own room slug) + `GET /rooms/shared-with-me` (shared rooms)
+- A "Back to rooms" link/button is shown inside the canvas view to return to `/rooms`
 
 ### Read-Only Indicator
 
@@ -405,9 +433,9 @@ In dev mode (`DEV_MODE=true`), the dev user (`sub: 'dev-user-1'`) gets a `room_s
 - `client/components/ShareDialog.tsx` — Share dialog component
 - `client/components/ShareDialog.css` — Styles
 - `client/components/ShareButton.tsx` — Top-right share button
-- `client/components/RoomSwitcher.tsx` — Room navigation dropdown
-- `client/components/RoomSwitcher.css` — Styles
-- `client/lib/use-room.ts` — Room context hook (current room, slug resolution, pathname parsing)
+- `client/components/RoomRegistry.tsx` — Room registry page (`/rooms`)
+- `client/components/RoomRegistry.css` — Styles
+- `client/lib/use-room.ts` — Room context hook (routing, slug resolution, current room state)
 
 ### Modified files
 - `worker/worker.ts` — Add room routes + slug resolution route
