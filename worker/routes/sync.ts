@@ -36,5 +36,9 @@ export async function syncRoom(request: IRequest, env: Environment): Promise<Res
 	const id = env.TLDRAW_SYNC_DO.idFromName(roomId)
 	const stub = env.TLDRAW_SYNC_DO.get(id)
 
-	return stub.fetch(new Request(request.url, request as unknown as Request))
+	// Build a clean Request — itty-router's IRequest is not a valid RequestInit
+	return stub.fetch(new Request(request.url, {
+		headers: request.headers as unknown as Headers,
+		method: request.method,
+	}))
 }
