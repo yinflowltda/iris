@@ -97,27 +97,31 @@ Both cards share the existing dark theme:
 
 - `ToolbarWithStylePanel` (App.tsx) — replaced by tool rail inside `LeftPanel`
 - `MenuPanelWithActions` (App.tsx) — replaced by header bar inside `LeftPanel`
-- `IrisMainMenu` (App.tsx) — hamburger dropdown moves into `LeftPanel` header
+- `IrisMainMenu` (App.tsx) — replaced by new hamburger dropdown in `LeftPanel` header. The `DefaultMainMenuContent` items (zoom, preferences, etc.) are **dropped** — only custom items ("Show arrows", "Privacy & Learning") move to the new dropdown.
 - `ChatToggleButton` (App.tsx) — replaced by chevron on tool rail
 
 ### Components Reused (no changes)
 
-- `ChatPanel` internals: `ChatHistory`, `ChatWelcome`, `ChatInput`, `TodoList`, `QuickActionPills`
-- `PromptTag`, `SelectionTag`, `ContextItemTag`
+- `ChatInput` (includes `QuickActionPills`, `PromptTag`, `SelectionTag`, `ContextItemTag` internally)
+- `ChatHistory`
+- `TodoList`
 - `CustomHelperButtons` / `GoToAgentButton` (stay on canvas, unrelated)
+- `FLSettingsPanel` / `FLSettingsContext` — modal overlays, unaffected by layout changes
+- `ShareButton`, `back-to-rooms` button, `readonly-badge` — absolutely positioned, stay as-is
 
 ### Components Modified
 
-- `App.tsx` — new layout structure, remove old toolbar/menu overrides from tldraw `components` prop, wire up `LeftPanel`
-- `ChatPanel.tsx` — extract header into `LeftPanel`, `ChatPanel` becomes a "body-only" component (history + input)
+- `App.tsx` — new layout structure; set tldraw `components` prop entries to `null` for `Toolbar`, `MenuPanel`, and `MainMenu` (prevents tldraw from rendering its defaults); wire up `LeftPanel`
+- `ChatPanel.tsx` — the existing `ChatHeader` (private function, not exported) is **replaced** by the new `LeftPanel` header which has different content (hamburger + undo/redo + new-chat/history). `ChatWelcome` (also private) needs to be **exported** or moved to `LeftPanel`. `ChatPanel` becomes a "body-only" component (history + input).
 - `index.css` — remove old `.agent-chat-slot`, `.iris-main-toolbar--dock-bottom-left`, `.tlui-menu-zone` styles; add new `.iris-app`, `.left-panel`, `.tool-rail`, `.iris-canvas-container` styles
 
 ### Tldraw Integration
 
-The tool rail needs to trigger tldraw tool changes. Options:
+The tool rail needs to trigger tldraw tool changes:
 - Use `editor.setCurrentTool(toolId)` from the tldraw editor instance (available via `useEditor()`)
 - The rail buttons are custom React components that call this API directly
 - Active tool state read via `useValue('current tool id', () => editor.getCurrentToolId())`
+- Tldraw `components` prop: set `Toolbar: null`, `MenuPanel: null`, `MainMenu: null` to suppress built-in chrome
 
 This decouples our tool rail from tldraw's built-in toolbar component entirely. We render our own buttons and wire them to the editor API.
 
