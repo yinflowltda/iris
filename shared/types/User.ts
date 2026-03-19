@@ -3,4 +3,5 @@ export interface User {
 	email: string
 	name: string | null
 	avatar_url: string | null
+	room_slug: string | null
 }

@@ -12,6 +12,8 @@ export interface Environment {
 	POLICY_AUD: string | undefined
 	DEV_MODE: string | undefined
 	DB: D1Database
+	// Email
+	RESEND_API_KEY: string | undefined
 	// tldraw-sync
 	TLDRAW_SYNC_DO: DurableObjectNamespace
 	TLDRAW_BUCKET: R2Bucket

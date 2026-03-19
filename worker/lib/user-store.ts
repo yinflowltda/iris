@@ -7,11 +7,16 @@ export interface UserRow extends User {
 
 /**
  * Insert or update a user. Preserves created_at on conflict.
+ * Returns { isNew: true } if this was the user's first login.
  */
 export async function upsertUser(
 	db: D1Database,
 	user: { sub: string; email: string; name: string | null; avatar_url: string | null },
-): Promise<void> {
+): Promise<{ isNew: boolean }> {
+	// Check if user exists before upserting — reliable isNew detection
+	const existing = await db.prepare('SELECT 1 FROM users WHERE sub = ?').bind(user.sub).first()
+	const isNew = !existing
+
 	await db
 		.prepare(
 			`INSERT INTO users (sub, email, name, avatar_url)
@@ -24,6 +29,8 @@ export async function upsertUser(
 		)
 		.bind(user.sub, user.email, user.name, user.avatar_url)
 		.run()
+
+	return { isNew }
 }
 
 /**
