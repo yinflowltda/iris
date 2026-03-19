@@ -1,15 +1,8 @@
 import type { IRequest } from 'itty-router'
 import type { Environment } from '../environment'
 import type { AuthenticatedRequest } from '../lib/auth-types'
+import { getShare } from '../lib/room-store'
 
-/**
- * GET /sync/:roomId — WebSocket upgrade for tldraw-sync.
- *
- * Auth: JWT validated by auth middleware (from CF_Authorization cookie).
- * Authorization: user.sub must match roomId (owner-only).
- * Forward: passes the raw request to TldrawSyncDO.fetch() which handles
- *          the WebSocket upgrade internally.
- */
 export async function syncRoom(request: IRequest, env: Environment): Promise<Response> {
 	if (request.headers.get('Upgrade') !== 'websocket') {
 		return new Response('Expected WebSocket upgrade', { status: 426 })
@@ -25,20 +18,31 @@ export async function syncRoom(request: IRequest, env: Environment): Promise<Res
 		})
 	}
 
-	// Owner check: Phase 1 — single room per user
-	if (user.sub !== roomId) {
-		return new Response(JSON.stringify({ error: 'Not authorized for this room' }), {
-			status: 403,
-			headers: { 'Content-Type': 'application/json' },
-		})
+	let isReadonly = false
+
+	if (user.sub === roomId) {
+		isReadonly = false
+	} else {
+		const share = await getShare(env.DB, roomId, user.sub, user.email)
+		if (!share) {
+			return new Response(JSON.stringify({ error: 'Not authorized for this room' }), {
+				status: 403,
+				headers: { 'Content-Type': 'application/json' },
+			})
+		}
+		isReadonly = share.permission === 'view'
 	}
 
 	const id = env.TLDRAW_SYNC_DO.idFromName(roomId)
 	const stub = env.TLDRAW_SYNC_DO.get(id)
 
-	// Build a clean Request — itty-router's IRequest is not a valid RequestInit
-	return stub.fetch(new Request(request.url, {
-		headers: request.headers as unknown as Headers,
-		method: request.method,
-	}))
+	const url = new URL(request.url)
+	if (isReadonly) url.searchParams.set('readonly', 'true')
+
+	return stub.fetch(
+		new Request(url.toString(), {
+			headers: request.headers as unknown as Headers,
+			method: request.method,
+		}),
+	)
 }

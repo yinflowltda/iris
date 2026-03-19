@@ -44,9 +44,12 @@ export class TldrawSyncDO extends DurableObject<Environment> {
 		// Use the client's sessionId from query params so tldraw can track reconnections
 		const url = new URL(request.url)
 		const sessionId = url.searchParams.get('sessionId') ?? crypto.randomUUID()
+		const isReadonly = url.searchParams.get('readonly') === 'true'
+
 		room.handleSocketConnect({
 			sessionId,
 			socket: server as any,
+			isReadonly,
 		})
 
 		return new Response(null, { status: 101, webSocket: client })
