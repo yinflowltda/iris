@@ -89,6 +89,9 @@ import { NoteIcon } from '../shared/icons/NoteIcon'
 import { TargetShapeTool } from './tools/TargetShapeTool'
 import type { User } from '../shared/types/User'
 import { useAuthSync } from './lib/use-auth-sync'
+import { useRoom } from './lib/use-room'
+import { RoomRegistry } from './components/RoomRegistry'
+import { ShareButton } from './components/ShareButton'
 
 const ChatPanelContext = createContext<{ chatOpen: boolean; toggleChat: () => void }>({
 	chatOpen: false,
@@ -401,7 +404,9 @@ function hasNoTextContent(richText: unknown): boolean {
 
 function App() {
 	const { user, loading, error: authError } = useAuth()
-	const syncStore = useAuthSync(user?.sub ?? '', shapeUtils)
+	const { route, roomInfo, sharedRooms, navigateTo } = useRoom(user?.sub ?? '')
+	const syncRoomId = roomInfo?.ownerSub ?? ''
+	const syncStore = useAuthSync(syncRoomId, shapeUtils)
 	const [app, setApp] = useState<TldrawAgentApp | null>(null)
 	const [showTemplate, setShowTemplate] = useState(SHOW_TEMPLATE_CHOOSER)
 	const [showFLSettings, setShowFLSettings] = useState(false)
@@ -757,8 +762,25 @@ function App() {
 	if (loading) return <div className="auth-loading">Loading...</div>
 	if (authError || !user) return <div className="auth-error">Authentication required. Refreshing...</div>
 
+	if (route === 'loading') return <div className="auth-loading">Loading...</div>
+
+	if (route === 'registry') {
+		return (
+			<AuthUserContext.Provider value={user}>
+				<RoomRegistry
+					user={user}
+					sharedRooms={sharedRooms}
+					onEnterRoom={(slug) => navigateTo(`/r/${slug}`)}
+				/>
+			</AuthUserContext.Provider>
+		)
+	}
+
 	return (
 		<AuthUserContext.Provider value={user}>
+			{roomInfo?.isOwner && <ShareButton roomId={user.sub} roomSlug={user.room_slug} />}
+			<button className="back-to-rooms" onClick={() => navigateTo('/rooms')}>← Rooms</button>
+			{roomInfo && !roomInfo.isOwner && roomInfo.permission === 'view' && <div className="readonly-badge">View only</div>}
 			<MandalaCoverContext.Provider value={{ onCoverSlideClick: handleCoverSlideClick }}>
 				<ChatPanelContext.Provider value={{ chatOpen, toggleChat }}>
 					<FLSettingsContext.Provider value={flSettingsCtx}>
