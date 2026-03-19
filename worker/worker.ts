@@ -72,6 +72,18 @@ const router = AutoRouter<IRequest, [env: Environment, ctx: ExecutionContext]>({
 	.patch('/rooms/:roomId/shares', updateShareRoute)
 	.get('/sync/:roomId', syncRoom)
 	.post('/fl/rounds/aggregate-now', aggregateNow)
+	// SPA catch-all: serve index.html for non-API routes
+	.all('*', async (request: IRequest, env: Environment) => {
+		const assets = (env as any).ASSETS ?? (env as any).__STATIC_CONTENT
+		if (assets?.fetch) {
+			const url = new URL(request.url)
+			return assets.fetch(new Request(url.origin + '/index.html'))
+		}
+		return new Response('<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0;url=/"></head></html>', {
+			status: 200,
+			headers: { 'Content-Type': 'text/html' },
+		})
+	})
 
 export default class extends WorkerEntrypoint<Environment> {
 	override fetch(request: Request): Promise<Response> {
