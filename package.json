@@ -25,6 +25,8 @@
 		"@ai-sdk/openai": "^3.0.33",
 		"@cloudflare/vite-plugin": "^1.13.2",
 		"@huggingface/transformers": "^3.8.1",
+		"@radix-ui/react-dialog": "^1.1.15",
+		"@radix-ui/react-select": "^2.2.6",
 		"@tldraw/sync": "^4.4.1",
 		"@tldraw/tlschema": "^4.4.1",
 		"@worker-tools/json-stream": "^0.1.0-pre.12",
