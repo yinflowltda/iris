@@ -24,6 +24,7 @@ import {
 	ErrorBoundary,
 	react,
 	type TLComponents,
+	type TLShapeId,
 	type TLUiOverrides,
 	type TLUiStylePanelProps,
 	tipTapDefaultExtensions,
@@ -42,7 +43,6 @@ import {
 	TldrawAgentAppProvider,
 } from './agent/TldrawAgentAppProvider'
 import { LeftPanel } from './components/LeftPanel'
-import { useArrowsVisible } from './components/PanelHeader'
 import { ToolRail } from './components/ToolRail'
 import { MandalaCoverContext } from './components/MandalaCoverContext'
 import { ChatPanelFallback } from './components/ChatPanelFallback'
@@ -173,10 +173,36 @@ function PopoverOnlyStylePanel(props: TLUiStylePanelProps) {
 	return <DefaultStylePanel {...props} styles={styles} />
 }
 
+const ARROW_VISIBLE_OPACITY = 0.6
+
 function IrisMainMenu() {
-	const [arrowsVisible, toggleArrowsVisible] = useArrowsVisible()
+	const editor = useEditor()
 	const { openFLSettings } = useContext(FLSettingsContext)
 	const { navigateTo } = useContext(NavigationContext)
+
+	const mandala = useValue(
+		'iris-menu-mandala',
+		() =>
+			editor.getCurrentPageShapes().find((s) => s.type === 'mandala') as MandalaShape | undefined,
+		[editor],
+	)
+	const arrowsVisible = mandala?.props.arrowsVisible !== false
+
+	const toggleArrowsVisible = useCallback(() => {
+		if (!mandala) return
+		const next = !arrowsVisible
+		editor.updateShape({
+			id: mandala.id,
+			type: 'mandala',
+			props: { arrowsVisible: next },
+		})
+		for (const rec of mandala.props.arrows ?? []) {
+			const arrowId = `shape:${rec.arrowId}` as TLShapeId
+			if (editor.getShape(arrowId)) {
+				editor.updateShape({ id: arrowId, type: 'arrow', opacity: next ? ARROW_VISIBLE_OPACITY : 0 })
+			}
+		}
+	}, [editor, mandala, arrowsVisible])
 
 	return (
 		<DefaultMainMenu>
