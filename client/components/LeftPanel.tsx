@@ -3,8 +3,6 @@ import { useCallback, useEffect } from 'react'
 import { useValue } from 'tldraw'
 import type { FormEventHandler } from 'react'
 import { useAgent } from '../agent/TldrawAgentAppProvider'
-import { PanelHeader } from './PanelHeader'
-import { ToolRail } from './ToolRail'
 import { ChatHistory } from './chat-history/ChatHistory'
 import { ChatInput } from './ChatInput'
 import { TodoList } from './TodoList'
@@ -39,14 +37,10 @@ function ChatWelcome() {
 export function LeftPanel({
 	panelOpen,
 	onTogglePanel,
-	onOpenFLSettings,
-	onMandalaToolSelect,
 	inputRef,
 }: {
 	panelOpen: boolean
 	onTogglePanel: () => void
-	onOpenFLSettings: () => void
-	onMandalaToolSelect: () => void
 	inputRef: React.RefObject<HTMLTextAreaElement | null>
 }) {
 	const agent = useAgent()
@@ -94,18 +88,22 @@ export function LeftPanel({
 
 	return (
 		<div className={`left-panel${panelOpen ? '' : ' left-panel--collapsed'}`}>
-			{/* Chat section (collapsible) */}
 			{panelOpen && (
 				<div className="left-panel-chat tl-theme__dark">
-					<PanelHeader onOpenFLSettings={onOpenFLSettings} />
-
-					{/* Mobile-only: horizontal tool strip */}
-					<div className="left-panel-tools-mobile">
-						<ToolRail
-							panelOpen={panelOpen}
-							onTogglePanel={onTogglePanel}
-							onMandalaToolSelect={onMandalaToolSelect}
-						/>
+					{/* Minimal chat header with collapse button */}
+					<div className="left-panel-chat-header">
+						<span className="panel-header-title">Chat</span>
+						<button
+							className="panel-header-btn"
+							onClick={onTogglePanel}
+							title="Collapse chat (⌘\\)"
+							aria-label="Collapse chat"
+						>
+							<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+								<polyline points="11 17 6 12 11 7" />
+								<polyline points="18 17 13 12 18 7" />
+							</svg>
+						</button>
 					</div>
 
 					{hasMessages ? (
@@ -126,14 +124,19 @@ export function LeftPanel({
 				</div>
 			)}
 
-			{/* Tool rail (always visible, desktop only) */}
-			<div className="left-panel-tools-desktop">
-				<ToolRail
-					panelOpen={panelOpen}
-					onTogglePanel={onTogglePanel}
-					onMandalaToolSelect={onMandalaToolSelect}
-				/>
-			</div>
+			{/* Expand button when collapsed */}
+			{!panelOpen && (
+				<button
+					className="left-panel-expand-btn"
+					onClick={onTogglePanel}
+					title="Expand chat (⌘\\)"
+					aria-label="Expand chat"
+				>
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+						<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+					</svg>
+				</button>
+			)}
 		</div>
 	)
 }

@@ -37,6 +37,8 @@ import {
 	TldrawAgentAppProvider,
 } from './agent/TldrawAgentAppProvider'
 import { LeftPanel } from './components/LeftPanel'
+import { PanelHeader } from './components/PanelHeader'
+import { ToolRail } from './components/ToolRail'
 import { MandalaCoverContext } from './components/MandalaCoverContext'
 import { ChatPanelFallback } from './components/ChatPanelFallback'
 import { CustomHelperButtons } from './components/CustomHelperButtons'
@@ -571,24 +573,17 @@ function App() {
 	return (
 		<AuthUserContext.Provider value={user}>
 			{roomInfo?.isOwner && <ShareButton roomId={user.sub} roomSlug={user.room_slug} />}
-			<button className="back-to-rooms" onClick={() => navigateTo('/rooms')}>← Rooms</button>
 			{roomInfo && !roomInfo.isOwner && roomInfo.permission === 'view' && <div className="readonly-badge">View only</div>}
 			<MandalaCoverContext.Provider value={{ onCoverSlideClick: handleCoverSlideClick }}>
 					<TldrawUiToastsProvider>
 						<div className="iris-app">
-							{/* Left panel: chat + tool rail, wrapped in ErrorBoundary */}
+							{/* Left panel: chat only */}
 							<ErrorBoundary fallback={ChatPanelFallback}>
 								{app && (
 									<TldrawAgentAppContextProvider app={app}>
 										<LeftPanel
 											panelOpen={chatOpen}
 											onTogglePanel={toggleChat}
-											onOpenFLSettings={() => setShowFLSettings(true)}
-											onMandalaToolSelect={() => {
-												setShowTemplate(true)
-												app.editor.setCurrentTool('select')
-												app.editor.focus()
-											}}
 											inputRef={chatInputRef}
 										/>
 									</TldrawAgentAppContextProvider>
@@ -597,6 +592,26 @@ function App() {
 
 							{/* Canvas card */}
 							<div className="iris-canvas-container">
+								{/* Top bar: menu + tools, centered */}
+								{app && (
+									<TldrawAgentAppContextProvider app={app}>
+										<div className="canvas-top-bar">
+											<PanelHeader
+												onOpenFLSettings={() => setShowFLSettings(true)}
+												onNavigateToRooms={() => navigateTo('/rooms')}
+											/>
+											<ToolRail
+												panelOpen={chatOpen}
+												onTogglePanel={toggleChat}
+												onMandalaToolSelect={() => {
+													setShowTemplate(true)
+													app.editor.setCurrentTool('select')
+													app.editor.focus()
+												}}
+											/>
+										</div>
+									</TldrawAgentAppContextProvider>
+								)}
 								<Tldraw
 									store={syncStore}
 									options={options}

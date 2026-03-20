@@ -42,7 +42,7 @@ function useArrowsVisible(): [boolean, () => void] {
 	return [visible, toggle]
 }
 
-export function PanelHeader({ onOpenFLSettings }: { onOpenFLSettings: () => void }) {
+export function PanelHeader({ onOpenFLSettings, onNavigateToRooms }: { onOpenFLSettings: () => void; onNavigateToRooms: () => void }) {
 	const editor = useTldrawAgentApp().editor
 	const [menuOpen, setMenuOpen] = useState(false)
 	const [arrowsVisible, toggleArrowsVisible] = useArrowsVisible()
@@ -91,6 +91,14 @@ export function PanelHeader({ onOpenFLSettings }: { onOpenFLSettings: () => void
 						>
 							<span className="panel-header-dropdown-check" />
 							Privacy & Learning
+						</button>
+						<div className="panel-header-dropdown-divider" />
+						<button
+							className="panel-header-dropdown-item"
+							onClick={() => { onNavigateToRooms(); setMenuOpen(false) }}
+						>
+							<span className="panel-header-dropdown-check">←</span>
+							Rooms
 						</button>
 					</div>
 				)}
