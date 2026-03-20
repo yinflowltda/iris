@@ -67,6 +67,11 @@ function getNoteScaleForZoom(zoom: number) {
 	return Math.min(NOTE_MAX_SCALE, Math.max(NOTE_MIN_SCALE, scale))
 }
 
+// Saved click context so onDoubleClick can use the pre-zoom coordinates.
+// onClick fires before onDoubleClick in the same dispatch, and its zoom may
+// change the camera before onDoubleClick reads currentPagePoint.
+let lastClickContext: { pagePoint: { x: number; y: number }; cellId: string | null } | null = null
+
 type MandalaPointInShapeSpaceEditor = {
 	getPointInShapeSpace(shape: MandalaShape, point: VecLike): VecLike
 }
@@ -329,6 +334,11 @@ export class MandalaShapeUtil extends ShapeUtil<MandalaShape> {
 		const pagePoint = this.editor.inputs.currentPagePoint
 		const cellId = getLocalCellFromPage(this.editor, shape, pagePoint)
 
+		// Save click context for onDoubleClick — onClick fires before onDoubleClick
+		// in the same dispatch cycle, and the zoom below may change the camera
+		// before onDoubleClick can read currentPagePoint.
+		lastClickContext = { pagePoint: { x: pagePoint.x, y: pagePoint.y }, cellId }
+
 		// Always deselect to prevent tldraw's native drag-from-anywhere behavior
 		this.editor.selectNone()
 
@@ -380,8 +390,13 @@ export class MandalaShapeUtil extends ShapeUtil<MandalaShape> {
 
 	override onDoubleClick(shape: MandalaShape) {
 		setActiveMandalaId(shape.id)
-		const pagePoint = this.editor.inputs.currentPagePoint
-		const cellId = getLocalCellFromPage(this.editor, shape, pagePoint)
+
+		// Use saved context from onClick (which fires first in the same dispatch
+		// and may have already changed the camera via zoom)
+		const ctx = lastClickContext
+		lastClickContext = null
+		const pagePoint = ctx?.pagePoint ?? this.editor.inputs.currentPagePoint
+		const cellId = ctx?.cellId ?? getLocalCellFromPage(this.editor, shape, pagePoint)
 		if (!cellId) return { id: shape.id, type: 'mandala' as const }
 
 		const zoom = this.editor.getZoomLevel()
