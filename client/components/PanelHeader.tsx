@@ -42,7 +42,7 @@ export function useArrowsVisible(): [boolean, () => void] {
 	return [visible, toggle]
 }
 
-export function PanelHeader({ onOpenFLSettings, onNavigateToRooms }: { onOpenFLSettings: () => void; onNavigateToRooms: () => void }) {
+export function PanelHeader({ onOpenFLSettings, onNavigateToRooms, onTogglePanel }: { onOpenFLSettings: () => void; onNavigateToRooms: () => void; onTogglePanel: () => void }) {
 	const editor = useTldrawAgentApp().editor
 	const [menuOpen, setMenuOpen] = useState(false)
 	const [arrowsVisible, toggleArrowsVisible] = useArrowsVisible()
@@ -128,6 +128,26 @@ export function PanelHeader({ onOpenFLSettings, onNavigateToRooms }: { onOpenFLS
 						<path d="M21 7v6h-6" /><path d="M21 13a9 9 0 0 0-15.36-6.36" />
 					</svg>
 				</button>
+				<button
+					className="panel-header-btn"
+					onClick={() => editor.duplicateShapes(editor.getSelectedShapeIds())}
+					title="Copy"
+					aria-label="Copy"
+				>
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+						<rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+					</svg>
+				</button>
+				<button
+					className="panel-header-btn"
+					onClick={() => editor.deleteShapes(editor.getSelectedShapeIds())}
+					title="Delete"
+					aria-label="Delete"
+				>
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+						<polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+					</svg>
+				</button>
 				<button className="panel-header-btn" aria-label="New chat" title="New chat">
 					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
 						<path d="M12 20h9" />
@@ -138,6 +158,17 @@ export function PanelHeader({ onOpenFLSettings, onNavigateToRooms }: { onOpenFLS
 					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
 						<circle cx="12" cy="12" r="10" />
 						<polyline points="12 6 12 12 16 14" />
+					</svg>
+				</button>
+				<button
+					className="panel-header-btn"
+					onClick={onTogglePanel}
+					title="Collapse chat (⌘\\)"
+					aria-label="Collapse chat"
+				>
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+						<polyline points="11 17 6 12 11 7" />
+						<polyline points="18 17 13 12 18 7" />
 					</svg>
 				</button>
 			</div>

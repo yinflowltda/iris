@@ -5,6 +5,7 @@ import type { FormEventHandler } from 'react'
 import { useAgent } from '../agent/TldrawAgentAppProvider'
 import { ChatHistory } from './chat-history/ChatHistory'
 import { ChatInput } from './ChatInput'
+import { PanelHeader } from './PanelHeader'
 import { TodoList } from './TodoList'
 import { useVoice } from './VoiceControl'
 import './LeftPanel.css'
@@ -38,10 +39,14 @@ export function LeftPanel({
 	panelOpen,
 	onTogglePanel,
 	inputRef,
+	onOpenFLSettings,
+	onNavigateToRooms,
 }: {
 	panelOpen: boolean
 	onTogglePanel: () => void
 	inputRef: React.RefObject<HTMLTextAreaElement | null>
+	onOpenFLSettings: () => void
+	onNavigateToRooms: () => void
 }) {
 	const agent = useAgent()
 	const { voiceState, isListening, toggleListening } = useVoice(agent)
@@ -90,22 +95,11 @@ export function LeftPanel({
 		<div className={`left-panel${panelOpen ? '' : ' left-panel--collapsed'}`}>
 			{panelOpen && (
 				<div className="left-panel-chat tl-theme__dark">
-					{/* Minimal chat header with collapse button */}
-					<div className="left-panel-chat-header">
-						<span className="panel-header-title">Chat</span>
-						<button
-							className="panel-header-btn"
-							onClick={onTogglePanel}
-							title="Collapse chat (⌘\\)"
-							aria-label="Collapse chat"
-						>
-							<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-								<polyline points="11 17 6 12 11 7" />
-								<polyline points="18 17 13 12 18 7" />
-							</svg>
-						</button>
-					</div>
-
+					<PanelHeader
+						onOpenFLSettings={onOpenFLSettings}
+						onNavigateToRooms={onNavigateToRooms}
+						onTogglePanel={onTogglePanel}
+					/>
 					{hasMessages ? (
 						<ChatHistory agent={agent} />
 					) : (

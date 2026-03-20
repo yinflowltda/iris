@@ -1,13 +1,13 @@
 /* client/components/LeftPanel.css */
 
-/* ─── Left Panel Container ─── */
+/* ─── Left Panel Container (own card, sibling of canvas) ─── */
 
 .left-panel {
 	display: flex;
 	flex-shrink: 0;
 	height: 100%;
 	transition: width 0.25s ease;
-	width: 416px;
+	width: 380px;
 }
 
 .left-panel--collapsed {
@@ -33,15 +33,6 @@
 	overflow: hidden;
 }
 
-.left-panel-chat-header {
-	flex-shrink: 0;
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	padding: 10px 12px;
-	border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-}
-
 /* Expand button when collapsed */
 .left-panel-expand-btn {
 	width: 40px;
@@ -63,30 +54,14 @@
 	color: #ffffff;
 }
 
-/* ─── Canvas Bottom Bar (tools) ─── */
+/* ─── Canvas Right Toolbar ─── */
 
-.canvas-bottom-bar {
+.canvas-right-toolbar {
 	position: absolute;
-	bottom: 8px;
-	left: 50%;
-	transform: translateX(-50%);
+	right: 8px;
+	top: 50%;
+	transform: translateY(-50%);
 	z-index: 100;
-}
-
-.canvas-bottom-bar .tool-rail {
-	flex-direction: row;
-	width: auto;
-	padding: 0;
-	gap: 0;
-}
-
-.canvas-bottom-bar .tool-rail-cluster {
-	flex-direction: row;
-	gap: 2px;
-}
-
-.canvas-bottom-bar .tool-rail-toggle {
-	display: none;
 }
 
 /* ─── Tool Rail ─── */
@@ -278,7 +253,7 @@
 		height: auto;
 	}
 
-	.canvas-bottom-bar {
-		bottom: 4px;
+	.canvas-right-toolbar {
+		right: 4px;
 	}
 }

@@ -4,7 +4,6 @@ import { MandalaIcon } from '../../shared/icons/MandalaIcon'
 import { NoteIcon } from '../../shared/icons/NoteIcon'
 
 const TOOLS = [
-	{ id: 'select', label: 'Select', kbd: 'V', icon: '↗' },
 	{ id: 'hand', label: 'Hand', kbd: 'H', icon: '✋' },
 	{ id: 'arrow', label: 'Arrow', kbd: 'A', icon: '↙' },
 	{ id: 'text', label: 'Text', kbd: 'T', icon: 'T' },
