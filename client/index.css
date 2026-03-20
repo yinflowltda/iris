@@ -14,74 +14,43 @@ body {
 	font-family: "Source Sans 3", sans-serif;
 }
 
-.tl-note__container {
-	border-radius: 9999px;
-	overflow: hidden;
-}
+/* ─── App Layout: two floating cards ─── */
 
-.tldraw-agent-container {
+.iris-app {
 	position: fixed;
 	inset: 0;
 	display: flex;
-	/* Mirror TLDraw radius tokens for UI outside .tl-container (chat overlay). */
+	gap: 8px;
+	padding: 8px;
+	background: #0a0f1a;
 	--tl-radius-0: 2px;
 	--tl-radius-1: 4px;
 	--tl-radius-2: 6px;
 	--tl-radius-3: 9px;
 	--tl-radius-4: 11px;
-	/* Matches .tlui-button__tool::after radius in TLDraw toolbar */
 	--iris-toolbar-radius: 8px;
 }
 
-.agent-chat-slot {
-	position: absolute;
-	top: 0;
-	right: 0;
-	width: 416px;
-	max-width: 100vw;
+.iris-canvas-container {
+	position: relative;
+	flex: 1;
+	min-width: 0;
 	height: 100%;
+	border-radius: 12px;
 	overflow: hidden;
-	z-index: 50;
-	transition:
-		transform 0.25s ease,
-		opacity 0.2s ease;
-	transform: translateX(100%);
-	opacity: 0;
-	pointer-events: none;
-}
-
-.agent-chat-slot--open {
-	transform: translateX(0);
-	opacity: 1;
-	pointer-events: auto;
-}
-
-.agent-chat-slot .chat-panel {
-	height: 100%;
+	border: 1px solid rgba(255, 255, 255, 0.08);
+	box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
 }
 
 @media (max-width: 768px) {
-	.tldraw-agent-container {
+	.iris-app {
 		flex-direction: column;
 	}
+}
 
-	.agent-chat-slot {
-		top: auto;
-		right: 0;
-		left: 0;
-		bottom: 0;
-		width: 100%;
-		height: min(45vh, 420px);
-		transform: translateY(100%);
-	}
-
-	.agent-chat-slot--open {
-		transform: translateY(0);
-	}
-
-	.agent-chat-slot .chat-panel {
-		border-left: 0;
-	}
+.tl-note__container {
+	border-radius: 9999px;
+	overflow: hidden;
 }
 
 .tlui-main-toolbar__mobile-style-panel {
@@ -101,14 +70,7 @@ body {
 }
 
 .tlui-menu-zone {
-	background: linear-gradient(135deg, rgba(15, 23, 42, 0.92), rgba(30, 41, 59, 0.88)) !important;
-	backdrop-filter: blur(20px);
-	-webkit-backdrop-filter: blur(20px);
-	border: 1px solid rgba(255, 255, 255, 0.08) !important;
-	border-top: none !important;
-	border-left: none !important;
-	box-shadow: none;
-	color: #e2e8f0;
+	display: none !important;
 }
 
 .tlui-popover__content {
@@ -135,10 +97,6 @@ body {
 	box-shadow: none !important;
 }
 
-.tl-theme__dark .tlui-menu-zone {
-	background: linear-gradient(135deg, rgba(10, 15, 30, 0.95), rgba(20, 28, 45, 0.92)) !important;
-	border-color: rgba(255, 255, 255, 0.06) !important;
-}
 
 .tl-theme__dark .tlui-popover__content {
 	background: linear-gradient(135deg, rgba(10, 15, 30, 0.95), rgba(20, 28, 45, 0.92)) !important;
@@ -153,7 +111,6 @@ body {
 
 /* Light-colored icons/text on dark toolbar and menu */
 .tlui-main-toolbar__tools,
-.tlui-menu-zone,
 .tlui-main-toolbar__extras__controls {
 	--tl-color-text-0: #f1f5f9;
 	--tl-color-text-1: #e2e8f0;
@@ -174,45 +131,19 @@ body {
 	--tl-color-muted-2: rgba(255, 255, 255, 0.04);
 }
 
-/* Dock the main toolbar to the bottom-left corner. */
-.tlui-main-toolbar.iris-main-toolbar--dock-bottom-left {
-	position: fixed;
-	left: calc(env(safe-area-inset-left, 0px) + 12px);
-	bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
-	top: auto;
-	right: auto;
-	transform: none;
-	height: min(calc(100vh - 160px), 520px);
-	padding-left: 0;
-	z-index: 100;
-}
-
 /* Hide export options from menus */
 [data-testid="main-menu-sub.export-all-as-button"],
 [data-testid="context-menu-sub.export-as-button"] {
 	display: none;
 }
 
-/* Place "Actions" beside the hamburger menu (top-left). */
-.tlui-menu-zone .iris-menu-actions {
-	margin-left: 8px;
-	border-radius: var(--tl-radius-4);
-}
-
-.tldraw-canvas {
-	flex: 1;
-	min-width: 0;
-	height: 100%;
-	background-color: #f4f6f8;
-}
-
-.tldraw-canvas .tl-theme__light {
+.iris-canvas-container .tl-theme__light {
 	--tl-color-background: #f4f6f8;
 	--tl-font-draw: "Quicksand", sans-serif;
 	--tl-font-sans: "Quicksand", sans-serif;
 }
 
-.tldraw-canvas .tl-theme__dark {
+.iris-canvas-container .tl-theme__dark {
 	--tl-font-draw: "Quicksand", sans-serif;
 	--tl-font-sans: "Quicksand", sans-serif;
 }
@@ -224,28 +155,61 @@ body {
 
 /* Chat Panel */
 
-.chat-panel.tl-theme__light {
-	--tl-color-text-2: hsl(0, 0%, 55%);
-	--tl-color-primary-hover: hsl(214, 84%, 58%);
-}
-
-.chat-panel.tl-theme__dark {
+.left-panel-chat {
 	--tl-color-text-2: hsl(0, 0%, 55%);
 	--tl-color-primary-hover: hsl(214, 84%, 50%);
 }
 
-.chat-panel {
+/* ─── Chat Welcome ─── */
+
+.chat-welcome-area {
+	flex: 1;
+	min-height: 0;
+	overflow-y: auto;
 	display: flex;
-	flex-direction: column;
-	height: 100%;
-	position: relative;
-	background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
-	color: #e2e8f0;
-	font-family: "Source Sans 3", sans-serif;
-	font-weight: 400;
+	align-items: center;
+	justify-content: center;
+	padding: 24px;
+}
+
+.chat-welcome {
+	max-width: 320px;
+}
+
+.chat-welcome-header {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 8px;
+}
+
+.chat-welcome-icon {
+	color: rgba(148, 163, 184, 0.7);
+}
+
+.chat-welcome-title {
+	font-size: 18px;
+	font-weight: 600;
+	color: #ffffff;
+}
+
+.chat-welcome-desc {
+	color: rgba(203, 213, 225, 0.8);
 	font-size: 14px;
 	line-height: 1.6;
-	padding: 0;
+}
+
+.chat-welcome-desc p {
+	margin: 0 0 8px;
+}
+
+.chat-welcome-desc ul {
+	margin: 0;
+	padding-left: 20px;
+}
+
+.chat-welcome-desc li {
+	margin-bottom: 2px;
 }
 
 /* User prompt bubble */
@@ -274,11 +238,11 @@ body {
 	color: #e2e8f0;
 }
 
-.chat-panel * {
+.left-panel-chat * {
 	user-select: text;
 }
 
-.chat-panel button {
+.left-panel-chat button {
 	user-select: none;
 }
 
@@ -311,116 +275,6 @@ body {
 	box-shadow: none;
 	backdrop-filter: none;
 	-webkit-backdrop-filter: none;
-}
-
-/* Chat Header */
-.chat-header {
-	flex-shrink: 0;
-	padding: 12px 16px;
-	border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.chat-header-content {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-}
-
-.chat-header-title {
-	font-size: 15px;
-	font-weight: 600;
-	color: #ffffff;
-}
-
-.chat-header-actions {
-	display: flex;
-	gap: 4px;
-}
-
-.chat-header-action-btn {
-	width: 32px;
-	height: 32px;
-	display: grid;
-	place-items: center;
-	border-radius: 8px;
-	border: none;
-	background: transparent;
-	color: rgba(148, 163, 184, 0.7);
-	cursor: pointer;
-	transition: background 0.15s ease, color 0.15s ease;
-}
-
-.chat-header-action-btn:hover {
-	background: rgba(255, 255, 255, 0.06);
-	color: #ffffff;
-}
-
-/* Chat Welcome (empty state) */
-.chat-welcome-area {
-	flex: 1;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	padding: 32px 24px;
-}
-
-.chat-welcome {
-	text-align: center;
-	max-width: 320px;
-}
-
-.chat-welcome-header {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	gap: 8px;
-	margin-bottom: 16px;
-}
-
-.chat-welcome-icon {
-	width: 48px;
-	height: 48px;
-	border-radius: 50%;
-	display: grid;
-	place-items: center;
-	background: rgba(251, 191, 36, 0.1);
-	color: #fbbf24;
-}
-
-.chat-welcome-title {
-	font-size: 20px;
-	font-weight: 600;
-	color: #ffffff;
-}
-
-.chat-welcome-desc {
-	font-size: 14px;
-	color: rgba(148, 163, 184, 0.7);
-	line-height: 1.6;
-}
-
-.chat-welcome-desc p {
-	margin: 0 0 8px;
-}
-
-.chat-welcome-desc ul {
-	list-style: none;
-	padding: 0;
-	margin: 0;
-	text-align: left;
-}
-
-.chat-welcome-desc li {
-	padding: 4px 0;
-	position: relative;
-	padding-left: 16px;
-}
-
-.chat-welcome-desc li::before {
-	content: "•";
-	position: absolute;
-	left: 0;
-	color: #fbbf24;
 }
 
 /* Quick Action Pills */

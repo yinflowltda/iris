@@ -3,7 +3,6 @@ import { CharacterCount } from '@tiptap/extensions'
 import { ReadonlySharedStyleMap } from '@tldraw/editor'
 import {
 	createContext,
-	memo,
 	useCallback,
 	useContext,
 	useEffect,
@@ -17,39 +16,19 @@ import {
 	DefaultColorThemePalette,
 	DefaultDashStyle,
 	DefaultFillStyle,
-	DefaultMainMenu,
-	DefaultMainMenuContent,
 	DefaultSizeStyle,
 	DefaultStylePanel,
-	DefaultToolbarContent,
 	defaultShapeUtils,
 	ErrorBoundary,
-	MobileStylePanel,
-	PORTRAIT_BREAKPOINT,
 	react,
 	type TLComponents,
-	type TLShapeId,
 	type TLUiOverrides,
 	type TLUiStylePanelProps,
 	tipTapDefaultExtensions,
 	Tldraw,
 	TldrawOverlays,
-	TldrawUiButton,
-	TldrawUiMenuCheckboxItem,
-	TldrawUiMenuContextProvider,
-	TldrawUiMenuGroup,
-	TldrawUiMenuItem,
-	TldrawUiMenuToolItem,
-	TldrawUiOrientationProvider,
 	TldrawUiToastsProvider,
-	TldrawUiToolbar,
-	ToggleToolLockedButton,
-	useBreakpoint,
 	useEditor,
-	usePassThroughWheelEvents,
-	useReadonly,
-	useTldrawUiComponents,
-	useTranslation,
 	useValue,
 } from 'tldraw'
 import type { TldrawAgentApp } from './agent/TldrawAgentApp'
@@ -57,7 +36,8 @@ import {
 	TldrawAgentAppContextProvider,
 	TldrawAgentAppProvider,
 } from './agent/TldrawAgentAppProvider'
-import { ChatPanel } from './components/ChatPanel'
+import { LeftPanel } from './components/LeftPanel'
+import { ToolRail } from './components/ToolRail'
 import { MandalaCoverContext } from './components/MandalaCoverContext'
 import { ChatPanelFallback } from './components/ChatPanelFallback'
 import { CustomHelperButtons } from './components/CustomHelperButtons'
@@ -93,16 +73,6 @@ import { useRoom } from './lib/use-room'
 import { RoomRegistry } from './components/RoomRegistry'
 import { ShareButton } from './components/ShareButton'
 
-const ChatPanelContext = createContext<{ chatOpen: boolean; toggleChat: () => void }>({
-	chatOpen: false,
-	toggleChat: () => {},
-})
-
-const FLSettingsContext = createContext<{ openFLSettings: () => void }>({
-	openFLSettings: () => {},
-})
-
-// ─── Auth ────────────────────────────────────────────────────────────────────
 const AuthUserContext = createContext<User | null>(null)
 
 export function useAuthUser(): User {
@@ -138,11 +108,6 @@ function useAuth() {
 DefaultSizeStyle.setDefaultValue('s')
 applyNodulePaletteToThemes(DefaultColorThemePalette.lightMode, DefaultColorThemePalette.darkMode)
 
-/**
- * Iris UI defaults: keep TLDraw UI minimal.
- * Flip these to `true` if we want to expose the full TLDraw UI again.
- */
-const SHOW_FULL_TLDRAW_TOOLS = false
 const SHOW_TEMPLATE_CHOOSER = true
 
 const MANDALA_TEMPLATE_DEFINITIONS = {
@@ -193,71 +158,6 @@ function PopoverOnlyStylePanel(props: TLUiStylePanelProps) {
 	return <DefaultStylePanel {...props} styles={styles} />
 }
 
-function ChatToggleButton() {
-	const { chatOpen, toggleChat } = useContext(ChatPanelContext)
-	return (
-		<TldrawUiButton type="tool" isActive={chatOpen} onClick={toggleChat} title="Toggle chat">
-			<svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-				<path
-					d="M9 2C5.134 2 2 4.91 2 8.5c0 1.48.528 2.845 1.41 3.94L2.5 15l3.02-1.04A7.13 7.13 0 0 0 9 15c3.866 0 7-2.91 7-6.5S12.866 2 9 2Z"
-					fill="currentColor"
-					fillOpacity="0.9"
-				/>
-			</svg>
-		</TldrawUiButton>
-	)
-}
-
-const ToolbarWithStylePanel = memo(function ToolbarWithStylePanel() {
-	const editor = useEditor()
-	const msg = useTranslation()
-	const breakpoint = useBreakpoint()
-	const isReadonlyMode = useReadonly()
-	const activeToolId = useValue('current tool id', () => editor.getCurrentToolId(), [editor])
-
-	const ref = useRef<HTMLDivElement>(null)
-	usePassThroughWheelEvents(ref)
-
-	return (
-		<TldrawUiOrientationProvider orientation="vertical" tooltipSide="right">
-			<div
-				ref={ref}
-				className={[
-					'tlui-main-toolbar',
-					'tlui-main-toolbar--vertical',
-					'iris-main-toolbar--dock-bottom-left',
-				].join(' ')}
-			>
-				<div className="tlui-main-toolbar__inner">
-					<div className="tlui-main-toolbar__left">
-						{!isReadonlyMode && (
-							<div className="tlui-main-toolbar__extras">
-								<ToggleToolLockedButton activeToolId={activeToolId} />
-							</div>
-						)}
-						<TldrawUiToolbar
-							orientation="vertical"
-							className="tlui-main-toolbar__tools"
-							label={msg('navigation-zone.title')}
-						>
-							<TldrawUiMenuContextProvider type="toolbar" sourceId="toolbar">
-								<DefaultToolbarContent />
-								<TldrawUiMenuToolItem toolId="mandala" isSelected={activeToolId === 'mandala'} />
-								<ChatToggleButton />
-							</TldrawUiMenuContextProvider>
-						</TldrawUiToolbar>
-					</div>
-					{breakpoint < PORTRAIT_BREAKPOINT.TABLET_SM && !isReadonlyMode && (
-						<div className="tlui-main-toolbar__tools tlui-main-toolbar__mobile-style-panel">
-							<MobileStylePanel />
-						</div>
-					)}
-				</div>
-			</div>
-		</TldrawUiOrientationProvider>
-	)
-})
-
 /**
  * Mounts FL training + orchestration hooks inside the Tldraw context.
  * Wires useLocalTrainer → useFLOrchestrator so training completions
@@ -293,106 +193,6 @@ function FLHooksMount() {
 	return null
 }
 
-const ARROW_VISIBLE_OPACITY = 0.6
-
-function useArrowsVisible(): [boolean, () => void] {
-	const editor = useEditor()
-	const mandala = useValue(
-		'mandala',
-		() =>
-			editor.getCurrentPageShapes().find((s) => s.type === 'mandala') as MandalaShape | undefined,
-		[editor],
-	)
-
-	const visible = mandala?.props.arrowsVisible !== false
-
-	const toggle = useCallback(() => {
-		if (!mandala) return
-		const next = !visible
-		const mandalaId = mandala.id
-
-		editor.updateShape({
-			id: mandalaId,
-			type: 'mandala',
-			props: { arrowsVisible: next },
-		})
-
-		const arrowRecords = mandala.props.arrows ?? []
-		for (const rec of arrowRecords) {
-			const arrowId = `shape:${rec.arrowId}` as TLShapeId
-			if (editor.getShape(arrowId)) {
-				editor.updateShape({
-					id: arrowId,
-					type: 'arrow',
-					opacity: next ? ARROW_VISIBLE_OPACITY : 0,
-				})
-			}
-		}
-	}, [editor, mandala, visible])
-
-	return [visible, toggle]
-}
-
-function IrisMainMenu() {
-	const [arrowsVisible, toggleArrowsVisible] = useArrowsVisible()
-	const { openFLSettings } = useContext(FLSettingsContext)
-
-	return (
-		<DefaultMainMenu>
-			<TldrawUiMenuGroup id="iris-mandala">
-				<TldrawUiMenuCheckboxItem
-					id="toggle-arrows"
-					label="Show arrows"
-					checked={arrowsVisible}
-					onSelect={toggleArrowsVisible}
-					readonlyOk
-				/>
-				<TldrawUiMenuItem
-					id="fl-settings"
-					label="Privacy & Learning"
-					readonlyOk
-					onSelect={openFLSettings}
-				/>
-			</TldrawUiMenuGroup>
-			<DefaultMainMenuContent />
-		</DefaultMainMenu>
-	)
-}
-
-const MenuPanelWithActions = memo(function MenuPanelWithActions() {
-	const editor = useEditor()
-	const msg = useTranslation()
-	const isReadonlyMode = useReadonly()
-	const ref = useRef<HTMLElement>(null)
-	usePassThroughWheelEvents(ref)
-
-	const { MainMenu, PageMenu, QuickActions, ActionsMenu } = useTldrawUiComponents()
-	const isSinglePageMode = useValue('isSinglePageMode', () => editor.options.maxPages <= 1, [
-		editor,
-	])
-
-	if (!MainMenu && !PageMenu && !QuickActions && !ActionsMenu) return null
-
-	return (
-		<nav ref={ref} className="tlui-menu-zone">
-			<div className="tlui-row">
-				{MainMenu && <MainMenu />}
-				{!isReadonlyMode && (QuickActions || ActionsMenu) && (
-					<TldrawUiToolbar
-						orientation="horizontal"
-						className="tlui-main-toolbar__extras__controls iris-menu-actions"
-						label={msg('actions-menu.title')}
-					>
-						{QuickActions && <QuickActions />}
-						{ActionsMenu && <ActionsMenu />}
-					</TldrawUiToolbar>
-				)}
-				{PageMenu && !isSinglePageMode && <PageMenu />}
-			</div>
-		</nav>
-	)
-})
-
 const NOTE_HALF_SIZE = 98
 
 function hasNoTextContent(richText: unknown): boolean {
@@ -410,10 +210,6 @@ function App() {
 	const [app, setApp] = useState<TldrawAgentApp | null>(null)
 	const [showTemplate, setShowTemplate] = useState(SHOW_TEMPLATE_CHOOSER)
 	const [showFLSettings, setShowFLSettings] = useState(false)
-	const flSettingsCtx = useMemo(
-		() => ({ openFLSettings: () => setShowFLSettings(true) }),
-		[],
-	)
 	const [chatOpen, setChatOpen] = useState(false)
 	const toggleChat = useCallback(() => setChatOpen((v) => !v), [])
 	const chatInputRef = useRef<HTMLTextAreaElement>(null)
@@ -435,16 +231,14 @@ function App() {
 			})
 
 			// Open chat sidebar
-			if (!chatOpen) {
-				toggleChat()
-			}
+			setChatOpen(true)
 
 			// Focus chat input (defer so sidebar renders)
 			requestAnimationFrame(() => {
 				chatInputRef.current?.focus()
 			})
 		},
-		[app, chatOpen, toggleChat],
+		[app],
 	)
 	const handleUnmount = useCallback(() => {
 		setApp(null)
@@ -654,8 +448,6 @@ function App() {
 					},
 				}
 
-				if (SHOW_FULL_TLDRAW_TOOLS) return next
-
 				// Keep only the minimal set of tools we want exposed in the UI.
 				const allowedToolIds = new Set([
 					'select',
@@ -732,11 +524,12 @@ function App() {
 	const components: TLComponents = useMemo(() => {
 		return {
 			StylePanel: PopoverOnlyStylePanel,
-			Toolbar: ToolbarWithStylePanel,
-			MainMenu: IrisMainMenu,
-			MenuPanel: SHOW_FULL_TLDRAW_TOOLS ? undefined : MenuPanelWithActions,
-			NavigationPanel: SHOW_FULL_TLDRAW_TOOLS ? undefined : null,
-			PageMenu: SHOW_FULL_TLDRAW_TOOLS ? undefined : null,
+			Toolbar: null,
+			MainMenu: null,
+			ActionsMenu: null,
+			MenuPanel: null,
+			NavigationPanel: null,
+			PageMenu: null,
 			HelperButtons: () =>
 				app && (
 					<TldrawAgentAppContextProvider app={app}>
@@ -779,49 +572,69 @@ function App() {
 	return (
 		<AuthUserContext.Provider value={user}>
 			{roomInfo?.isOwner && <ShareButton roomId={user.sub} roomSlug={user.room_slug} />}
-			<button className="back-to-rooms" onClick={() => navigateTo('/rooms')}>← Rooms</button>
 			{roomInfo && !roomInfo.isOwner && roomInfo.permission === 'view' && <div className="readonly-badge">View only</div>}
 			<MandalaCoverContext.Provider value={{ onCoverSlideClick: handleCoverSlideClick }}>
-				<ChatPanelContext.Provider value={{ chatOpen, toggleChat }}>
-					<FLSettingsContext.Provider value={flSettingsCtx}>
-					<TldrawUiToastsProvider>
-						<div className="tldraw-agent-container">
-							<div className="tldraw-canvas">
-								<Tldraw
-									store={syncStore}
-									options={options}
-									shapeUtils={shapeUtils}
-									tools={tools}
-									overrides={overrides}
-									components={components}
-									textOptions={textOptions}
-								>
-									<TldrawAgentAppProvider onMount={setApp} onUnmount={handleUnmount} />
-									<FLHooksMount />
-								</Tldraw>
-							</div>
-							<div className={`agent-chat-slot${chatOpen ? ' agent-chat-slot--open' : ''}`}>
-								<ErrorBoundary fallback={ChatPanelFallback}>
-									{app && (
-										<TldrawAgentAppContextProvider app={app}>
-											<ChatPanel inputRef={chatInputRef} />
-										</TldrawAgentAppContextProvider>
-									)}
-								</ErrorBoundary>
-							</div>
-							<TemplateChooser
-								visible={showTemplate}
-								onSelectTemplate={handleSelectTemplate}
-								onRequestClose={() => setShowTemplate(false)}
-							/>
-							<FLSettingsPanel
-								visible={showFLSettings}
-								onRequestClose={() => setShowFLSettings(false)}
-							/>
+				<TldrawUiToastsProvider>
+					<div className="iris-app">
+						{/* Left panel: PanelHeader + ToolRail + Chat (own card) */}
+						<ErrorBoundary fallback={ChatPanelFallback}>
+							{app && (
+								<TldrawAgentAppContextProvider app={app}>
+									<LeftPanel
+										panelOpen={chatOpen}
+										onTogglePanel={toggleChat}
+										inputRef={chatInputRef}
+										onOpenFLSettings={() => setShowFLSettings(true)}
+										onNavigateToRooms={() => navigateTo('/rooms')}
+									/>
+								</TldrawAgentAppContextProvider>
+							)}
+						</ErrorBoundary>
+
+						{/* Canvas card */}
+						<div className="iris-canvas-container">
+							<Tldraw
+								store={syncStore}
+								options={options}
+								shapeUtils={shapeUtils}
+								tools={tools}
+								overrides={overrides}
+								components={components}
+								textOptions={textOptions}
+							>
+								<TldrawAgentAppProvider onMount={setApp} onUnmount={handleUnmount} />
+								<FLHooksMount />
+							</Tldraw>
+
+							{/* Tool rail — right side, centered */}
+							{app && (
+								<TldrawAgentAppContextProvider app={app}>
+									<div className="canvas-right-toolbar">
+										<ToolRail
+											panelOpen={chatOpen}
+											onTogglePanel={toggleChat}
+											onMandalaToolSelect={() => {
+												setShowTemplate(true)
+												app.editor.setCurrentTool('select')
+												app.editor.focus()
+											}}
+										/>
+									</div>
+								</TldrawAgentAppContextProvider>
+							)}
 						</div>
-					</TldrawUiToastsProvider>
-					</FLSettingsContext.Provider>
-				</ChatPanelContext.Provider>
+					</div>
+
+					<TemplateChooser
+						visible={showTemplate}
+						onSelectTemplate={handleSelectTemplate}
+						onRequestClose={() => setShowTemplate(false)}
+					/>
+					<FLSettingsPanel
+						visible={showFLSettings}
+						onRequestClose={() => setShowFLSettings(false)}
+					/>
+				</TldrawUiToastsProvider>
 			</MandalaCoverContext.Provider>
 		</AuthUserContext.Provider>
 	)
