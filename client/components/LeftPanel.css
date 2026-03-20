@@ -63,61 +63,30 @@
 	color: #ffffff;
 }
 
-/* ─── Canvas Top Bar (menu + tools) ─── */
+/* ─── Canvas Bottom Bar (tools) ─── */
 
-.canvas-top-bar {
+.canvas-bottom-bar {
 	position: absolute;
-	top: 8px;
+	bottom: 8px;
 	left: 50%;
 	transform: translateX(-50%);
 	z-index: 100;
-	display: flex;
-	align-items: center;
-	gap: 6px;
-	padding: 4px;
-	background: linear-gradient(135deg, rgba(15, 23, 42, 0.92), rgba(30, 41, 59, 0.88));
-	backdrop-filter: blur(20px);
-	-webkit-backdrop-filter: blur(20px);
-	border: 1px solid rgba(255, 255, 255, 0.08);
-	border-radius: 12px;
-	box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
 }
 
-/* When inside the canvas top bar, header and tool rail are horizontal */
-.canvas-top-bar .panel-header {
-	padding: 4px 8px;
-	border-bottom: none;
-	gap: 6px;
-}
-
-.canvas-top-bar .tool-rail {
+.canvas-bottom-bar .tool-rail {
 	flex-direction: row;
 	width: auto;
-	padding: 0 4px;
-	gap: 4px;
+	padding: 0;
+	gap: 0;
 }
 
-.canvas-top-bar .tool-rail-cluster {
+.canvas-bottom-bar .tool-rail-cluster {
 	flex-direction: row;
 	gap: 2px;
-	padding: 4px;
-	background: transparent;
-	border: none;
-	backdrop-filter: none;
-	-webkit-backdrop-filter: none;
 }
 
-.canvas-top-bar .tool-rail-toggle {
+.canvas-bottom-bar .tool-rail-toggle {
 	display: none;
-}
-
-/* Divider between header and tools */
-.canvas-top-bar .tool-rail::before {
-	content: '';
-	width: 1px;
-	height: 24px;
-	background: rgba(255, 255, 255, 0.1);
-	flex-shrink: 0;
 }
 
 /* ─── Tool Rail ─── */
@@ -309,9 +278,7 @@
 		height: auto;
 	}
 
-	.canvas-top-bar {
-		top: 4px;
-		max-width: calc(100% - 16px);
-		overflow-x: auto;
+	.canvas-bottom-bar {
+		bottom: 4px;
 	}
 }

@@ -8,7 +8,7 @@ import type { MandalaShape } from '../shapes/MandalaShapeUtil'
 // It uses useValue for reactive mandala tracking and useCallback for stable identity.
 const ARROW_VISIBLE_OPACITY = 0.6
 
-function useArrowsVisible(): [boolean, () => void] {
+export function useArrowsVisible(): [boolean, () => void] {
 	const editor = useTldrawAgentApp().editor
 	const mandala = useValue(
 		'mandala',
