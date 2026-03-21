@@ -3,6 +3,7 @@ import { createRemoteJWKSet } from 'jose'
 import type { Environment } from '../environment'
 import { buildDevUser, extractJwt, verifyAccessJwt } from './auth'
 import type { AuthUser } from './auth-types'
+import { ensureD1Schema } from './d1-migrate'
 import { upsertUser } from './user-store'
 import { ensureRoomSlug, backfillSub } from './room-store'
 
@@ -52,6 +53,9 @@ export async function authMiddleware(
 	env: Environment,
 ): Promise<Response | void> {
 	const url = new URL(request.url)
+
+	// 0. Auto-migrate D1 schema (runs once per worker lifetime, no-ops after)
+	await ensureD1Schema(env.DB)
 
 	// 1. Public routes skip auth
 	if (isPublicRoute(request.method, url.pathname)) {
