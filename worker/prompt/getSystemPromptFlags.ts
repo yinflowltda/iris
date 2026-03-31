@@ -67,6 +67,7 @@ export function getSystemPromptFlags(actions: AgentAction['_type'][], parts: Pro
 		hasCreateArrow: actions.includes('create_arrow'),
 		hasSetMetadata: actions.includes('set_metadata'),
 		hasGetMetadata: actions.includes('get_metadata'),
+		hasFlipNote: actions.includes('flip_note'),
 
 		// Derived flags for convenience
 		canEdit: actions.some(isEditAction),

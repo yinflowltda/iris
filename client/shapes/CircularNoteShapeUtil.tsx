@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import {
 	Circle2d,
 	FONT_FAMILIES,
@@ -10,6 +11,7 @@ import {
 	RichTextLabel,
 	TEXT_PROPS,
 	type TLNoteShape,
+	toRichText,
 	useEditor,
 	useValue,
 } from 'tldraw'
@@ -94,6 +96,20 @@ export class CircularNoteShapeUtil extends NoteShapeUtil {
 			richText.content.length === 1 &&
 			!(richText.content[0] as { content?: unknown }).content
 
+		const meta = shape.meta as Record<string, unknown>
+		const elementMetadata = (meta.elementMetadata ?? {}) as Record<string, unknown>
+		const tense = elementMetadata.tense as string | undefined
+		const isPresentFuture = tense === 'present-future'
+		const hasFlipContent = meta.flipContent != null
+		// biome-ignore lint/correctness/useHookAtTopLevel: tldraw component() methods use hooks
+		const isHovered = useValue(
+			'isHovered',
+			() => editor.getHoveredShapeId() === id,
+			[editor, id],
+		)
+		// biome-ignore lint/correctness/useHookAtTopLevel: tldraw component() methods use hooks
+		const [isFlipping, setIsFlipping] = useState(false)
+
 		// Inscribed square: side = diameter / √2, offset = (diameter - side) / 2
 		const inscribedSide = nw / Math.SQRT2
 		const inscribedOffset = (nw - inscribedSide) / 2
@@ -101,18 +117,22 @@ export class CircularNoteShapeUtil extends NoteShapeUtil {
 		const fontSize = (fontSizeAdjustment || LABEL_FONT_SIZES[size]) * scale
 
 		const debug = typeof window !== 'undefined' && localStorage.getItem('CIRCULAR_NOTE_DEBUG') === '1'
-
 		return (
 			<div
 				id={id}
-				className="tl-note__container"
+				className="tl-note__container has-flip"
 				style={{
 					width: nw,
 					height: nh,
-					backgroundColor: getColorValue(theme, color, 'noteFill'),
-					borderBottom: isDarkMode
-						? `${2 * scale}px solid rgb(20, 20, 20)`
-						: `${2 * scale}px solid rgb(144, 144, 144)`,
+					backgroundColor: isPresentFuture
+						? '#d1fae5'
+						: getColorValue(theme, color, 'noteFill'),
+					borderBottom: isPresentFuture
+						? `${2 * scale}px solid #10b981`
+						: isDarkMode
+							? `${2 * scale}px solid rgb(20, 20, 20)`
+							: `${2 * scale}px solid rgb(144, 144, 144)`,
+					animation: isFlipping ? 'flip-card 0.3s ease-in-out' : undefined,
 				}}
 			>
 				{(isSelected || isEditing || !isEmpty) && (
@@ -138,9 +158,11 @@ export class CircularNoteShapeUtil extends NoteShapeUtil {
 							richText={richText}
 							isSelected={isSelected}
 							labelColor={
-								labelColor === 'black'
-									? getColorValue(theme, color, 'noteText')
-									: getColorValue(theme, labelColor, 'fill')
+								isPresentFuture
+									? '#065f46'
+									: labelColor === 'black'
+										? getColorValue(theme, color, 'noteText')
+										: getColorValue(theme, labelColor, 'fill')
 							}
 							wrap
 							padding={CONTENT_PADDING * scale}
@@ -169,6 +191,63 @@ export class CircularNoteShapeUtil extends NoteShapeUtil {
 					)}
 					</div>
 				)}
+				<div
+						className="flip-icon"
+						style={{
+							position: 'absolute',
+							top: '50%',
+							right: inscribedOffset * 0.5 - 25 * scale,
+							transform: 'translateY(-50%)',
+							width: 24 * scale,
+							height: 24 * scale,
+							borderRadius: '50%',
+							backgroundColor: 'rgba(0,0,0,0.6)',
+							color: 'white',
+							display: 'flex',
+							alignItems: 'center',
+							justifyContent: 'center',
+							fontSize: 14 * scale,
+							cursor: 'pointer',
+							opacity: isHovered || isEditing ? 1 : 0,
+							pointerEvents: 'all',
+						}}
+						onPointerDown={(e) => {
+							e.stopPropagation()
+							e.preventDefault()
+							setIsFlipping(true)
+							setTimeout(() => {
+								const currentShape = editor.getShape(shape.id) as TLNoteShape | undefined
+								if (!currentShape) return
+								const m = currentShape.meta as Record<string, unknown>
+								const em = (m.elementMetadata ?? {}) as Record<string, unknown>
+								const currentTense = (em.tense as string) ?? 'past-present'
+								const oppositeTense = currentTense === 'past-present' ? 'present-future' : 'past-present'
+								// If no flip content yet, create an empty other side
+								const flipContent = m.flipContent ?? toRichText('')
+								editor.updateShape({
+									id: shape.id,
+									type: 'note',
+									props: { richText: flipContent as any },
+									meta: {
+										...m,
+										flipContent: currentShape.props.richText as any,
+										flipTense: currentTense,
+										elementMetadata: { ...em, tense: (m.flipTense as string) ?? oppositeTense },
+									},
+								})
+							}, 150)
+							setTimeout(() => setIsFlipping(false), 300)
+						}}
+					>
+						&#8635;
+					</div>
+				<style>{`
+					@keyframes flip-card {
+						0% { transform: scaleX(1); }
+						50% { transform: scaleX(0); }
+						100% { transform: scaleX(1); }
+					}
+				`}</style>
 			</div>
 		)
 	}

@@ -15,6 +15,7 @@ import {
 } from 'tldraw'
 import type { CoverConfig, MandalaArrowRecord, MandalaState } from '../../shared/types/MandalaTypes'
 import { MandalaCover } from '../components/MandalaCover'
+import { ViewTenseToggle } from '../components/ViewTenseToggle'
 import { ZoomModeToggle } from '../components/ZoomModeToggle'
 import { setActiveMandalaId } from '../lib/frameworks/active-framework'
 import { EMOTIONS_MAP } from '../lib/frameworks/emotions-map'
@@ -46,6 +47,7 @@ export type MandalaShapeProps = {
 	zoomedNodeId: string | null
 	zoomMode: string
 	cover: CoverConfig | null
+	viewTense: string
 }
 
 declare module 'tldraw' {
@@ -272,6 +274,7 @@ function MandalaInteractive({ shape }: { shape: MandalaShape }) {
 				}
 			/>
 			<ZoomModeToggle shape={shape} />
+			<ViewTenseToggle shape={shape} />
 		</div>
 	)
 }
@@ -290,6 +293,7 @@ export class MandalaShapeUtil extends ShapeUtil<MandalaShape> {
 		zoomedNodeId: T.jsonValue as any,
 		zoomMode: T.string,
 		cover: T.jsonValue as any,
+		viewTense: T.string,
 	}
 
 	getDefaultProps(): MandalaShapeProps {
@@ -303,6 +307,7 @@ export class MandalaShapeUtil extends ShapeUtil<MandalaShape> {
 			zoomedNodeId: null,
 			zoomMode: 'navigate',
 			cover: null,
+			viewTense: 'past-present',
 		}
 	}
 
@@ -395,6 +400,11 @@ export class MandalaShapeUtil extends ShapeUtil<MandalaShape> {
 			x: pagePoint.x - halfSize,
 			y: pagePoint.y - halfSize,
 			props: { scale },
+			meta: {
+				elementMetadata: {
+					tense: shape.props.viewTense ?? 'past-present',
+				},
+			},
 		})
 		this.editor.setSelectedShapes([noteId])
 		return { id: shape.id, type: 'mandala' as const }

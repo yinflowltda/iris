@@ -142,6 +142,8 @@ export const StreamingCellFillActionUtil = registerActionUtil(
 				})
 			}
 
+			const initialTense = mandala?.props.viewTense ?? 'past-present'
+
 			editor.createShape({
 				id: newShapeId,
 				type: 'note',
@@ -160,6 +162,11 @@ export const StreamingCellFillActionUtil = registerActionUtil(
 					fontSizeAdjustment: 0,
 					growY: 0,
 					url: '',
+				},
+				meta: {
+					elementMetadata: {
+						tense: initialTense,
+					},
 				},
 			})
 

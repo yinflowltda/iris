@@ -26,6 +26,7 @@ import { ResizeActionUtil } from '../actions/ResizeActionUtil'
 import { ReviewActionUtil } from '../actions/ReviewActionUtil'
 import { RotateActionUtil } from '../actions/RotateActionUtil'
 import { SendToBackActionUtil } from '../actions/SendToBackActionUtil'
+import { FlipNoteActionUtil } from '../actions/FlipNoteActionUtil'
 import { MoveNoteActionUtil } from '../actions/MoveNoteActionUtil'
 import { SetMetadataActionUtil } from '../actions/SetMetadataActionUtil'
 import { SetMyViewActionUtil } from '../actions/SetMyViewActionUtil'
@@ -189,6 +190,7 @@ export const AGENT_MODE_DEFINITIONS = [
 			SetMetadataActionUtil.type,
 			GetMetadataActionUtil.type,
 			MoveNoteActionUtil.type,
+			FlipNoteActionUtil.type,
 
 			// Internal (required)
 			UnknownActionUtil.type,
@@ -241,6 +243,7 @@ export const AGENT_MODE_DEFINITIONS = [
 			SetMetadataActionUtil.type,
 			GetMetadataActionUtil.type,
 			MoveNoteActionUtil.type,
+			FlipNoteActionUtil.type,
 
 			// Individual shapes
 			CreateActionUtil.type,

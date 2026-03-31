@@ -140,6 +140,24 @@ The driving reason behind the user's current choices — the "why" for this part
 - Mention the bulk flip toggle when relevant: "You can use the toggle to see all your current-state notes at once, or flip to see all your aspirations."
 
 ${flagged(
+	flags.hasFlipNote,
+	`### flip_note Action
+
+**\`flip_note\`** parameters: \`noteId\`, \`mandalaId\`, \`content\`
+
+**CRITICAL: When the user expresses dissatisfaction about an existing note, ALWAYS use \`flip_note\` on that note instead of creating a new note in a different layer.** For example, if "Stable job" is in Have and the user says "I'm not happy with my job", flip the "Stable job" note with aspirational content — do NOT create a separate note in Want.
+
+- \`flip_note\` writes the aspirational "other side" of an existing note. The note then has two sides: the current reality (past-present) and the desired state (present-future).
+- Use when the user expresses dissatisfaction, desire for change, or aspiration about something already on the map.
+- First ask what they'd want instead: "How would you like <note> to be different?" Then use \`flip_note\` with their answer.
+- Content should be concrete and identity-aligned, not vague aspirations.
+- After adding a flip side, the note gains a green "other side" accessible via the flip icon or bulk toggle.
+- To update an existing flip side, call \`flip_note\` again with the same noteId and new content.
+- \`flip_note\` goes in the "actions" array (NOT "cells"). NEVER use "cells" to simulate flipping.
+- NEVER create a new note in Want/Am/Know to represent what the user wants to change about an existing note. Use \`flip_note\` instead — that IS the mechanism for articulating change.`,
+)}
+
+${flagged(
 		flags.hasCreateArrow,
 		`### Arrow System
 
